@@ -55,22 +55,22 @@ lsShader::lsShader( lsOpenGL *opengl )
     name = "Not set";
     shader_type = LSST_NONE;
 
-    shader_v = opengl->glCreateShader( GL_VERTEX_SHADER );
-    shader_f = opengl->glCreateShader( GL_FRAGMENT_SHADER );
-    shader = opengl->glCreateProgram();
-    opengl->glAttachShader( shader, shader_v );
-    opengl->glAttachShader( shader, shader_f );
+    shader_v = glCreateShader( GL_VERTEX_SHADER );
+    shader_f = glCreateShader( GL_FRAGMENT_SHADER );
+    shader = glCreateProgram();
+    glAttachShader( shader, shader_v );
+    glAttachShader( shader, shader_f );
 
 }
 
 lsShader::~lsShader()
 {
-    ogl->glDetachShader( shader, shader_v );
-    ogl->glDetachShader( shader, shader_f );
-    ogl->glDeleteShader( shader_v );
-    ogl->glDeleteShader( shader_f );
+    glDetachShader( shader, shader_v );
+    glDetachShader( shader, shader_f );
+    glDeleteShader( shader_v );
+    glDeleteShader( shader_f );
 
-    ogl->glDeleteProgram( shader );
+    glDeleteProgram( shader );
 }
 
 /*!
@@ -86,65 +86,65 @@ void lsShader::setShader_type( int val )
     shader_type = val;
 
     // Bind shader
-    ogl->glUseProgram( shader );
+    glUseProgram( shader );
 
     // by shader type
     switch( shader_type )
     {
     case LSST_LIGHT_TEX_DNS:
         // Texture
-        iTex_specular = ogl->glGetUniformLocation( shader, "tex_specular" );
+        iTex_specular = glGetUniformLocation( shader, "tex_specular" );
     case LSST_LIGHT_TEX_DN:
         // Texture
-        iTex_normal = ogl->glGetUniformLocation( shader, "tex_normal" );
+        iTex_normal = glGetUniformLocation( shader, "tex_normal" );
     case LSST_LIGHT_TEX_D:
         // Texture
-        iTex_diffuse = ogl->glGetUniformLocation( shader, "tex_diffuse" );
+        iTex_diffuse = glGetUniformLocation( shader, "tex_diffuse" );
 
     case LSST_LIGHT_TEX_NONE:
         // Lights
-        iLightCount = ogl->glGetUniformLocation( shader, "vxLightCount" );
+        iLightCount = glGetUniformLocation( shader, "vxLightCount" );
         // Light 1
-        iLightType1 = ogl->glGetUniformLocation( shader, "vxLightType[0]" );
-        iLightPos1 = ogl->glGetUniformLocation( shader, "vxLightPos[0]" );
-        iLightDiffuse1 = ogl->glGetUniformLocation( shader, "vxLightDiffuse[0]" );
-        iLightSpecular1 = ogl->glGetUniformLocation( shader, "vxLightSpecular[0]" );
+        iLightType1 = glGetUniformLocation( shader, "vxLightType[0]" );
+        iLightPos1 = glGetUniformLocation( shader, "vxLightPos[0]" );
+        iLightDiffuse1 = glGetUniformLocation( shader, "vxLightDiffuse[0]" );
+        iLightSpecular1 = glGetUniformLocation( shader, "vxLightSpecular[0]" );
         // Light 2
-        iLightType2 = ogl->glGetUniformLocation( shader, "vxLightType[1]" );
-        iLightPos2 = ogl->glGetUniformLocation( shader, "vxLightPos[1]" );
-        iLightDiffuse2 = ogl->glGetUniformLocation( shader, "vxLightDiffuse[1]" );
-        iLightSpecular2 = ogl->glGetUniformLocation( shader, "vxLightSpecular[1]" );
+        iLightType2 = glGetUniformLocation( shader, "vxLightType[1]" );
+        iLightPos2 = glGetUniformLocation( shader, "vxLightPos[1]" );
+        iLightDiffuse2 = glGetUniformLocation( shader, "vxLightDiffuse[1]" );
+        iLightSpecular2 = glGetUniformLocation( shader, "vxLightSpecular[1]" );
         // Light 3
-        iLightType3 = ogl->glGetUniformLocation( shader, "vxLightType[2]" );
-        iLightPos3 = ogl->glGetUniformLocation( shader, "vxLightPos[2]" );
-        iLightDiffuse3 = ogl->glGetUniformLocation( shader, "vxLightDiffuse[2]" );
-        iLightSpecular3 = ogl->glGetUniformLocation( shader, "vxLightSpecular[2]" );
+        iLightType3 = glGetUniformLocation( shader, "vxLightType[2]" );
+        iLightPos3 = glGetUniformLocation( shader, "vxLightPos[2]" );
+        iLightDiffuse3 = glGetUniformLocation( shader, "vxLightDiffuse[2]" );
+        iLightSpecular3 = glGetUniformLocation( shader, "vxLightSpecular[2]" );
 
         // Material
-        iMatAmbiant = ogl->glGetUniformLocation( shader, "vxMatAmbiant" );
-        iMatDiffuse = ogl->glGetUniformLocation( shader, "vxMatDiffuse" );
-        iMatSpecular = ogl->glGetUniformLocation( shader, "vxMatSpecular" );
-        iMatShininess = ogl->glGetUniformLocation( shader, "vxMatShininess" );
-        iMatGlow = ogl->glGetUniformLocation( shader, "vxMatGlow" );
+        iMatAmbiant = glGetUniformLocation( shader, "vxMatAmbiant" );
+        iMatDiffuse = glGetUniformLocation( shader, "vxMatDiffuse" );
+        iMatSpecular = glGetUniformLocation( shader, "vxMatSpecular" );
+        iMatShininess = glGetUniformLocation( shader, "vxMatShininess" );
+        iMatGlow = glGetUniformLocation( shader, "vxMatGlow" );
 
         // Need ModelViewMatrix and ProjectionMatrix
-        imvMatrix = ogl->glGetUniformLocation( shader, "mvMatrix" );
-        ipMatrix = ogl->glGetUniformLocation( shader, "pMatrix" );
+        imvMatrix = glGetUniformLocation( shader, "mvMatrix" );
+        ipMatrix = glGetUniformLocation( shader, "pMatrix" );
         // Normal Matrix
-        inMatrix = ogl->glGetUniformLocation( shader, "nMatrix" );
+        inMatrix = glGetUniformLocation( shader, "nMatrix" );
         break;
 
     case LSST_QUAD:
         // Texture
-        iTex_diffuse = ogl->glGetUniformLocation( shader, "tex_diffuse" );
+        iTex_diffuse = glGetUniformLocation( shader, "tex_diffuse" );
     case LSST_DEBUG:
         // Need ModelViewMatrix and ProjectionMatrix
-        imvpMatrix = ogl->glGetUniformLocation( shader, "mvpMatrix" );
+        imvpMatrix = glGetUniformLocation( shader, "mvpMatrix" );
         break;
 
     } // switch shader_type
 
-    ogl->glUseProgram(0);
+    glUseProgram(0);
 }
 
 void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch *batch )
@@ -163,7 +163,7 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch
     batch_mesh = (lsBatch_Mesh*)batch;
     batch_quad = (lsBatch_Quad*)batch;
 
-    ogl->glUseProgram( shader );
+    glUseProgram( shader );
 
     switch( shader_type )
     {
@@ -171,28 +171,28 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch
         // Texture specular
         glActiveTexture( GL_TEXTURE2 );
         glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_specular );
-        ogl->glUniform1i( iTex_specular, 2 );
+        glUniform1i( iTex_specular, 2 );
     case LSST_LIGHT_TEX_DN:
         // Texture normal
         glActiveTexture( GL_TEXTURE1 );
         glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_normal );
-        ogl->glUniform1i( iTex_normal, 1 );
+        glUniform1i( iTex_normal, 1 );
     case LSST_LIGHT_TEX_D:
         // Texture diffuse
         glActiveTexture( GL_TEXTURE0 );
         glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_diffuse );
-        ogl->glUniform1i( iTex_diffuse, 0 );
+        glUniform1i( iTex_diffuse, 0 );
 
     case LSST_LIGHT_TEX_NONE:
     case LSST_DEBUG_NORMALS:
         // Material
         if( batch->getBatch_type() == LSBT_MESH )
         {
-            ogl->glUniform4f( iMatAmbiant, batch_mesh->ambiant.x, batch_mesh->ambiant.y, batch_mesh->ambiant.z, batch_mesh->ambiant.w );
-            ogl->glUniform4f( iMatDiffuse, batch_mesh->diffuse.x, batch_mesh->diffuse.y, batch_mesh->diffuse.z, batch_mesh->diffuse.w );
-            ogl->glUniform4f( iMatSpecular, batch_mesh->specular.x, batch_mesh->specular.y, batch_mesh->specular.z, batch_mesh->specular.w );
-            ogl->glUniform1f( iMatShininess, batch_mesh->shininess );
-            ogl->glUniform1f( iMatGlow, batch_mesh->glow );
+            glUniform4f( iMatAmbiant, batch_mesh->ambiant.x, batch_mesh->ambiant.y, batch_mesh->ambiant.z, batch_mesh->ambiant.w );
+            glUniform4f( iMatDiffuse, batch_mesh->diffuse.x, batch_mesh->diffuse.y, batch_mesh->diffuse.z, batch_mesh->diffuse.w );
+            glUniform4f( iMatSpecular, batch_mesh->specular.x, batch_mesh->specular.y, batch_mesh->specular.z, batch_mesh->specular.w );
+            glUniform1f( iMatShininess, batch_mesh->shininess );
+            glUniform1f( iMatGlow, batch_mesh->glow );
         }
 
         // Matrix data
@@ -203,9 +203,9 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch
         m_iMatrix.Inverse( m_eMatrix );
         nMatrix.Transpose( m_iMatrix );
 
-        ogl->glUniformMatrix4fv( imvMatrix, 1, GL_FALSE, mvMatrix.matrix );
-        ogl->glUniformMatrix4fv( ipMatrix, 1, GL_FALSE, pMatrix.matrix );
-        ogl->glUniformMatrix3fv( inMatrix, 1, GL_FALSE, nMatrix.matrix );
+        glUniformMatrix4fv( imvMatrix, 1, GL_FALSE, mvMatrix.matrix );
+        glUniformMatrix4fv( ipMatrix, 1, GL_FALSE, pMatrix.matrix );
+        glUniformMatrix3fv( inMatrix, 1, GL_FALSE, nMatrix.matrix );
         break;
 
     case LSST_QUAD:
@@ -216,14 +216,14 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch
         pMatrix *= cam->frustum.getProjectionMatrix();
         mvMatrix *= cam->ViewMatrix * object->ModelMatrix;
         mvpMatrix *= pMatrix * mvMatrix;
-        ogl->glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
+        glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
 
         // Textures
         glEnable( GL_TEXTURE_2D );
 
         glActiveTexture( GL_TEXTURE0 );
         glBindTexture( GL_TEXTURE_2D, batch_quad->getTex_diffuse() );
-        ogl->glUniform1i( iTex_diffuse, 0 );
+        glUniform1i( iTex_diffuse, 0 );
         break;
 
     case LSST_DEBUG:
@@ -234,7 +234,7 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch
         pMatrix *= cam->frustum.getProjectionMatrix();
         mvMatrix *= cam->ViewMatrix * object->ModelMatrix;
         mvpMatrix *= pMatrix * mvMatrix;
-        ogl->glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
+        glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
 
         glDisable( GL_TEXTURE_2D );
         break;
@@ -289,13 +289,13 @@ void lsShader::Load_Shader( const string& name )
     }
 
     const GLchar* source = (GLchar*)str.c_str();
-    ogl->glShaderSource( shader_v, 1, &source, NULL );
+    glShaderSource( shader_v, 1, &source, NULL );
 
     // Compile it
 #ifdef VORTX_DEBUG_SHADERS
     cout << "Compile Vertex Shader" << endl;
 #endif
-    ogl->glCompileShader( shader_v );
+    glCompileShader( shader_v );
     debug( shader_v );
 
     // Fragment shader
@@ -321,20 +321,20 @@ void lsShader::Load_Shader( const string& name )
     }
 
     source = (GLchar*)str.c_str();
-    ogl->glShaderSource( shader_f, 1, &source, NULL );
+    glShaderSource( shader_f, 1, &source, NULL );
 
     // Compile it
 #ifdef VORTX_DEBUG_SHADERS
     cout << "Compile Fragment Shader" << endl;
 #endif
-    ogl->glCompileShader( shader_f );
+    glCompileShader( shader_f );
     debug( shader_f );
 
     // Link Program
 #ifdef VORTX_DEBUG_SHADERS
     cout << "Linking shader" << endl;
 #endif
-    ogl->glLinkProgram( shader );
+    glLinkProgram( shader );
 
     // Set shader type
     if(! debugProgram() )
@@ -380,11 +380,11 @@ void lsShader::debug( GLuint s )
     int charsWritten  = 0;
     char *infoLog;
 
-    ogl->glGetShaderiv( s, GL_INFO_LOG_LENGTH, &infologLength );
+    glGetShaderiv( s, GL_INFO_LOG_LENGTH, &infologLength );
     if( infologLength > 1 )
     {
         infoLog = new char[ infologLength+1 ];
-        ogl->glGetShaderInfoLog( s, infologLength, &charsWritten, infoLog );
+        glGetShaderInfoLog( s, infologLength, &charsWritten, infoLog );
         cout << "InfoLog Shader....." << endl;
         cout << infoLog << endl;
         delete [] infoLog;
@@ -397,11 +397,11 @@ bool lsShader::debugProgram()
     int charsWritten  = 0;
     char *infoLog;
 
-    ogl->glGetProgramiv( shader, GL_INFO_LOG_LENGTH, &infologLength );
+    glGetProgramiv( shader, GL_INFO_LOG_LENGTH, &infologLength );
     if( infologLength > 1 )
     {
         infoLog = new char[ infologLength+1 ];
-        ogl->glGetProgramInfoLog( shader, infologLength, &charsWritten, infoLog );
+        glGetProgramInfoLog( shader, infologLength, &charsWritten, infoLog );
         cout << "InfoLog Program....." << endl;
         cout << infoLog << endl;
         delete [] infoLog;
@@ -444,7 +444,7 @@ void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
     } // while light_ptr
 
     // Set count
-    ogl->glUniform1i( iLightCount, lc );
+    glUniform1i( iLightCount, lc );
 }
 
 /*!
@@ -470,24 +470,24 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, lsObject *obj
     switch( i )
     {
     case 0:
-        ogl->glUniform3f( iLightPos1, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
-        ogl->glUniform1i( iLightType1, light->getLight_type() );
-        ogl->glUniform4f( iLightDiffuse1, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
-        ogl->glUniform4f( iLightSpecular1, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+        glUniform3f( iLightPos1, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
+        glUniform1i( iLightType1, light->getLight_type() );
+        glUniform4f( iLightDiffuse1, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
+        glUniform4f( iLightSpecular1, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
         break;
 
     case 1:
-        ogl->glUniform3f( iLightPos2, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
-        ogl->glUniform1i( iLightType2, light->getLight_type() );
-        ogl->glUniform4f( iLightDiffuse2, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
-        ogl->glUniform4f( iLightSpecular2, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+        glUniform3f( iLightPos2, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
+        glUniform1i( iLightType2, light->getLight_type() );
+        glUniform4f( iLightDiffuse2, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
+        glUniform4f( iLightSpecular2, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
         break;
 
     case 2:
-        ogl->glUniform3f( iLightPos3, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
-        ogl->glUniform1i( iLightType3, light->getLight_type() );
-        ogl->glUniform4f( iLightDiffuse3, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
-        ogl->glUniform4f( iLightSpecular3, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+        glUniform3f( iLightPos3, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
+        glUniform1i( iLightType3, light->getLight_type() );
+        glUniform4f( iLightDiffuse3, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
+        glUniform4f( iLightSpecular3, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
         break;
 
     default:

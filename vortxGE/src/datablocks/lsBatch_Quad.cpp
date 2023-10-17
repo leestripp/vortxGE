@@ -60,21 +60,21 @@ lsBatch_Quad::lsBatch_Quad( lsOpenGL *opengl ) : lsBatch(opengl)
     tex_diffuse = 0;
 
     // Create the buffer objects
-    opengl->glGenBuffers( 1, &vbo_verts );
-    opengl->glGenBuffers( 1, &vbo_uvs );
-    opengl->glGenBuffers( 1, &vbo_indices );
+    glGenBuffers( 1, &vbo_verts );
+    glGenBuffers( 1, &vbo_uvs );
+    glGenBuffers( 1, &vbo_indices );
 
     // Vertex data
-    opengl->glBindBuffer( GL_ARRAY_BUFFER, vbo_verts );
-    opengl->glBufferData( GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW );
+    glBindBuffer( GL_ARRAY_BUFFER, vbo_verts );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW );
 
     // uv data
-    opengl->glBindBuffer( GL_ARRAY_BUFFER, vbo_uvs );
-    opengl->glBufferData( GL_ARRAY_BUFFER, sizeof(uvs), uvs, GL_STATIC_DRAW );
+    glBindBuffer( GL_ARRAY_BUFFER, vbo_uvs );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(uvs), uvs, GL_STATIC_DRAW );
 
     // Indexes
-    opengl->glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbo_indices );
-    opengl->glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW );
+    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbo_indices );
+    glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW );
 
 }
 
@@ -84,9 +84,9 @@ lsBatch_Quad::~lsBatch_Quad()
     cout << "lsBatch_Quad::~lsBatch_Quad : Free GL buffers " << getName() << endl;
 #endif
     // Delete buffer objects
-    getOgl()->glDeleteBuffers( 1, &vbo_uvs );
-    getOgl()->glDeleteBuffers( 1, &vbo_verts );
-    getOgl()->glDeleteBuffers( 1, &vbo_indices );
+    glDeleteBuffers( 1, &vbo_uvs );
+    glDeleteBuffers( 1, &vbo_verts );
+    glDeleteBuffers( 1, &vbo_indices );
 }
 
 void lsBatch_Quad::Draw( lsCamera* cam, lsObject *object, lsPass *pass )
@@ -103,32 +103,32 @@ void lsBatch_Quad::Draw( lsCamera* cam, lsObject *object, lsPass *pass )
     if( getShader() )
     {
         getShader()->UseShader( cam, object, pass, this );
-        vertex = getOgl()->glGetAttribLocation( getShader()->getProgram(), "vxVertex" );
-        uv = getOgl()->glGetAttribLocation( getShader()->getProgram(), "vxTexCoord" );
+        vertex = glGetAttribLocation( getShader()->getProgram(), "vxVertex" );
+        uv = glGetAttribLocation( getShader()->getProgram(), "vxTexCoord" );
     } else
     {
         cout << "lsBatch_Quad::Draw - Shader missing" << endl;
     }
 
     // Verts
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, vbo_verts );
-    getOgl()->glEnableVertexAttribArray( vertex );
-    getOgl()->glVertexAttribPointer( vertex, 3, GL_FLOAT, GL_FALSE, 0, 0 );
+    glBindBuffer( GL_ARRAY_BUFFER, vbo_verts );
+    glEnableVertexAttribArray( vertex );
+    glVertexAttribPointer( vertex, 3, GL_FLOAT, GL_FALSE, 0, 0 );
 
     // TexCoords
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, vbo_uvs );
-    getOgl()->glEnableVertexAttribArray( uv );
-    getOgl()->glVertexAttribPointer( uv, 2, GL_FLOAT, GL_FALSE, 0, 0 );
+    glBindBuffer( GL_ARRAY_BUFFER, vbo_uvs );
+    glEnableVertexAttribArray( uv );
+    glVertexAttribPointer( uv, 2, GL_FLOAT, GL_FALSE, 0, 0 );
 
     // Indexes
-    getOgl()->glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbo_indices );
+    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbo_indices );
 
     glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0 );
 
-    getOgl()->glDisableVertexAttribArray( vertex );
-    getOgl()->glDisableVertexAttribArray( uv );
+    glDisableVertexAttribArray( vertex );
+    glDisableVertexAttribArray( uv );
 
-    if( getShader() ) getOgl()->glUseProgram( 0 );
+    if( getShader() ) glUseProgram( 0 );
 
     // Pass it on
     if( getNext_batch() ) getNext_batch()->Draw( cam, object, pass );
@@ -144,11 +144,9 @@ void lsBatch_Quad::Update( double delta )
 
 void lsBatch_Quad::Copy_GLdata()
 {
-
 }
 
 void lsBatch_Quad::Clear_GLdata()
 {
-
 }
 

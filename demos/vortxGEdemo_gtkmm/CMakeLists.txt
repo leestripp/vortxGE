@@ -8,14 +8,33 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Bullet REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GTKMM_VARS REQUIRED IMPORTED_TARGET gtkmm-4.0)
+
+# gtkmm
+find_package(PkgConfig)
+pkg_check_modules(GTKMM REQUIRED gtkmm-4.0)
+# Now the variables GTKMM_INCLUDE_DIRS, GTKMM_LIBRARY_DIRS and GTKMM_LIBRARIES
+link_directories(${GTKMM_LIBRARY_DIRS})
+
+# glibmm
+pkg_check_modules(GLIBMM REQUIRED glibmm-2.68)
+# Now the variables GLIBMM_INCLUDE_DIRS, GLIBMM_LIBRARY_DIRS and GLIBMM_LIBRARIES
+link_directories(${GLIBMM_LIBRARY_DIRS})
+
+# GLEW used by vortxGE
+find_package(GLEW REQUIRED)
+
+# openGL - LEGACY / GLVND
+set(OpenGL_GL_PREFERENCE LEGACY)
+find_package(OpenGL REQUIRED)
 
 include_directories(
     src/
     ../../vortxGE/src/
     ${BULLET_INCLUDE_DIR}
     ${GTKMM_INCLUDE_DIRS}
+    ${GLIBMM_INCLUDE_DIRS}
+    ${GLEW_INCLUDE_DIRS}
+    ${OPENGL_INCLUDE_DIRS}
 )
 
 file(GLOB MySources
@@ -30,5 +49,7 @@ target_link_libraries(vortxGEdemo_gtkmm
     vortxGE
     ${BULLET_LIBRARIES}
     ${GTKMM_LIBRARIES}
-    GL
+    ${GLIBMM_LIBRARIES}
+    ${GLEW_LIBRARIES}
+    OpenGL::EGL
 )

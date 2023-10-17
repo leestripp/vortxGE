@@ -107,29 +107,29 @@ void lsBatch_Lines::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
     if( getShader() )
     {
         getShader()->UseShader( cam, object, pass, this );
-        vertex = getOgl()->glGetAttribLocation( getShader()->getProgram(), "vxVertex" );
-        colour = getOgl()->glGetAttribLocation( getShader()->getProgram(), "vxColour" );
+        vertex = glGetAttribLocation( getShader()->getProgram(), "vxVertex" );
+        colour = glGetAttribLocation( getShader()->getProgram(), "vxColour" );
     }else
     {
         cout << "lsBatch_Lines::Draw - Shader missing" << endl;
     }
 
     // Verts
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, vbo_verts );
-    getOgl()->glEnableVertexAttribArray( vertex );
-    getOgl()->glVertexAttribPointer( vertex, 3, GL_FLOAT, GL_FALSE, 0, 0 );
+    glBindBuffer( GL_ARRAY_BUFFER, vbo_verts );
+    glEnableVertexAttribArray( vertex );
+    glVertexAttribPointer( vertex, 3, GL_FLOAT, GL_FALSE, 0, 0 );
 
     // Colours
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, vbo_colours );
-    getOgl()->glEnableVertexAttribArray( colour );
-    getOgl()->glVertexAttribPointer( colour, 4, GL_FLOAT, GL_FALSE, 0, 0 );
+    glBindBuffer( GL_ARRAY_BUFFER, vbo_colours );
+    glEnableVertexAttribArray( colour );
+    glVertexAttribPointer( colour, 4, GL_FLOAT, GL_FALSE, 0, 0 );
 
     glDrawArrays( GL_LINES, 0, nNumVerts );
 
-    getOgl()->glDisableVertexAttribArray( vertex );
-    getOgl()->glDisableVertexAttribArray( colour );
+    glDisableVertexAttribArray( vertex );
+    glDisableVertexAttribArray( colour );
 
-    if( getShader() ) getOgl()->glUseProgram(0);
+    if( getShader() ) glUseProgram(0);
 
     // Pass it on
     if( getNext_batch() ) getNext_batch()->Draw( cam, object, pass );
@@ -284,22 +284,22 @@ void lsBatch_Lines::buildGrid()
 void lsBatch_Lines::Copy_GLdata()
 {
     // Create the buffer objects
-    getOgl()->glGenBuffers( 1, &vbo_verts );
-    getOgl()->glGenBuffers( 1, &vbo_colours );
+    glGenBuffers( 1, &vbo_verts );
+    glGenBuffers( 1, &vbo_colours );
 
     // Vertex data
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, vbo_verts );
-    getOgl()->glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*nNumVerts*3, pVerts, GL_STATIC_DRAW );
+    glBindBuffer( GL_ARRAY_BUFFER, vbo_verts );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*nNumVerts*3, pVerts, GL_STATIC_DRAW );
 
     // Colours
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, vbo_colours );
-    getOgl()->glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*nNumVerts*4, pColours, GL_STATIC_DRAW );
+    glBindBuffer( GL_ARRAY_BUFFER, vbo_colours );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*nNumVerts*4, pColours, GL_STATIC_DRAW );
 }
 
 void lsBatch_Lines::Clear_GLdata()
 {
     // Delete buffer objects
-    getOgl()->glDeleteBuffers( 1, &vbo_colours );
-    getOgl()->glDeleteBuffers( 1, &vbo_verts );
+    glDeleteBuffers( 1, &vbo_colours );
+    glDeleteBuffers( 1, &vbo_verts );
 }
 

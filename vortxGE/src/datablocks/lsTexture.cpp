@@ -157,7 +157,7 @@ GLuint lsTexture::MakeGlTexture( GLenum Format, void *pixels, unsigned int w, un
 
     if( mipmap )
     {
-        ogl->glGenerateMipmap( GL_TEXTURE_2D );
+        glGenerateMipmap( GL_TEXTURE_2D );
     }
     return texObject;
 }

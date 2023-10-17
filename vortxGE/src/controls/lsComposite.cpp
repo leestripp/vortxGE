@@ -90,7 +90,7 @@ int lsComposite::Init()
     }
 
     // Make active
-    setActive( True );
+    setActive( true );
 
     return 0;
 }

@@ -117,7 +117,7 @@ void lsPass_Occlusion::Render()
             if( list->getOcclusion_type() == LSOT_NONE )
             {
                 // Generate occlusion query names
-                getOgl()->glGenQueries( 1, &id );
+                glGenQueries( 1, &id );
                 list->setOcclusionID( id );
             } else
             {
@@ -159,9 +159,9 @@ void lsPass_Occlusion::Render()
         {
             if( list->getOcclusion_type() == LSOT_NONE )
             {
-                getOgl()->glBeginQuery( GL_SAMPLES_PASSED, list->getOcclusionID() );
+                glBeginQuery( GL_SAMPLES_PASSED, list->getOcclusionID() );
                 list->DrawSingle( getCamera(), this, getScene(), getOgl() );
-                getOgl()->glEndQuery( GL_SAMPLES_PASSED );
+                glEndQuery( GL_SAMPLES_PASSED );
             }
             list = list->getNext_drawobject();
         }
@@ -178,7 +178,7 @@ void lsPass_Occlusion::Render()
             if( list->getOcclusion_type() == LSOT_NONE )
             {
                 id = list->getOcclusionID();
-                getOgl()->glGetQueryObjectiv( id, GL_QUERY_RESULT, &r );
+                glGetQueryObjectiv( id, GL_QUERY_RESULT, &r );
                 if( r == 0 )
                 {
                     list->setOccluded( true );
@@ -188,7 +188,7 @@ void lsPass_Occlusion::Render()
 #if defined(VORTX_DEBUG_OCCLUSION)
                 cout << "Object : " << list->getName() << " - glGetQueryObjectiv Result : " << r << endl;
 #endif
-                getOgl()->glDeleteQueries( 1, &id );
+                glDeleteQueries( 1, &id );
             }
             list = list->getNext_drawobject();
         }

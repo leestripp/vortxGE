@@ -24,11 +24,8 @@
 #include <iostream>
 #include <string>
 
-// openGL linux
-#include <GL/gl.h>
-#include <GL/glext.h>
-#include <GL/glx.h>
-#include <GL/glxext.h>
+// openGL
+#include <GL/glew.h>
 
 class lsStats;
 class lsShaderManager;
@@ -44,66 +41,12 @@ public:
     void Init();
     void glInfo();
     void rendererChanged();
-    // bool findExtension( const string& str );
 
     void CheckGLErrors();
 
     // Store FBO
     void StoreFBO();
     void RestoreFBO();
-
-    // Extensions
-    void LoadExtensions();
-    // FBOs
-    PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
-    PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
-    PFNGLFRAMEBUFFERTEXTURE2DPROC glFramebufferTexture2D;
-    PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
-    PFNGLCHECKFRAMEBUFFERSTATUSPROC glCheckFramebufferStatus;
-    // Buffers
-    PFNGLGENBUFFERSPROC glGenBuffers;
-    PFNGLBINDBUFFERPROC glBindBuffer;
-    PFNGLDELETEBUFFERSPROC glDeleteBuffers;
-    PFNGLBUFFERDATAPROC glBufferData;
-    // Attrs
-    PFNGLGETATTRIBLOCATIONPROC glGetAttribLocation;
-    PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
-    PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer;
-    PFNGLDISABLEVERTEXATTRIBARRAYPROC glDisableVertexAttribArray;
-    // textures
-    PFNGLGENERATEMIPMAPPROC glGenerateMipmap;
-    // Queries
-    PFNGLGENQUERIESPROC glGenQueries;
-    PFNGLBEGINQUERYPROC glBeginQuery;
-    PFNGLENDQUERYPROC glEndQuery;
-    PFNGLGETQUERYOBJECTIVPROC glGetQueryObjectiv;
-    PFNGLDELETEQUERIESPROC glDeleteQueries;
-    // Shaders
-    PFNGLUSEPROGRAMPROC glUseProgram;
-    PFNGLDELETEPROGRAMPROC glDeleteProgram;
-    PFNGLCREATESHADERPROC glCreateShader;
-    PFNGLDETACHSHADERPROC glDetachShader;
-    PFNGLDELETESHADERPROC glDeleteShader;
-    PFNGLCREATEPROGRAMPROC glCreateProgram;
-    PFNGLATTACHSHADERPROC glAttachShader;
-    PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
-    PFNGLSHADERSOURCEPROC glShaderSource;
-    PFNGLCOMPILESHADERPROC glCompileShader;
-    PFNGLLINKPROGRAMPROC glLinkProgram;
-    PFNGLGETSHADERIVPROC glGetShaderiv;
-    PFNGLGETPROGRAMIVPROC glGetProgramiv;
-    PFNGLGETSHADERINFOLOGPROC glGetShaderInfoLog;
-    PFNGLGETPROGRAMINFOLOGPROC glGetProgramInfoLog;
-
-    // Uniforms
-    PFNGLUNIFORM1IPROC glUniform1i;
-    PFNGLUNIFORM4FPROC glUniform4f;
-    PFNGLUNIFORM1FPROC glUniform1f;
-    PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
-    PFNGLUNIFORMMATRIX3FVPROC glUniformMatrix3fv;
-    PFNGLUNIFORM3FPROC glUniform3f;
-    PFNGLUNIFORM2FPROC glUniform2f;
-
 
     lsStats* getStats() const
     {

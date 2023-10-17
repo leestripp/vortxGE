@@ -57,13 +57,13 @@ lsFBO_ColourDepth_8::lsFBO_ColourDepth_8( int width, int height, lsOpenGL *openg
     // Make sure default frame buffer is stored
     opengl->StoreFBO();
     // new FBO
-    opengl->glGenFramebuffers( 1, &fbo );
-    opengl->glBindFramebuffer( GL_FRAMEBUFFER, fbo );
-    opengl->glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0 );
-    opengl->glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_texture, 0 );
+    glGenFramebuffers( 1, &fbo );
+    glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0 );
+    glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_texture, 0 );
 
     // Check all went well
-    GLenum status = opengl->glCheckFramebufferStatus( GL_FRAMEBUFFER );
+    GLenum status = glCheckFramebufferStatus( GL_FRAMEBUFFER );
     if( status == GL_FRAMEBUFFER_COMPLETE )
     {
         cout << "FBO created ID: " << fbo << endl;
@@ -79,7 +79,7 @@ lsFBO_ColourDepth_8::lsFBO_ColourDepth_8( int width, int height, lsOpenGL *openg
 
 lsFBO_ColourDepth_8::~lsFBO_ColourDepth_8()
 {
-  getOgl()->glDeleteFramebuffers( 1, &fbo );
+  glDeleteFramebuffers( 1, &fbo );
   glDeleteTextures( 1, &depth_texture );
   glDeleteTextures( 1, &texture );
 }
@@ -89,7 +89,7 @@ lsFBO_ColourDepth_8::~lsFBO_ColourDepth_8()
  */
 void lsFBO_ColourDepth_8::Enable()
 {
-  getOgl()->glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+  glBindFramebuffer( GL_FRAMEBUFFER, fbo );
 }
 
 void lsFBO_ColourDepth_8::ClearBuffers()

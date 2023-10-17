@@ -97,7 +97,7 @@ void lsPass_DR::Render()
     // sRGB
     glEnable( GL_FRAMEBUFFER_SRGB );
 
-    // Clear screen
+    // Clear viewport
     glClearColor( getBackground_colour().x, getBackground_colour().y, getBackground_colour().z, getBackground_colour().w );
     glClearDepth( 1.0 );
     glEnable( GL_DEPTH_TEST );

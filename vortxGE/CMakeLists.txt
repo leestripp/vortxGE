@@ -8,8 +8,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Bullet REQUIRED)
+# openGL - LEGACY / GLVND
+set(OpenGL_GL_PREFERENCE GLVND)
+find_package(OpenGL REQUIRED)
 
-include_directories(${BULLET_INCLUDE_DIR})
+
+include_directories(
+    ${BULLET_INCLUDE_DIR}
+    ${OPENGL_INCLUDE_DIR}
+    )
 
 file(GLOB_RECURSE MySources
     src/*.cpp

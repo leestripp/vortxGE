@@ -1,6 +1,8 @@
-# vortxGE v0.6.4
+## vortxGE v0.6.4
 
-vortxGE is a graphics library written in C++ around OpenGL and bullet physics.
+# NOTE: Only tested on manjaro Linux (Linux only for now).
+
+vortxGE is a graphics library written in C++ around OpenGL and Bullet physics.
 License : LGPL
 
 ![image](screenshots/wx_vortxGE.png)
@@ -9,7 +11,7 @@ License : LGPL
 * Threaded Move and Optimize pipeline on scene nodes.
 * Spline animation for objects and Materials. You can also add your own animation properties.
 * Bullet Physics Engine integration
-* Code targets openGL 4.3 and above. Comes with some default GLSL shaders.
+* Code targets openGL 4.x and above. Comes with some default GLSL shaders.
 * Frustum culling.
 * Occlusion culling via passes and bounding mesh.
 * Object emitter with physics

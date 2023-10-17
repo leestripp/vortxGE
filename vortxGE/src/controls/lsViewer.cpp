@@ -85,7 +85,7 @@ int lsViewer::Init()
     }
 
     // Set Active
-    setActive( True );
+    setActive( true );
 
     return 0;
 }

@@ -49,13 +49,16 @@ void lsOpenGL::Init()
 #endif
 
     // Extensions
-    LoadExtensions();
+    // start GLEW extension handler
+    glewExperimental = GL_TRUE;
+    glewInit();
 
 #ifdef VORTX_DEBUG_OPENGLERRORS
     cout << "lsOpenGL::Init() - Check GL errors" << endl;
     CheckGLErrors();
 #endif // VORTX_DEBUG_OPENGLERRORS
 
+    // TODO: Make these options.
     // Draw direction and face cull
     glFrontFace( GL_CCW );
     glCullFace( GL_BACK );
@@ -125,6 +128,10 @@ void lsOpenGL::glInfo()
     cout << major_version << "." << minor_version << endl;
 
     // Vender
+    cout << "* Version  : ";
+    cout << glGetString(GL_VERSION) << endl;
+
+    // Vender
     cout << "* Vender   : ";
     cout << glGetString( GL_VENDOR ) << endl;
 
@@ -138,124 +145,6 @@ void lsOpenGL::glInfo()
 
     cout << "***** ******************************************" << endl;
 #endif //VORTX_DEBUG_INFO
-}
-
-
-/**
- * @brief Load basic extensions needed by the engine
- *
- * This is called by the lsOpenGL::Init() function, no need to call it yourself.
- *
- * @return void
- */
-void lsOpenGL::LoadExtensions()
-{
-    // FBO
-    m_hasFBO = false;
-    if( (glGenFramebuffers = (PFNGLGENFRAMEBUFFERSPROC)glXGetProcAddress( (const GLubyte*)"glGenFramebuffers" )) )
-    {
-        m_hasFBO = true;
-        glBindFramebuffer = (PFNGLBINDFRAMEBUFFERPROC)glXGetProcAddress( (const GLubyte*)"glBindFramebuffer" );
-        glFramebufferTexture2D = (PFNGLFRAMEBUFFERTEXTURE2DPROC)glXGetProcAddress( (const GLubyte*)"glFramebufferTexture2D" );
-        glDeleteFramebuffers = (PFNGLDELETEFRAMEBUFFERSPROC)glXGetProcAddress( (const GLubyte*)"glDeleteFramebuffers" );
-        glCheckFramebufferStatus = (PFNGLCHECKFRAMEBUFFERSTATUSPROC)glXGetProcAddress( (const GLubyte*)"glCheckFramebufferStatus" );
-
-    } else
-    {
-        cout << "Unable to load FBO extensions" << endl;
-    }
-
-    // VBOs
-    m_hasVBO = false;
-    if( (glGenBuffers = (PFNGLGENBUFFERSPROC)glXGetProcAddress( (const GLubyte*)"glGenBuffers" )) )
-    {
-        m_hasVBO = true;
-        glBindBuffer = (PFNGLBINDBUFFERPROC)glXGetProcAddress( (const GLubyte*)"glBindBuffer" );
-        glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)glXGetProcAddress( (const GLubyte*)"glDeleteBuffers" );
-        glBufferData = (PFNGLBUFFERDATAPROC)glXGetProcAddress( (const GLubyte*)"glBufferData" );
-
-    } else
-    {
-        cout << "Unable to load VBO extensions" << endl;
-    }
-
-    // Attrs
-    if( (glGetAttribLocation = (PFNGLGETATTRIBLOCATIONPROC)glXGetProcAddress( (const GLubyte*)"glGetAttribLocation" )) )
-    {
-        glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC)glXGetProcAddress( (const GLubyte*)"glEnableVertexAttribArray" );
-        glVertexAttribPointer = (PFNGLVERTEXATTRIBPOINTERPROC)glXGetProcAddress( (const GLubyte*)"glVertexAttribPointer" );
-        glDisableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)glXGetProcAddress( (const GLubyte*)"glDisableVertexAttribArray" );
-
-
-    } else
-    {
-        cout << "Unable to load Attrib extensions" << endl;
-    }
-
-    // Shaders
-    m_hasShaders = false;
-    if( (glUseProgram = (PFNGLUSEPROGRAMPROC)glXGetProcAddress( (const GLubyte*)"glUseProgram" )) )
-    {
-        m_hasShaders = true;
-        glDeleteProgram = (PFNGLDELETEPROGRAMPROC)glXGetProcAddress( (const GLubyte*)"glDeleteProgram" );
-        glCreateShader = (PFNGLCREATESHADERPROC)glXGetProcAddress( (const GLubyte*)"glCreateShader" );
-        glDetachShader = (PFNGLDETACHSHADERPROC)glXGetProcAddress( (const GLubyte*)"glDetachShader" );
-        glDeleteShader = (PFNGLDELETESHADERPROC)glXGetProcAddress( (const GLubyte*)"glDeleteShader" );
-        glCreateProgram = (PFNGLCREATEPROGRAMPROC)glXGetProcAddress( (const GLubyte*)"glCreateProgram" );
-        glAttachShader = (PFNGLATTACHSHADERPROC)glXGetProcAddress( (const GLubyte*)"glAttachShader" );
-        glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)glXGetProcAddress( (const GLubyte*)"glGetUniformLocation" );
-        glShaderSource = (PFNGLSHADERSOURCEPROC)glXGetProcAddress( (const GLubyte*)"glShaderSource" );
-        glCompileShader = (PFNGLCOMPILESHADERPROC)glXGetProcAddress( (const GLubyte*)"glCompileShader" );
-        glLinkProgram = (PFNGLLINKPROGRAMPROC)glXGetProcAddress( (const GLubyte*)"glLinkProgram" );
-        glGetShaderiv = (PFNGLGETSHADERIVPROC)glXGetProcAddress( (const GLubyte*)"glGetShaderiv" );
-        glGetProgramiv = (PFNGLGETPROGRAMIVPROC)glXGetProcAddress( (const GLubyte*)"glGetProgramiv" );
-        glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC)glXGetProcAddress( (const GLubyte*)"glGetShaderInfoLog" );
-        glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)glXGetProcAddress( (const GLubyte*)"glGetProgramInfoLog" );
-
-
-    } else
-    {
-        cout << "Unable to load Shader extensions" << endl;
-    }
-
-    // Textures
-    if( (glGenerateMipmap = (PFNGLGENERATEMIPMAPPROC)glXGetProcAddress( (const GLubyte*)"glGenerateMipmap" )) )
-    {
-        // glUniform1i = (PFNGLUNIFORM1IPROC)glXGetProcAddress( (const GLubyte*)"glUniform1i" );
-
-    } else
-    {
-        cout << "Unable to load Texture extensions" << endl;
-    }
-
-    // Queries
-    if( (glGenQueries = (PFNGLGENQUERIESPROC)glXGetProcAddress( (const GLubyte*)"glGenQueries" )) )
-    {
-        glBeginQuery = (PFNGLBEGINQUERYPROC)glXGetProcAddress( (const GLubyte*)"glBeginQuery" );
-        glEndQuery = (PFNGLENDQUERYPROC)glXGetProcAddress( (const GLubyte*)"glEndQuery" );
-        glGetQueryObjectiv = (PFNGLGETQUERYOBJECTIVPROC)glXGetProcAddress( (const GLubyte*)"glGetQueryObjectiv" );
-        glDeleteQueries = (PFNGLDELETEQUERIESPROC)glXGetProcAddress( (const GLubyte*)"glDeleteQueries" );
-
-    } else
-    {
-        cout << "Unable to load Queries extensions" << endl;
-    }
-
-    // Uniforms
-    if( (glUniform1i = (PFNGLUNIFORM1IPROC)glXGetProcAddress( (const GLubyte*)"glUniform1i" )) )
-    {
-        glUniform4f = (PFNGLUNIFORM4FPROC)glXGetProcAddress( (const GLubyte*)"glUniform4f" );
-        glUniform1f = (PFNGLUNIFORM1FPROC)glXGetProcAddress( (const GLubyte*)"glUniform1f" );
-        glUniformMatrix4fv = (PFNGLUNIFORMMATRIX4FVPROC)glXGetProcAddress( (const GLubyte*)"glUniformMatrix4fv" );
-        glUniformMatrix3fv = (PFNGLUNIFORMMATRIX3FVPROC)glXGetProcAddress( (const GLubyte*)"glUniformMatrix3fv" );
-        glUniform3f = (PFNGLUNIFORM3FPROC)glXGetProcAddress( (const GLubyte*)"glUniform3f" );
-        glUniform2f = (PFNGLUNIFORM2FPROC)glXGetProcAddress( (const GLubyte*)"glUniform2f" );
-
-    } else
-    {
-        cout << "Unable to load Uniform extensions" << endl;
-    }
-
 }
 
 

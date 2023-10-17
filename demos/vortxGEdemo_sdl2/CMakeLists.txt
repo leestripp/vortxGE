@@ -10,11 +10,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Bullet REQUIRED)
 find_package(SDL2 REQUIRED)
 
+# GLEW used by vortxGE
+find_package(GLEW REQUIRED)
+include_directories()
+
+# openGL - LEGACY / GLVND
+set(OpenGL_GL_PREFERENCE GLVND)
+find_package(OpenGL REQUIRED)
+
+
 include_directories(
     src/
     ../../vortxGE/src/
     ${BULLET_INCLUDE_DIR}
     ${SDL2_INCLUDE_DIRS}
+    ${GLEW_INCLUDE_DIRS}
+    ${OPENGL_INCLUDE_DIRS}
 )
 
 file(GLOB MySources
@@ -29,5 +40,6 @@ target_link_libraries(vortxGEdemo_sdl2
     vortxGE
     ${BULLET_LIBRARIES}
     ${SDL2_LIBRARIES}
-    GL
+    ${GLEW_LIBRARIES}
+    OpenGL::EGL
 )

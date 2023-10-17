@@ -153,10 +153,10 @@ void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
         // Lights
         getShader()->Setup_Lights( cam, object );
 
-        vertex = getOgl()->glGetAttribLocation( getShader()->getProgram(), "vxVertex" );
-        uv = getOgl()->glGetAttribLocation( getShader()->getProgram(), "vxTexCoord" );
-        tangent = getOgl()->glGetAttribLocation( getShader()->getProgram(), "vxTangent" );
-        normal = getOgl()->glGetAttribLocation( getShader()->getProgram(), "vxNormal" );
+        vertex = glGetAttribLocation( getShader()->getProgram(), "vxVertex" );
+        uv = glGetAttribLocation( getShader()->getProgram(), "vxTexCoord" );
+        tangent = glGetAttribLocation( getShader()->getProgram(), "vxTangent" );
+        normal = glGetAttribLocation( getShader()->getProgram(), "vxNormal" );
 
     } else
     {
@@ -164,39 +164,39 @@ void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
     }
 
     // Verts
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ VERTEX_DATA ] );
-    getOgl()->glEnableVertexAttribArray( vertex );
-    getOgl()->glVertexAttribPointer( vertex, 3, GL_FLOAT, GL_FALSE, 0, 0 );
+    glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ VERTEX_DATA ] );
+    glEnableVertexAttribArray( vertex );
+    glVertexAttribPointer( vertex, 3, GL_FLOAT, GL_FALSE, 0, 0 );
 
     // TexCoords
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ TEXTURE_DATA ] );
-    getOgl()->glEnableVertexAttribArray( uv );
-    getOgl()->glVertexAttribPointer( uv, 2, GL_FLOAT, GL_FALSE, 0, 0 );
+    glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ TEXTURE_DATA ] );
+    glEnableVertexAttribArray( uv );
+    glVertexAttribPointer( uv, 2, GL_FLOAT, GL_FALSE, 0, 0 );
 
     // Tangents
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ TANGENT_DATA ] );
-    getOgl()->glEnableVertexAttribArray( tangent );
-    getOgl()->glVertexAttribPointer( tangent, 3, GL_FLOAT, GL_FALSE, 0, 0 );
+    glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ TANGENT_DATA ] );
+    glEnableVertexAttribArray( tangent );
+    glVertexAttribPointer( tangent, 3, GL_FLOAT, GL_FALSE, 0, 0 );
 
     // Normals
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ NORMAL_DATA ] );
-    getOgl()->glEnableVertexAttribArray( normal );
-    getOgl()->glVertexAttribPointer( normal, 3, GL_FLOAT, GL_FALSE, 0, 0 );
+    glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[ NORMAL_DATA ] );
+    glEnableVertexAttribArray( normal );
+    glVertexAttribPointer( normal, 3, GL_FLOAT, GL_FALSE, 0, 0 );
 
     // Draw Triangles
-    getOgl()->glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, bufferObjects[ INDEX_DATA ] );
+    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, bufferObjects[ INDEX_DATA ] );
     glDrawElements( GL_TRIANGLES, count_tris, GL_UNSIGNED_SHORT, 0 );
 
-    getOgl()->glDisableVertexAttribArray( vertex );
-    getOgl()->glDisableVertexAttribArray( uv );
-    getOgl()->glDisableVertexAttribArray( tangent );
-    getOgl()->glDisableVertexAttribArray( normal );
+    glDisableVertexAttribArray( vertex );
+    glDisableVertexAttribArray( uv );
+    glDisableVertexAttribArray( tangent );
+    glDisableVertexAttribArray( normal );
 
-    if( getShader() ) getOgl()->glUseProgram(0);
+    if( getShader() ) glUseProgram(0);
 
 #ifdef VORTX_DEBUG_OPENGLERRORS
     cout << "Check GL errors : " << getName() << endl;
-    getOgl()->CheckGLErrors();
+    CheckGLErrors();
 #endif // VORTX_DEBUG_OPENGLERRORS
 
     // Pass it on
@@ -261,31 +261,31 @@ void lsBatch_Mesh::Add_Index( int index )
 void lsBatch_Mesh::Copy_GLdata()
 {
     // Create the buffer objects
-    getOgl()->glGenBuffers( 6, bufferObjects );
+    glGenBuffers( 6, bufferObjects );
 
     // Vertex data
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA] );
-    getOgl()->glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*count_verts*3, pVerts, GL_STATIC_DRAW );
+    glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA] );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*count_verts*3, pVerts, GL_STATIC_DRAW );
 	addMem_used( sizeof(GLfloat)*count_verts*3 );
 
     // Normal data
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[NORMAL_DATA] );
-    getOgl()->glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*count_verts*3, pNormals, GL_STATIC_DRAW );
+    glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[NORMAL_DATA] );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*count_verts*3, pNormals, GL_STATIC_DRAW );
 	addMem_used( sizeof(GLfloat)*count_verts*3 );
 
     // Tangent data
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[TANGENT_DATA] );
-    getOgl()->glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*count_verts*3, pTangents, GL_STATIC_DRAW );
+    glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[TANGENT_DATA] );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*count_verts*3, pTangents, GL_STATIC_DRAW );
 	addMem_used( sizeof(GLfloat)*count_verts*3 );
 
     // Texture coordinates
-    getOgl()->glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[TEXTURE_DATA] );
-    getOgl()->glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*count_verts*2, pTexCoords, GL_STATIC_DRAW );
+    glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[TEXTURE_DATA] );
+    glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*count_verts*2, pTexCoords, GL_STATIC_DRAW );
 	addMem_used( sizeof(GLfloat)*count_verts*2 );
 
     // Copy data
-    getOgl()->glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, bufferObjects[INDEX_DATA] );
-    getOgl()->glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*count_tris, pIndex, GL_STATIC_DRAW );
+    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, bufferObjects[INDEX_DATA] );
+    glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*count_tris, pIndex, GL_STATIC_DRAW );
 	addMem_used( sizeof(GLushort)*count_tris );
 
 }
@@ -293,7 +293,7 @@ void lsBatch_Mesh::Copy_GLdata()
 void lsBatch_Mesh::Clear_GLdata()
 {
     // Delete buffer objects
-    getOgl()->glDeleteBuffers( 6, bufferObjects );
+    glDeleteBuffers( 6, bufferObjects );
 
 	getOgl()->getStats()->addUsed_mem( -getMem_used() );
 	setMem_used( 0 );
