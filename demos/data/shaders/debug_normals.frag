@@ -18,9 +18,9 @@ uniform float vxMatShininess;
 uniform float vxMatGlow;
 
 // from vertex shader
-smooth in vec3 osVertex;
-smooth in vec3 osNormal;
-smooth in vec2 osTexCoord;
+in vec3 osVertex;
+in vec3 osNormal;
+in vec2 osTexCoord;
 // debug
 smooth in vec4 osColour;
 

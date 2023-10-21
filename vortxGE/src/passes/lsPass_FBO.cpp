@@ -90,9 +90,6 @@ void lsPass_FBO::Render()
 
     if( fbo )
     {
-        // sRGB
-        glEnable( GL_FRAMEBUFFER_SRGB );
-
 		// set viewport
 		glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );
 

@@ -49,7 +49,7 @@ public:
     void buildEmpty( GLfloat scale );
     void buildGrid();
 
-    // openGL data - on video card : needed by the asset system
+    // openGL data - on video card
     void Copy_GLdata();
     void Clear_GLdata();
 
@@ -57,6 +57,7 @@ private:
     GLuint nNumVerts;
 
     // Data
+    GLuint m_Vao;
     GLuint vbo_verts;
     GLuint vbo_colours;
 

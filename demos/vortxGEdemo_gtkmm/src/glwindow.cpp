@@ -186,7 +186,7 @@ void glviewwindow::gla_realize()
   }
 
   // Update timer
-  m_timer = Glib::signal_timeout().connect( sigc::mem_fun( *this, &glviewwindow::Update ), 1000 );
+  m_timer = Glib::signal_timeout().connect( sigc::mem_fun( *this, &glviewwindow::Update ), 1000 / 60 );
 }
 
 void glviewwindow::gla_unrealize()

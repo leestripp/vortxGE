@@ -4,8 +4,8 @@
 
 uniform sampler2D tex_diffuse;
 
-smooth in vec4 osColour;
-smooth in vec2 osTexCoord;
+in vec4 osColour;
+in vec2 osTexCoord;
 
 // output to frame buffer
 out vec4 fragColour;

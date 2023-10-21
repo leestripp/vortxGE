@@ -1,9 +1,10 @@
 #ifndef SDLAPP_H
 #define SDLAPP_H
 
+#include <GL/glew.h>
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
-#include <GL/gl.h>
 
 class DemoScene;
 

@@ -1,5 +1,7 @@
 #include <iostream>
 
+// GLEW
+#include <GL/glew.h>
 // vortxGE
 #include <vortxGE.h>
 
@@ -61,6 +63,21 @@
 #include "demoscene.h"
 
 
+// Callback for OpenGL errors.
+void GLAPIENTRY MessageCallback( GLenum source,
+                 GLenum type,
+                 GLuint id,
+                 GLenum severity,
+                 GLsizei length,
+                 const GLchar* message,
+                 const void* userParam )
+{
+  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+            type, severity, message );
+}
+
+
 DemoScene::DemoScene()
 {
     camera = NULL;
@@ -91,16 +108,38 @@ bool DemoScene::Init()
     vortxge = new vortxGE();
     if( vortxge )
     {
+        // start GLEW extension handler
+        glewExperimental = GL_TRUE;
+        glewInit();
+
+        // Need debug context and extensions loaded first.
+        glEnable( GL_DEBUG_OUTPUT );
+        glDebugMessageCallback( MessageCallback, 0 );
+
         vortxge->Init();
-        // TODO: Check for errors
+
+        // Check GL errors
+        vortxge->getOpenGL()->CheckGLErrors( "DemoScene::Init() vortxge->Init() END" );
+
         setupControls();
+
+        // Check GL errors
+        vortxge->getOpenGL()->CheckGLErrors( "DemoScene::Init() setupControls( END" );
+
         setupTestScene();
+
+        // Check GL errors
+        vortxge->getOpenGL()->CheckGLErrors( "DemoScene::Init() setupTestScene() END" );
 
     } else
     {
         cout << "ERROR: DemoScene::Init() : Can't create vortxGE instance." << endl;
         return false;
     }
+
+    // Check GL errors
+    vortxge->getOpenGL()->CheckGLErrors( "DemoScene::Init() END" );
+
     return true;
 }
 
@@ -254,11 +293,11 @@ void DemoScene::setupTestScene()
         viewer_scene->Add_Node( object );
     }
 
-    // Cube
+    // Cube 1
     object = new lsObject( viewer_scene );
     if( object )
     {
-        object->setName( "Cube" );
+        object->setName( "Cube1" );
         object->Set_Pos( 2.5, 1, 2 );
         object->Set_Scale( 1.0, 1.0, 1.0 );
 
@@ -277,7 +316,7 @@ void DemoScene::setupTestScene()
     object = new lsObject( viewer_scene );
     if( object )
     {
-        object->setName( "Cube" );
+        object->setName( "Cube2" );
         object->Set_Pos( 0, 1, 0 );
         object->Set_Scale( 1.0, 1.0, 1.0 );
 
@@ -291,6 +330,7 @@ void DemoScene::setupTestScene()
         object->getLightManager()->Add_Light( point_light );
         viewer_scene->Add_Node( object );
     }
+
 }
 
 void DemoScene::moveCamera( bool f, bool b, bool l, bool r, double delta, double factor )

@@ -29,6 +29,7 @@ find_package(OpenGL REQUIRED)
 
 include_directories(
     src/
+    ../shared_code/
     ../../vortxGE/src/
     ${BULLET_INCLUDE_DIR}
     ${GTKMM_INCLUDE_DIRS}
@@ -39,6 +40,7 @@ include_directories(
 
 file(GLOB MySources
     src/*.cpp
+    ../shared_code/*.cpp
 )
 
 add_executable(vortxGEdemo_gtkmm

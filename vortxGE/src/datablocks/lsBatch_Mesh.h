@@ -29,10 +29,10 @@
 
 // Buffer IDs
 const int VERTEX_DATA		= 0;
-const int NORMAL_DATA		= 1;
-const int COLOUR_DATA		= 2;
-const int TEXTURE_DATA		= 3;
-const int TANGENT_DATA		= 4;
+const int COLOUR_DATA		= 1;
+const int NORMAL_DATA		= 2;
+const int TANGENT_DATA		= 3;
+const int UV_DATA		    = 4;
 const int INDEX_DATA		= 5;
 
 class lsOpenGL;
@@ -67,6 +67,7 @@ public:
     void Add_Property( lsProperty* p );
 
 private:
+    GLuint vao_mesh;
     GLuint bufferObjects[6];
 
     // Data

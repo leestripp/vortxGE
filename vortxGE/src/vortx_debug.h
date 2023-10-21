@@ -9,13 +9,23 @@
 #define VORTX_DEBUG_H_
 
 /* OpenGL
-#define VORTX_DEBUG_STATS
 #define VORTX_DEBUG_OPENGL
 #define VORTX_DEBUG_OPENGL_EXT
 #define VORTX_DEBUG_OPENGLERRORS
+#define VORTX_DEBUG_STATS
 */
 #define VORTX_DEBUG_INFO
-#define VORTX_DEBUG_STATS
+
+/* Batches
+#define VORTX_DEBUG_BATCH
+ */
+
+/* Rendering *
+#define VORTX_DEBUG_OCCLUSION
+#define VORTX_DEBUG_PASSES
+#define VORTX_DEBUG_RENDER
+#define VORTX_DEVUG_CONTROL
+*/
 
 /* Shaders
 #define VORTX_DEBUG_SHADERS
@@ -29,10 +39,6 @@
 #define VORTX_DEBUG_ANIMATION
 */
 
-/* Batches *
-#define VORTX_DEBUG_BATCH
-*/
-
 /* Events
 #define VORTX_DEBUG_COREEVENTS
 #define VORTX_DEBUG_GAMEEVENT
@@ -42,13 +48,6 @@
 #define VORTX_DEBUG_PHYSICS
 */
 
-/* Rendering *
-#define VORTX_DEVUG_CONTROL
-#define VORTX_DEBUG_OCCLUSION
-#define VORTX_DEBUG_PASSES
-#define VORTX_DEBUG_RENDER
-*/
-
 
 /* Scene *
 #define VORTX_DEBUG_LOADSCENE
@@ -56,6 +55,7 @@
 #define VORTX_DEBUG_NODETHREADS
 #define VORTX_DEBUG_NODES
 */
+
 
 /* WAV
 #define VORTX_DEBUG_WAV

@@ -42,7 +42,7 @@ public:
     void glInfo();
     void rendererChanged();
 
-    void CheckGLErrors();
+    void CheckGLErrors( const string &name );
 
     // Store FBO
     void StoreFBO();

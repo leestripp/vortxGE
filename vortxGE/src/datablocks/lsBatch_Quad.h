@@ -49,7 +49,7 @@ public:
     void Draw( lsCamera *cam, lsObject *object, lsPass *pass );
     void Update( double delta );
 
-    // openGL data - on video card : needed by the asset system
+    // openGL data - on video card
     void Copy_GLdata();
     void Clear_GLdata();
 
@@ -64,6 +64,7 @@ public:
     }
 
 private:
+    GLuint vao_quad;
 	// Data
 	GLuint vbo_verts;
 	GLuint vbo_uvs;

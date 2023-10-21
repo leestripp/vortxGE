@@ -1,6 +1,7 @@
 #include "sdlApp.h"
 #include "demoscene.h"
 
+
 #include <timers/lsTimer.h>
 
 
@@ -44,8 +45,9 @@ bool sdlApp::Init()
 
 		} else
 		{
-			// Use OpenGL core
+			// Use OpenGL core - SDL_GL_CONTEXT_DEBUG_FLAG
 			SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+			SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG  );
 			SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
 			SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 			SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);

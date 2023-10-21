@@ -2,13 +2,14 @@
 #pragma debug(on)
 #pragma optimize(off)
 
-// vortxGE
-in vec4 vxVertex;
-in vec2 vxTexCoord;
+// vbo data
+layout (location = 0) in vec4 vxVertex;
+layout (location = 4) in vec2 vxTexCoord;
+
 uniform mat4 mvpMatrix;
 
-smooth out vec4 osColour;
-smooth out vec2 osTexCoord;
+out vec4 osColour;
+out vec2 osTexCoord;
 
 void main(void)
 {

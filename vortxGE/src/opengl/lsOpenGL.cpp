@@ -49,26 +49,13 @@ void lsOpenGL::Init()
 #endif
 
     // Extensions
-    // start GLEW extension handler
-    glewExperimental = GL_TRUE;
-    glewInit();
-
-#ifdef VORTX_DEBUG_OPENGLERRORS
-    cout << "lsOpenGL::Init() - Check GL errors" << endl;
-    CheckGLErrors();
-#endif // VORTX_DEBUG_OPENGLERRORS
-
-    // TODO: Make these options.
-    // Draw direction and face cull
-    glFrontFace( GL_CCW );
-    glCullFace( GL_BACK );
-    glEnable( GL_CULL_FACE );
+    // User needs to load extensions e.g. GLEW
 
     // collect info
     glInfo();
 }
 
-void lsOpenGL::CheckGLErrors()
+void lsOpenGL::CheckGLErrors( const string &name )
 {
     GLenum err;
     while( (err = glGetError()) != GL_NO_ERROR )
@@ -77,27 +64,28 @@ void lsOpenGL::CheckGLErrors()
         switch( err )
         {
         case GL_INVALID_ENUM:
-            cout << "OpenGL error: GL_INVALID_ENUM" << endl;
+            cout << "OpenGL error: " << name << " - GL_INVALID_ENUM" << endl;
             break;
 
         case GL_INVALID_FRAMEBUFFER_OPERATION:
-            cout << "OpenGL error: GL_INVALID_FRAMEBUFFER_OPERATION" << endl;
+            cout << "OpenGL error: " << name << " - GL_INVALID_FRAMEBUFFER_OPERATION" << endl;
             break;
 
         case GL_INVALID_INDEX:
-            cout << "OpenGL error: GL_INVALID_INDEX" << endl;
+            cout << "OpenGL error: " << name << " - GL_INVALID_INDEX" << endl;
             break;
 
         case GL_INVALID_OPERATION:
-            cout << "OpenGL error: GL_INVALID_OPERATION" << endl;
+            cout << "OpenGL error: " << name << " - GL_INVALID_OPERATION" << endl;
             break;
 
         case GL_INVALID_VALUE:
-            cout << "OpenGL error: GL_INVALID_VALUE" << endl;
+            cout << "OpenGL error: " << name << " - GL_INVALID_VALUE" << endl;
             break;
 
         default:
             // Unknown error
+            cout << "OpenGL error: " << name << " - Unknown error." << endl;
             break;
         }
     }
@@ -120,14 +108,6 @@ void lsOpenGL::glInfo()
     cout << "***** ******************************************" << endl;
 
     // Version
-    GLint major_version;
-    GLint minor_version;
-    glGetIntegerv( GL_MAJOR_VERSION, &major_version );
-    glGetIntegerv( GL_MINOR_VERSION, &minor_version );
-    cout << "* Context version : ";
-    cout << major_version << "." << minor_version << endl;
-
-    // Vender
     cout << "* Version  : ";
     cout << glGetString(GL_VERSION) << endl;
 

@@ -89,25 +89,16 @@ void lsPass_DR::Render()
     // set viewport
     glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );
 
-#ifdef VORTX_DEBUG_RENDER
-    cout << "lsPass_DR::Render - ";
-    cout << "viewport Size: " << getSize().x << " x " << getSize().y << " vRatio: " << getVratio() << endl;
-#endif
-
-    // sRGB
-    glEnable( GL_FRAMEBUFFER_SRGB );
-
     // Clear viewport
     glClearColor( getBackground_colour().x, getBackground_colour().y, getBackground_colour().z, getBackground_colour().w );
     glClearDepth( 1.0 );
     glEnable( GL_DEPTH_TEST );
     glDepthMask( GL_TRUE );
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
 #ifdef VORTX_DEBUG_OPENGLERRORS
-    cout << "Check GL errors : " << getName() << endl;
-    getOgl()->CheckGLErrors();
+    getOgl()->CheckGLErrors( getName() );
 #endif // VORTX_DEBUG_OPENGLERRORS
 
     // Draw
@@ -116,11 +107,16 @@ void lsPass_DR::Render()
 
 void lsPass_DR::Resize( int x, int y, int width, int height  )
 {
-	#ifdef VORTX_DEBUG_PASSES
+#ifdef VORTX_DEBUG_PASSES
     cout << "lsPass_DR::Resize" << endl;
 #endif
 
-	// Resize view if needed
+    // Resize view if needed
+    if( width == 0 || height == 0 )
+    {
+        width = 620;
+        height = 480;
+    }
 	setPosition( lsVector2(x,y) );
 	setSize( lsVector2( width, height ) );
 	float rw, rh;
@@ -151,6 +147,15 @@ void lsPass_DR::Resize( int x, int y, int width, int height  )
 			getCull_camera()->Set_ViewRatio( getVratio() );
         }
     }
+
+    // set viewport
+    glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );
+
+#ifdef VORTX_DEBUG_RENDER
+    cout << "lsPass_DR::Render - ";
+    cout << "viewport Size: " << getSize().x << " x " << getSize().y << " vRatio: " << getVratio() << endl;
+#endif
+
 #ifdef VORTX_DEBUG_RENDER
     cout << "lsPass_DR::Resize - ";
     cout << "Size: " << getSize().x << " x " << getSize().y << " vRatio: " << getVratio() << endl;

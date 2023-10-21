@@ -22,12 +22,11 @@ uniform float vxMatShininess;
 uniform float vxMatGlow;
 
 // from vertex shader
-smooth in vec3 osVertex;
-smooth in vec3 osNormal;
-smooth in vec3 osTangent;
-smooth in vec2 osTexCoord;
-// debug
-smooth in vec4 osColour;
+in vec3 osVertex;
+in vec4 osColour;
+in vec3 osNormal;
+in vec3 osTangent;
+in vec2 osTexCoord;
 
 // output to frame buffer
 out vec4 fragColour;

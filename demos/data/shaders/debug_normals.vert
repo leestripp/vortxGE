@@ -2,11 +2,12 @@
 #pragma debug(on)
 #pragma optimize(off)
 
-// Object data
-in vec4 vxVertex;
-in vec3 vxNormal;
-in vec3 vxTangent;
-in vec2 vxTexCoord;
+// vbo data
+layout (location = 0) in vec4 vxVertex;
+layout (location = 1) in vec4 vxColour;
+layout (location = 2) in vec3 vxNormal;
+layout (location = 3) in vec3 vxTangent;
+layout (location = 4) in vec2 vxTexCoord;
 
 // Uniforms
 uniform mat4 pMatrix;
@@ -15,9 +16,9 @@ uniform mat4 mvMatrix;
 uniform mat3 nMatrix;
 
 // outputs
-smooth out vec3 osVertex;
-smooth out vec3 osNormal;
-smooth out vec2 osTexCoord;
+out vec3 osVertex;
+out vec3 osNormal;
+out vec2 osTexCoord;
 // debug
 smooth out vec4 osColour;
 
@@ -25,11 +26,10 @@ void main(void)
 {
     gl_Position = pMatrix * mvMatrix * vxVertex;
 
-    // Interp values
     osTexCoord = vxTexCoord;
     osNormal = vxNormal;
 
-    // debug
+    // debug normal
     osColour = vec4( abs( vxNormal ), 1.0 );
 }
 

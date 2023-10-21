@@ -236,7 +236,6 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch
         mvpMatrix *= pMatrix * mvMatrix;
         glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
 
-        glDisable( GL_TEXTURE_2D );
         break;
 
     default:
