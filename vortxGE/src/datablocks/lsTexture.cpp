@@ -60,7 +60,7 @@ bool lsTexture::load_image( string filename, bool mipmap, bool compressed )
 
 			// Memory
 			setMem_used( image.getMem_used() );
-			
+
             // generate the correct texture type for the image
             switch(bpp)
             {
@@ -104,8 +104,8 @@ GLuint lsTexture::MakeGlTexture( GLenum Format, void *pixels, unsigned int w, un
     // filter
     if( mipmap )
     {
-        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     } else
     {
         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -121,19 +121,11 @@ GLuint lsTexture::MakeGlTexture( GLenum Format, void *pixels, unsigned int w, un
         switch( Format )
         {
         case GL_RGB:
-#if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
-            // Do nothing
-#else
-            glTexImage2D( GL_TEXTURE_2D, 0, GL_COMPRESSED_RGB_S3TC_DXT1_EXT, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels );
-#endif
+            glTexImage2D( GL_TEXTURE_2D, 0, GL_SRGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels );
             break;
 
         case GL_RGBA:
-#if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
-            // Do nothing
-#else
-            glTexImage2D( GL_TEXTURE_2D,0,GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,w,h,0,GL_RGBA,GL_UNSIGNED_BYTE,pixels );
-#endif
+            glTexImage2D( GL_TEXTURE_2D,0,GL_SRGB,w,h,0,GL_RGBA,GL_UNSIGNED_BYTE,pixels );
             break;
 
         case GL_ALPHA:
@@ -149,7 +141,7 @@ GLuint lsTexture::MakeGlTexture( GLenum Format, void *pixels, unsigned int w, un
         switch( Format )
         {
         default:
-            glTexImage2D( GL_TEXTURE_2D, 0, Format, w, h, 0, Format, GL_UNSIGNED_BYTE, pixels );
+            glTexImage2D( GL_TEXTURE_2D, 0, GL_SRGB, w, h, 0, Format, GL_UNSIGNED_BYTE, pixels );
             break;
         }
 
