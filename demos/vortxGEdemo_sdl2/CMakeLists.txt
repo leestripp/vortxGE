@@ -12,7 +12,6 @@ find_package(SDL2 REQUIRED)
 
 # GLEW used by vortxGE
 find_package(GLEW REQUIRED)
-include_directories()
 
 # openGL - LEGACY / GLVND
 set(OpenGL_GL_PREFERENCE GLVND)

@@ -14,10 +14,10 @@ sdlApp::sdlApp()
     key_d = false;
     key_w = false;
     key_s = false;
+	move_speed = 0.01;
 
 	// Mouse
 	rot_speed = 0.05;
-	move_speed = 0.01;
 	rot_x = 0.0;
 	rot_y = 0.0;
 }
