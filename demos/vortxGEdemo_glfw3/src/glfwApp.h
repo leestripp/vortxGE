@@ -14,6 +14,7 @@ public:
 
     bool Init();
     void Run();
+    void CheckFullScreen();
 
     bool getRunning()
     {
@@ -40,11 +41,52 @@ public:
         key_d = val;
     }
 
+    // Mouse
+    void setPos_x( double val )
+    {
+        pos_x = val;
+    }
+
+    void setPos_y( double val )
+    {
+        pos_y = val;
+    }
+
+    // resize window
+    void setWin_width( int val )
+    {
+        m_win_width = val;
+    }
+
+    void setWin_height( int val )
+    {
+        m_win_height = val;
+    }
+
+    // Fullscreen
+    bool getFullscreen()
+    {
+        return m_fullscreen;
+    }
+
+    void setFullscreen( bool val )
+    {
+        m_fullscreen = val;
+    }
+
 private:
 	DemoScene		*demoscene;
     GLFWwindow      *window;
 
     bool running;
+
+    // window
+    bool m_fullscreen;
+    int m_win_width;
+    int m_win_height;
+    int m_win_width_old;
+    int m_win_height_old;
+
 	// keys
     bool key_a;
     bool key_d;
@@ -54,8 +96,10 @@ private:
 
     // Mouse
     double rot_speed;
-    double rot_x;
-    double rot_y;
+    double old_x;
+    double old_y;
+    double pos_x;
+    double pos_y;
 };
 
 #endif
