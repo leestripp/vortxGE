@@ -155,6 +155,7 @@ void glfwApp::CheckFullScreen()
 
         glfwWindowHint( GLFW_DECORATED, false );
         glfwSetWindowMonitor( window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate );
+        glfwGetWindowSize( window, &m_win_width, &m_win_height );
 
     } else
     {
@@ -165,6 +166,7 @@ void glfwApp::CheckFullScreen()
         glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
         glfwWindowHint( GLFW_DECORATED, true );
         glfwSetWindowMonitor( window, NULL, 0, 0, m_win_width_old, m_win_height_old, 0 );
+        glfwGetWindowSize( window, &m_win_width, &m_win_height );
     }
 }
 
@@ -258,14 +260,18 @@ void glfwApp::Run()
 
 		if( demoscene )
 		{
-            // Rotate
-            rot_x -= (pos_x - old_x) *rot_speed;
-            rot_y += (pos_y - old_y) *rot_speed;
-            demoscene->rotateCamera( rot_x, rot_y, 0.0 );
-            old_x = pos_x;
-            old_y = pos_y;
-			// Move camera here so we can combine all key presses.
-			demoscene->moveCamera( key_w, key_s, key_a, key_d, delta, move_speed );
+            // Only update camera in fullscreen
+            if( m_fullscreen )
+            {
+                // Rotate
+                rot_x -= (pos_x - old_x) *rot_speed;
+                rot_y += (pos_y - old_y) *rot_speed;
+                demoscene->rotateCamera( rot_x, rot_y, 0.0 );
+                old_x = pos_x;
+                old_y = pos_y;
+                // Move camera here so we can combine all key presses.
+                demoscene->moveCamera( key_w, key_s, key_a, key_d, delta, move_speed );
+            }
 
 			// Update
 			demoscene->Update( delta );
