@@ -3,6 +3,8 @@
 
 #include <gtkmm.h>
 #include <glibmm.h>
+#include <gtkmm/eventcontrollerlegacy.h>
+#include <gdkmm/event.h>
 
 class DemoScene;
 class lsTimer;
@@ -27,6 +29,9 @@ private:
     // keyboard
     bool on_key_pressed(guint keyval, guint, Gdk::ModifierType state);
     void on_key_released(guint keyval, guint, Gdk::ModifierType state);
+    // Mouse
+    void on_mouse_motion( double x, double y );
+    bool on_my_event( const Glib::RefPtr<const Gdk::Event>& event );
     // timer
     bool Update(); // force a render of the openGL area.
 
@@ -45,9 +50,14 @@ private:
     bool key_d;
     bool key_w;
     bool key_s;
+    double move_speed;
+
     // Mouse
     double rot_speed;
-    double move_speed;
     double rot_x;
     double rot_y;
+    double old_x;
+    double old_y;
+    bool lmb_down;
+
 };

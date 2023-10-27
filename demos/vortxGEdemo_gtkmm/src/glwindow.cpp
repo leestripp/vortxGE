@@ -18,12 +18,14 @@ glviewwindow::glviewwindow()
   key_s = false;
   //move
   delta = 0.1;
-  move_speed = 1.0;
+  move_speed = 0.01;
   // Mouse
   rot_speed = 0.05;
-  move_speed = 0.01;
   rot_x = 0.0;
   rot_y = 0.0;
+  old_x = 0.0;
+  old_y = 0.0;
+  lmb_down = false;
 
   buildUI();
 
@@ -32,6 +34,16 @@ glviewwindow::glviewwindow()
   controller->signal_key_pressed().connect(sigc::mem_fun(*this, &glviewwindow::on_key_pressed), false);
   controller->signal_key_released().connect(sigc::mem_fun(*this, &glviewwindow::on_key_released), false);
   add_controller( controller );
+
+  // Mouse motion
+  auto mcontroller = Gtk::EventControllerMotion::create();
+  mcontroller->signal_motion().connect( sigc::mem_fun(*this, &glviewwindow::on_mouse_motion ), false);
+  add_controller( mcontroller );
+
+  // Mouse buttons
+  auto lcontroller = Gtk::EventControllerLegacy::create();
+  lcontroller->signal_event().connect( sigc::mem_fun(*this, &glviewwindow::on_my_event ), false);
+  add_controller( lcontroller );
 }
 
 glviewwindow::~glviewwindow()
@@ -39,7 +51,7 @@ glviewwindow::~glviewwindow()
 }
 
 
-bool glviewwindow::on_key_pressed(guint keyval, guint, Gdk::ModifierType state)
+bool glviewwindow::on_key_pressed( guint keyval, guint, Gdk::ModifierType state )
 {
   // Modifiers
   // state & (Gdk::ModifierType::SHIFT_MASK | Gdk::ModifierType::CONTROL_MASK | Gdk::ModifierType::ALT_MASK)
@@ -112,6 +124,50 @@ void glviewwindow::on_key_released(guint keyval, guint, Gdk::ModifierType state)
   }
 }
 
+void glviewwindow::on_mouse_motion( double x, double y )
+{
+  // cout << "Mouse Pos : " << x << " , " << y << endl;
+  if( lmb_down )
+  {
+    rot_x -= ( x - old_x ) *rot_speed;
+    rot_y += ( y - old_y ) *rot_speed;
+    old_x = x;
+    old_y = y;
+  } else
+  {
+    old_x = x;
+    old_y = y;
+  }
+}
+
+bool glviewwindow::on_my_event( const Glib::RefPtr<const Gdk::Event> &event )
+{
+  switch( event->get_event_type() )
+  {
+    case Gdk::Event::Type::BUTTON_PRESS:
+      // cout << "Process event. BUTTON_PRESS #: " << event->get_button() << endl;
+      switch( event->get_button() )
+      {
+        case 1:
+          lmb_down = true;
+          break;
+      }
+      break;
+
+    case Gdk::Event::Type::BUTTON_RELEASE:
+      // cout << "Process event. BUTTON_RELEASE #: " << event->get_button() << endl;
+      switch( event->get_button() )
+      {
+        case 1:
+          lmb_down = false;
+          break;
+      }
+      break;
+  }
+
+  // make sure we pass on unused events
+  return false;
+}
 
 bool glviewwindow::Update()
 {
@@ -227,6 +283,8 @@ bool glviewwindow::gla_render(const Glib::RefPtr<Gdk::GLContext> &context )
 
   if( demoscene )
   {
+    // Mouse look
+    demoscene->rotateCamera( rot_x, rot_y, 0.0 );
     // Move camera here so we can combine all key presses.
     demoscene->moveCamera( key_w, key_s, key_a, key_d, delta, move_speed );
 
