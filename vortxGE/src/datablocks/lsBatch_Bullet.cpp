@@ -17,6 +17,10 @@
  * along with vortxGE.  If not, see <http://www.gnu.org/licenses/>
  */
 
+#include <iostream>
+// debug
+#include "../vortx_debug.h"
+
 // Bullet
 #include <bullet/btBulletDynamicsCommon.h>
 
@@ -109,15 +113,20 @@ void lsBatch_Bullet::Cleanup()
 
 void lsBatch_Bullet::Copy_GLdata()
 {
-
+	// Not used.
 }
 
 void lsBatch_Bullet::Clear_GLdata()
 {
-
+	// Not used.
 }
 
 
+//! Convex Hull
+/*!
+ * Uses points for simple convex hull collisions.
+ *
+ * */
 btConvexHullShape* lsBatch_Bullet::End_ConvexHull()
 {
 	btVector3 point;
@@ -136,7 +145,7 @@ btConvexHullShape* lsBatch_Bullet::End_ConvexHull()
 
 //! Static Meshes
 /*!
- * Use for static mesh collisions.
+ * Used for static mesh collisions.
  *
  * */
 btBvhTriangleMeshShape* lsBatch_Bullet::End_TriMesh( float size )
@@ -166,7 +175,7 @@ btBvhTriangleMeshShape* lsBatch_Bullet::End_TriMesh( float size )
 
 	// Shape
 	bool useQuantizedAabbCompression = true;
-	btVector3 aabbMin(-size,-size,-size),aabbMax(size,size,size);
+	btVector3 aabbMin(-size,-size,-size), aabbMax(size,size,size);
 
 	btBvhTriangleMeshShape* meshshape = new btBvhTriangleMeshShape( m_indexVertexArrays, useQuantizedAabbCompression, aabbMin, aabbMax );
 

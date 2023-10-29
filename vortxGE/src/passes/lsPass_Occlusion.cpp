@@ -17,6 +17,8 @@
  * along with vortxGE.  If not, see <http://www.gnu.org/licenses/>
  */
 
+#include <iostream>
+// debug
 #include "../vortx_debug.h"
 
 // OpenGL
@@ -63,7 +65,7 @@ void lsPass_Occlusion::Update()
 #endif
 
     // Init our scene
-    if( getScene()  ) getScene()->Optimize( getCull_camera(), this, NULL, getOgl() );
+    if( getScene()  ) getScene()->InitDrawlist();
 
     if(( getScene() )&&( getCull_camera() ))
     {

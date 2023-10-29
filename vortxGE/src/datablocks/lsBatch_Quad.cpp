@@ -17,6 +17,8 @@
  * along with vortxGE.  If not, see <http://www.gnu.org/licenses/>
  */
 
+#include <iostream>
+// debug
 #include "../vortx_debug.h"
 
 // opengl
@@ -33,17 +35,17 @@
 // Data ***********************************
 
 GLfloat vertices[] = {
-    -1, -1, 0,
+    1, 1, 0,
     -1,  1, 0,
-    1,  1, 0,
-    1, -1, 0
+    -1, -1, 0,
+    1,  -1, 0
 };
 
 GLfloat uvs[] = {
-    0, 0,
     0, 1,
     1, 1,
-    1, 0
+    1, 0,
+    0, 0
 };
 
 GLubyte indices[] = {
@@ -90,10 +92,6 @@ void lsBatch_Quad::Draw( lsCamera* cam, lsObject *object, lsPass *pass )
 
     glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0 );
 
-    // bind with 0, so, switch back to normal pointer operation
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
     if( getShader() ) glUseProgram( 0 );
 
 #ifdef VORTX_DEBUG_OPENGLERRORS
@@ -116,6 +114,7 @@ void lsBatch_Quad::Copy_GLdata()
 {
     // VAO vao_quad
     glGenVertexArrays( 1, &vao_quad );
+
     // Create the buffer objects
     glGenBuffers( 1, &vbo_verts );
     glGenBuffers( 1, &vbo_uvs );

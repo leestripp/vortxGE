@@ -17,6 +17,8 @@
  * along with vortxGE.  If not, see <http://www.gnu.org/licenses/>
  */
 
+#include <iostream>
+// debug
 #include "../vortx_debug.h"
 
 // managers

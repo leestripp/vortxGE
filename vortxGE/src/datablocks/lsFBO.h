@@ -57,22 +57,22 @@ public:
 
     // dimentions
 
-    void setWidth( float val )
+    void setWidth( double val )
     {
         width = val;
     }
 
-    float getWidth() const
+    double getWidth() const
     {
         return width;
     }
 
-    void setHeight( float val )
+    void setHeight( double val )
     {
         height = val;
     }
 
-    float getHeight() const
+    double getHeight() const
     {
         return height;
     }
@@ -80,14 +80,16 @@ public:
     lsOpenGL *getOgl() const;
     void setOgl(lsOpenGL *value);
 
+    // public fbo object
+	GLuint m_fbo;
+
 private:
     int fbo_type;
-    float width;
-    float height;
+    double width;
+    double height;
 
     // store link
     lsOpenGL *ogl;
-
 };
 
 #endif // LSFBO_H

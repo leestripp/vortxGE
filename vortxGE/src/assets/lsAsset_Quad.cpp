@@ -44,7 +44,6 @@ lsAsset_Quad::~lsAsset_Quad()
 }
 
 
-
 /*!
  * \brief lsAsset_Quad::AllocAsset
  *
@@ -98,6 +97,14 @@ void lsAsset_Quad::FreeAsset()
         delete getData();
         setData( NULL );
         batch_quad = NULL;
+    }
+}
+
+void lsAsset_Quad::Set_texture( GLuint val )
+{
+    if( batch_quad )
+    {
+        batch_quad->setTex_diffuse( val );
     }
 }
 

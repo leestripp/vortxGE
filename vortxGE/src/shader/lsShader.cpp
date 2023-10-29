@@ -149,6 +149,10 @@ void lsShader::setShader_type( int val )
 
 void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch *batch )
 {
+#ifdef VORTX_DEBUG_SHADERS
+    cout << "lsShader::UseShader() - Called" << endl;
+#endif
+
     lsBatch_Quad *batch_quad;
     lsBatch_Mesh *batch_mesh;
 
@@ -219,8 +223,6 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch
         glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
 
         // Textures
-        glEnable( GL_TEXTURE_2D );
-
         glActiveTexture( GL_TEXTURE0 );
         glBindTexture( GL_TEXTURE_2D, batch_quad->getTex_diffuse() );
         glUniform1i( iTex_diffuse, 0 );
@@ -235,7 +237,6 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch
         mvMatrix *= cam->ViewMatrix * object->ModelMatrix;
         mvpMatrix *= pMatrix * mvMatrix;
         glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
-
         break;
 
     default:

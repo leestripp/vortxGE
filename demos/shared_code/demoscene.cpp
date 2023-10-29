@@ -104,6 +104,7 @@ DemoScene::~DemoScene()
 bool DemoScene::Init()
 {
     cout << "DemoScene::Init() called" << endl;
+
     // create vortxge - must have an active GL context
     vortxge = new vortxGE();
     if( vortxge )
@@ -145,19 +146,85 @@ bool DemoScene::Init()
 
 void DemoScene::Resize( int x, int y, int w, int h )
 {
-    if(! vortxge ) return;
+    // cout << "DemoScene::Resize" << endl;
 
+    if(! vortxge ) return;
     vortxge->Resize( x, y, w, h );
 }
+
+// ************************************
+//  Controls
+// ************************************
 
 void DemoScene::setupControls()
 {
     cout << "DemoScene::setupControls() called" << endl;
 
-    // Add viewer control
+    // pass_fbo needs to pass its texture to this.
+    lsAsset_Quad *asset_quad = NULL;
+
+    // Add quad viewer control
+    lsViewer *quad_viewer = new lsViewer( vortxge->getOpenGL(), NULL );
+    if( quad_viewer )
+    {
+        quad_viewer->setName( "Quad Viewer" );
+
+        // Init
+        quad_viewer->Init();
+        vortxge->getControlManager()->Add_Control( quad_viewer );
+
+        // Create quad scene
+        lsScene *quad_scene = new lsScene( 100.0, 1 );
+        if( quad_scene )
+        {
+            quad_viewer->getSceneManager()->Add_Scene( quad_scene );
+
+            // Add Camera
+            lsCamera *quad_camera = new lsCamera( quad_scene );
+            if( quad_camera )
+            {
+                // Orthographic camera defaults
+                quad_camera->Set_Orthographic( 1.0 );
+
+                quad_scene->Add_Node( quad_camera );
+            }
+
+            // Create Quad
+            lsObject *quad = new lsObject( quad_scene );
+            if( quad )
+            {
+                quad->setName( "Quad" );
+                quad->Set_Pos( 0, 0, 0 );
+
+                // Use quad asset
+                asset_quad = quad_viewer->getAssetManager()->CreateAsset_Quad();
+                asset_quad->AllocAsset();
+                quad->Set_Asset( asset_quad );
+
+                quad_scene->Add_Node( quad );
+            }
+
+            // Create Direct render Pass
+            lsPass_DR *pass_dr = new lsPass_DR( vortxge->getOpenGL() );
+            if( pass_dr )
+            {
+                pass_dr->setBackground_colour( lsVector4( 0, 0, 0.5, 1.0 ) );
+
+                quad_viewer->getPassManager()->Add_Pass( pass_dr );
+                pass_dr->setScene( quad_scene );
+                pass_dr->setCamera( quad_camera );
+                pass_dr->setCull_camera( quad_camera );
+            }
+        }// if( quad_scene )
+    }// if quad_viewer
+
+
+    // Add demoscene viewer control
     viewer = new lsViewer( vortxge->getOpenGL(), NULL );
     if( viewer )
     {
+        viewer->setName( "Demo Scene Viewer" );
+
         // Init
         viewer->Init();
         vortxge->getControlManager()->Add_Control( viewer );
@@ -186,22 +253,37 @@ void DemoScene::setupControls()
                 viewer_scene->Add_Node( camera_base );
             }
 
-            // create pass
-            lsPass_DR *pass_dr = new lsPass_DR( vortxge->getOpenGL() );
-            if( pass_dr )
+            // create FBO pass
+            lsPass_FBO *pass_fbo = new lsPass_FBO( vortxge->getOpenGL() );
+            if( pass_fbo )
             {
-                pass_dr->setBackground_colour( lsVector4(0.5,0,0,1.0) );
+                // Create FBO textures at FHD 1920x1080 8bpp
+                lsFBO_ColourDepth_8 *lsfbo = new lsFBO_ColourDepth_8( 1920, 1080, vortxge->getOpenGL() );
+                if( lsfbo )
+                {
+                    pass_fbo->setFBO( lsfbo );
 
-                viewer->getPassManager()->Add_Pass( pass_dr );
-                pass_dr->setScene( viewer_scene );
-                pass_dr->setCamera( camera );
-                pass_dr->setCull_camera( camera );
+                    // Connect the Quad
+                    asset_quad->Set_texture( lsfbo->getTexture() );
+                }
 
-            }// if pass_dr
+                pass_fbo->setBackground_colour( lsVector4( 0, 1.0, 0, 1.0 ) );
+
+                viewer->getPassManager()->Add_Pass( pass_fbo );
+                pass_fbo->setScene( viewer_scene );
+                pass_fbo->setCamera( camera );
+                pass_fbo->setCull_camera( camera );
+
+            }// if pass_fbo
         }// if viewer_scene
     }// if viewer
 
 }
+
+
+// ************************************
+//  Test Scene
+// ************************************
 
 void DemoScene::setupTestScene()
 {
@@ -393,6 +475,8 @@ void DemoScene::rotateCamera( double rot_x, double rot_y, double rot_z )
 
 void DemoScene::Update( double delta )
 {
+    // cout << "DemoScene::Update" << endl;
+
     // process scene events
     lsEvent *e;
     while( (e = viewer_scene->Poll_Event()) )
@@ -409,11 +493,15 @@ void DemoScene::Update( double delta )
 
 void DemoScene::Render()
 {
+    // cout << "DemoScene::Render START" << endl;
+
     // vortxGE Render
     if( vortxge )
     {
         vortxge->Render();
     }
+
+    // cout << "DemoScene::Render END" << endl;
 }
 
 /*

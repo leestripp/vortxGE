@@ -33,7 +33,7 @@
 class lsFBO_ColourDepth_8 : public lsFBO
 {
 public:
-	lsFBO_ColourDepth_8( int width, int height, lsOpenGL *opengl );
+	lsFBO_ColourDepth_8( double width, double height, lsOpenGL *opengl );
 	virtual ~lsFBO_ColourDepth_8();
 
     // Form lsFBO
@@ -54,11 +54,6 @@ public:
 
 
 private:
-	int width;
-	int height;
-
-	// objects
-	GLuint fbo;
 	GLuint texture;
 	GLuint depth_texture;
 

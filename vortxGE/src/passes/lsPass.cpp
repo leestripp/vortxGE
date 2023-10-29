@@ -49,9 +49,9 @@ lsPass::lsPass( lsOpenGL* opengl )
 
     // view defaults
 	position = lsVector2( 0, 0 );
-    size = lsVector2( 400, 400 );
+    size = lsVector2( 800, 600 );
     vratio = 1.0;
-    background_colour = lsVector4( 0, 0, 0, 1.0 );
+    background_colour = lsVector4( 1.0, 0, 0, 1.0 );
 
     // Properties
     property_list = NULL;

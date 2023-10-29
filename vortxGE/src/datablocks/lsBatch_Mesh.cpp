@@ -17,8 +17,8 @@
  * along with vortxGE.  If not, see <http://www.gnu.org/licenses/>
  */
 
-#include <cstring>
-
+#include <iostream>
+// debug
 #include "../vortx_debug.h"
 
 // Shaders
@@ -136,7 +136,7 @@ lsBatch_Mesh::~lsBatch_Mesh()
 void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
 {
 #ifdef VORTX_DEBUG_RENDER
-    cout << "lsBatch_Mesh::Draw - " << object->getName() << endl;
+    cout << "lsBatch_Mesh::Draw - START: " << object->getName() << endl;
 #endif
 
     if( getShader() )
@@ -158,8 +158,8 @@ void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
 
     if( getShader() ) glUseProgram(0);
 
-#ifdef VORTX_DEBUG_OPENGLERRORS
-    getOgl()->CheckGLErrors( getName() );
+#ifdef VORTX_DEBUG_RENDER
+    cout << "lsBatch_Mesh::Draw - END: " << object->getName() << endl;
 #endif
 
     // Pass it on

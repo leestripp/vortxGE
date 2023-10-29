@@ -104,9 +104,9 @@ void lsShaderManager::Del_Shader( lsShader* shader )
 lsShader* lsShaderManager::Find_Shader( const string &name )
 {
 #ifdef VORTX_DEBUG_SHADERS
-    cout << "sShaderManager::Find_Shader() - Name: " << name << endl;
+    cout << "lsShaderManager::Find_Shader() - Name: " << name << endl;
 #endif
-    
+
     lsShader* shader;
 
     shader = shader_list;
@@ -115,12 +115,12 @@ lsShader* lsShaderManager::Find_Shader( const string &name )
         if( shader->getName() == name ) break;
         shader = shader->getNext_shader();
     }
-    
+
 #ifdef VORTX_DEBUG_SHADERS
     if( shader )
-      cout << "sShaderManager::Find_Shader() - Shader Found: " << shader->getName() << endl;
+      cout << "lsShaderManager::Find_Shader() - Shader Found: " << shader->getName() << endl;
 #endif
-    
+
     return shader;
 }
 

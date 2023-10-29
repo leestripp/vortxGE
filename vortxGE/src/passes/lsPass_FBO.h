@@ -43,12 +43,12 @@ public:
 
     lsFBO* getFBO() const
     {
-        return fbo;
+        return m_lsfbo;
     }
     void setFBO( lsFBO* val );
 
 private:
-    lsFBO *fbo;
+    lsFBO *m_lsfbo;
 
 };
 

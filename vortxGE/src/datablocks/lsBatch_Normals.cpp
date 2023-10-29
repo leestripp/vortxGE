@@ -17,6 +17,10 @@
  * along with vortxGE.  If not, see <http://www.gnu.org/licenses/>
  */
 
+#include <iostream>
+// debug
+#include "../vortx_debug.h"
+
 #include "lsBatch_Normals.h"
 
 lsBatch_Normals::lsBatch_Normals( lsOpenGL *opengl ) : lsBatch_Lines(opengl)

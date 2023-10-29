@@ -17,6 +17,8 @@
  * along with vortxGE.  If not, see <http://www.gnu.org/licenses/>
  */
 
+#include <iostream>
+// debug
 #include "../vortx_debug.h"
 
 // Controls
@@ -47,16 +49,28 @@ lsControlManager::~lsControlManager()
 
 void lsControlManager::Update( double delta )
 {
+#ifdef VORTX_DEVUG_CONTROL
+    cout << "lsControlManager::Update" << endl;
+#endif
+
     if( control_list ) control_list->Update( delta );
 }
 
 void lsControlManager::Render()
 {
+#ifdef VORTX_DEVUG_CONTROL
+    cout << "lsControlManager::Render" << endl;
+#endif
+
     if( control_list ) control_list->Render();
 }
 
 void lsControlManager::Resize( int x, int y, int width, int height  )
 {
+#ifdef VORTX_DEVUG_CONTROL
+    cout << "lsControlManager::Resize" << endl;
+#endif
+
     if( control_list ) control_list->Resize( x, y, width, height );
 }
 

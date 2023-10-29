@@ -144,6 +144,8 @@ int vortxGE::Init()
     opengl->Init();
     shadermanager->Init();
 
+    opengl->StoreFBO();
+
     return 0;
 }
 
@@ -185,11 +187,24 @@ void vortxGE::Update( double delta )
  */
 void vortxGE::Render()
 {
+#ifdef VORTX_DEBUG_RENDER
+    cout << endl << "*************************" << endl;
+    cout << "vortxGE::Render() - START" << endl;
+#endif
+
     // render - all elements to screen
     if( controlmanager ) controlmanager->Render();
 
     stats->Loop_Stop();
     stats->Update();
+
+    // reset framebuffer
+    opengl->RestoreFBO();
+
+#ifdef VORTX_DEBUG_RENDER
+    cout << "vortxGE::Render() - END" << endl;
+    cout << "*************************" << endl;
+#endif
 }
 
 //! Sets the viewport

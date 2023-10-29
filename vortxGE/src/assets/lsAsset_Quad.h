@@ -40,6 +40,8 @@ public:
     // lsAsset
     void AllocAsset();
     void FreeAsset();
+    // Set to your lsFBO texture
+    void Set_texture( GLuint val );
 
     // Needed for render pipeline.
     lsBatch_Quad* getBatch_Quad() const

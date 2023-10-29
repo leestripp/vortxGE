@@ -20,7 +20,7 @@
 #define VORTX_DEBUG_BATCH
  */
 
-/* Rendering *
+/* Rendering
 #define VORTX_DEBUG_OCCLUSION
 #define VORTX_DEBUG_PASSES
 #define VORTX_DEBUG_RENDER
@@ -31,7 +31,7 @@
 #define VORTX_DEBUG_SHADERS
 */
 
-/* Assets *
+/* Assets
 #define VORTX_DEBUG_ASSETS
 */
 
@@ -48,14 +48,12 @@
 #define VORTX_DEBUG_PHYSICS
 */
 
-
 /* Scene *
 #define VORTX_DEBUG_LOADSCENE
 #define VORTX_DEBUG_LIGHTS
-#define VORTX_DEBUG_NODETHREADS
 #define VORTX_DEBUG_NODES
+#define VORTX_DEBUG_NODETHREADS
 */
-
 
 /* WAV
 #define VORTX_DEBUG_WAV

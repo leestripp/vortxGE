@@ -67,10 +67,6 @@ lsScene::lsScene( float world_size, int maxProxies ) : lsNode( NULL )
     }
 
     draw_list = NULL;
-
-    // Threads
-    number_of_threads = thread::hardware_concurrency();
-
 }
 
 lsScene::~lsScene()
@@ -111,13 +107,13 @@ void lsScene::Move( lsScene* scn, lsOpenGL* opengl, double delta )
 }
 
 /**
- Optimize scene ready for drawing\n
+ InitDrawlist ready for drawing\n
  Called from Passes
  */
-void lsScene::Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl )
+void lsScene::InitDrawlist()
 {
 #ifdef VORTX_DEBUG_RENDER
-    cout << "lsScene::Optimize : Draw List set to NULL" << endl;
+    cout << "lsScene::InitDrawlist : Draw List set to NULL" << endl;
 #endif
     draw_list = NULL;
 }

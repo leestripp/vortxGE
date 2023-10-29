@@ -47,8 +47,8 @@ public:
 
     // from lsNode
     void Move( lsScene* scn, lsOpenGL* opengl, double delta );
-    void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
     void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+    void InitDrawlist();
 
     // Get the base Scene, every node has this func.
     lsScene *Get_Scene();
@@ -93,17 +93,6 @@ public:
         bulletworld = val;
     }
 
-    // Threads
-    int getThreads() const
-    {
-        return number_of_threads;
-    }
-
-    void setThreads( int val )
-    {
-        number_of_threads = val;
-    }
-
 private:
     lsObject* draw_list;
 
@@ -115,7 +104,6 @@ private:
     lsNode* found_node;
 
     // Threads
-    int number_of_threads;
     mutex m_mutex;
 
 };

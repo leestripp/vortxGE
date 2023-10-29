@@ -53,7 +53,7 @@ void lsPass_DR::Update()
 #endif
 
     // Init our scene
-    if( getScene()  ) getScene()->Optimize( getCull_camera(), this, NULL, getOgl() );
+    if( getScene()  ) getScene()->InitDrawlist();
 
     if(( getScene() )&&( getCull_camera() ))
     {
@@ -85,6 +85,9 @@ void lsPass_DR::Render()
 #ifdef VORTX_DEBUG_RENDER
     cout << "lsPass_DR::Render" << endl;
 #endif
+
+    // TODO: workaround - how to find system FBO
+    getOgl()->RestoreFBO();
 
     // set viewport
     glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );
@@ -152,14 +155,10 @@ void lsPass_DR::Resize( int x, int y, int width, int height  )
     glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );
 
 #ifdef VORTX_DEBUG_RENDER
-    cout << "lsPass_DR::Render - ";
+    cout << "lsPass_DR::Resize - ";
     cout << "viewport Size: " << getSize().x << " x " << getSize().y << " vRatio: " << getVratio() << endl;
 #endif
 
-#ifdef VORTX_DEBUG_RENDER
-    cout << "lsPass_DR::Resize - ";
-    cout << "Size: " << getSize().x << " x " << getSize().y << " vRatio: " << getVratio() << endl;
-#endif
 }
 
 

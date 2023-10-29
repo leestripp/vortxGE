@@ -114,9 +114,6 @@ void lsBatch_Lines::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
 
     glDrawArrays( GL_LINES, 0, nNumVerts );
 
-    // bind with 0, so, switch back to normal pointer operation
-    glBindBuffer( GL_ARRAY_BUFFER, 0 );
-
     if( getShader() ) glUseProgram(0);
 
 #ifdef VORTX_DEBUG_OPENGLERRORS

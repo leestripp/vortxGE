@@ -17,6 +17,10 @@
  * along with vortxGE.  If not, see <http://www.gnu.org/licenses/>
  */
 
+#include <iostream>
+// debug
+#include "../vortx_debug.h"
+
 // opengl
 #include "../opengl/lsOpenGL.h"
 
@@ -24,7 +28,7 @@
 #include "lsFBO_ColourDepth_8.h"
 
 
-lsFBO_ColourDepth_8::lsFBO_ColourDepth_8( int width, int height, lsOpenGL *opengl ) : lsFBO(opengl)
+lsFBO_ColourDepth_8::lsFBO_ColourDepth_8( double width, double height, lsOpenGL *opengl ) : lsFBO(opengl)
 {
   setFBO_type( LSFT_COLOURDEPTH_8 );
   setWidth( width );
@@ -56,9 +60,10 @@ lsFBO_ColourDepth_8::lsFBO_ColourDepth_8( int width, int height, lsOpenGL *openg
 
     // Make sure default frame buffer is stored
     opengl->StoreFBO();
-    // new FBO
-    glGenFramebuffers( 1, &fbo );
-    glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+
+    // Create FBO
+    glGenFramebuffers( 1, &m_fbo );
+    glBindFramebuffer( GL_FRAMEBUFFER, m_fbo );
     glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0 );
     glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_texture, 0 );
 
@@ -66,11 +71,11 @@ lsFBO_ColourDepth_8::lsFBO_ColourDepth_8( int width, int height, lsOpenGL *openg
     GLenum status = glCheckFramebufferStatus( GL_FRAMEBUFFER );
     if( status == GL_FRAMEBUFFER_COMPLETE )
     {
-        cout << "FBO created ID: " << fbo << endl;
+      cout << "FBO created ID: " << m_fbo << endl;
 
     } else
     {
-        cout << "ERROR: FBO creation failed *********************" << endl;
+      cout << "ERROR: FBO creation failed *********************" << endl;
     }
 
     // Make sure default frame buffer is restored
@@ -79,7 +84,9 @@ lsFBO_ColourDepth_8::lsFBO_ColourDepth_8( int width, int height, lsOpenGL *openg
 
 lsFBO_ColourDepth_8::~lsFBO_ColourDepth_8()
 {
-  glDeleteFramebuffers( 1, &fbo );
+  // FBO is deleted by subclass
+
+  // delete textures
   glDeleteTextures( 1, &depth_texture );
   glDeleteTextures( 1, &texture );
 }
@@ -89,11 +96,19 @@ lsFBO_ColourDepth_8::~lsFBO_ColourDepth_8()
  */
 void lsFBO_ColourDepth_8::Enable()
 {
-  glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+#ifdef VORTX_DEBUG_RENDER
+    cout << "lsFBO_ColourDepth_8::Enable :" << m_fbo << endl;
+#endif
+
+  glBindFramebuffer( GL_FRAMEBUFFER, m_fbo );
 }
 
 void lsFBO_ColourDepth_8::ClearBuffers()
 {
+#ifdef VORTX_DEBUG_RENDER
+    cout << "lsFBO_ColourDepth_8::ClearBuffers - Start" << endl;
+#endif
+
   // Clear FBO
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }

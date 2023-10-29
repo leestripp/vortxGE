@@ -17,6 +17,10 @@
  * along with vortxGE.  If not, see <http://www.gnu.org/licenses/>
  */
 
+#include <iostream>
+// debug
+#include "../vortx_debug.h"
+
 // OpenGL
 #include "../opengl/lsOpenGL.h"
 
@@ -35,14 +39,14 @@ lsPass_FBO::lsPass_FBO( lsOpenGL* opengl ) : lsPass(opengl)
     setPass_type( LSPT_FBO );
     setName("Pass : FBO");
 
-    fbo = NULL;
+    m_lsfbo = NULL;
 
 }
 
 lsPass_FBO::~lsPass_FBO()
 {
     // fbo's are not assets, so must cleanup
-    if( fbo ) delete fbo;
+    if( m_lsfbo ) delete m_lsfbo;
 }
 
 /**
@@ -55,7 +59,7 @@ void lsPass_FBO::Update()
 #endif
 
     // Init our scene
-    if( getScene()  ) getScene()->Optimize( getCull_camera(), this, NULL, getOgl() );
+    if( getScene()  ) getScene()->InitDrawlist();
 
     if(( getScene() )&&( getCull_camera() ))
     {
@@ -82,37 +86,47 @@ void lsPass_FBO::Update()
     }// if scene
 }
 
+
 void lsPass_FBO::Render()
 {
 #ifdef VORTX_DEBUG_RENDER
     cout << "lsPass_FBO::Render" << endl;
 #endif
 
-    if( fbo )
+    if( m_lsfbo )
     {
-		// set viewport
-		glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );
-
+        // Store current FBO
         getOgl()->StoreFBO();
-        fbo->Enable();
+
+        // use FBO
+        m_lsfbo->Enable();
+
+		// set viewport
+		glViewport( getPosition().x, getPosition().y, getSize().x, getSize().y );
+
         glClearColor( getBackground_colour().x, getBackground_colour().y, getBackground_colour().z, getBackground_colour().w );
         glClearDepth( 1.0 );
         glEnable( GL_DEPTH_TEST );
         glDepthMask( GL_TRUE );
-        fbo->ClearBuffers();
+        m_lsfbo->ClearBuffers();
 
         // Draw
         if( getScene() ) getScene()->Draw( getCamera(), this, NULL, getOgl() );
 
+        // Make sure we are on the default framebuffer
         getOgl()->RestoreFBO();
+
+    } else
+    {
+        cout << "ERROR: lsPass_FBO::Render - lsFBO object not set" << endl;
     }// if fbo
 }
 
 void lsPass_FBO::Resize( int x, int y, int width, int height  )
 {
-	// Resize view if needed
-	setPosition( lsVector2(x,y) );
-	setSize( lsVector2( width, height ) );
+	// // TODO: FBO are a set size for now.
+	// setPosition( lsVector2(x,y) );
+	// setSize( lsVector2( width, height ) );
 	float rw, rh;
 	rw = width-x;
 	rh = height - y;
@@ -134,12 +148,17 @@ void lsPass_FBO::Resize( int x, int y, int width, int height  )
             getCull_camera()->Set_ViewRatio( getVratio() );
         }
     }
+
+#ifdef VORTX_DEBUG_RENDER
+    cout << "lsPass_FBO::Resize - ";
+    cout << "viewport Size: " << getSize().x << " x " << getSize().y << " vRatio: " << getVratio() << endl;
+#endif
 }
 
 void lsPass_FBO::setFBO( lsFBO* val )
 {
-    fbo = val;
-    setSize( lsVector2( fbo->getWidth(), fbo->getHeight() ) );
+    m_lsfbo = val;
+    setSize( lsVector2( m_lsfbo->getWidth(), m_lsfbo->getHeight() ) );
     setVratio(1.0);
 }
 

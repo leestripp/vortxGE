@@ -17,6 +17,10 @@
  * along with vortxGE.  If not, see <http://www.gnu.org/licenses/>
  */
 
+#include <iostream>
+// debug
+#include "../vortx_debug.h"
+
 #include "../opengl/lsOpenGL.h"
 
 #include "lsFBO.h"
@@ -31,6 +35,8 @@ lsFBO::lsFBO( lsOpenGL *opengl )
 
 lsFBO::~lsFBO()
 {
+  // cleanup
+  if( m_fbo ) glDeleteFramebuffers( 1, &m_fbo );
   // never delete ogl;
 }
 

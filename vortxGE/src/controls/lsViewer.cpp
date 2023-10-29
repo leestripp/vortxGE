@@ -17,6 +17,8 @@
  * along with vortxGE.  If not, see <http://www.gnu.org/licenses/>
  */
 
+#include <iostream>
+// debug
 #include "../vortx_debug.h"
 
 #include <iostream>
@@ -101,6 +103,12 @@ int lsViewer::Init()
  */
 void lsViewer::Update( double delta )
 {
+#ifdef VORTX_DEVUG_CONTROL
+    cout << "##########################" << endl;
+    cout << "# lsViewer::Update : " << getName() << endl;
+    cout << "##########################" << endl;
+#endif
+
     if( scenemanager )
     {
         scenemanager->Update( getOgl(), delta );
@@ -116,9 +124,9 @@ void lsViewer::Update( double delta )
  */
 void lsViewer::Render()
 {
-#ifdef VORTX_DEBUG_NODES
+#ifdef VORTX_DEVUG_CONTROL
     cout << "##########################" << endl;
-    cout << "# lsViewer::Render       #" << endl;
+    cout << "# lsViewer::Render : " << getName() << endl;
     cout << "##########################" << endl;
 #endif
 

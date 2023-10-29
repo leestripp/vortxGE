@@ -122,13 +122,8 @@ void lsNode::MoveThread( lsScene* scn, lsOpenGL* opengl, double delta )
     int tc = 0;
 
     // Threads
-    if( scn )
-    {
-        threads = scn->getThreads();
-    } else
-    {
-        threads = thread::hardware_concurrency();
-    }
+    threads = thread::hardware_concurrency();
+
 #ifdef VORTX_DEBUG_NODETHREADS
     cout << "lsNode::MoveThread - Thread count : " << threads << endl;
 #endif
@@ -166,11 +161,15 @@ void lsNode::MoveThread( lsScene* scn, lsOpenGL* opengl, double delta )
     if( getNext_node() ) getNext_node()->MoveThread( scn, opengl, delta );
 }
 
+// used by lsScene nose
+void lsNode::InitDrawlist()
+{
+    // Do nothing
+}
+
+// used by Threading
 void lsNode::Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl )
 {
-#ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::Optimize() - Name: " << getName() << endl;
-#endif
     // Do nothing
 }
 
@@ -186,13 +185,8 @@ void lsNode::OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL
     int tc = 0;
 
     // Threads
-    if( scn )
-    {
-        threads = scn->getThreads();
-    } else
-    {
-        threads = thread::hardware_concurrency() * 2;
-    }
+    threads = thread::hardware_concurrency();
+
 #ifdef VORTX_DEBUG_NODETHREADS
     stringstream msg;
     msg << "lsNode::OptimizeThread - Thread count : " << threads << endl;

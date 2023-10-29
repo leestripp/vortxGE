@@ -18,9 +18,9 @@
  */
 
 #include <iostream>
-
-// core
+// debug
 #include "../vortx_debug.h"
+// core
 #include "../vortxGE.h"
 
 // opengl

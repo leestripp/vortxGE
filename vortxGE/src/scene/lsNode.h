@@ -80,6 +80,7 @@ public:
     virtual void Move( lsScene* scn, lsOpenGL* opengl, double delta );
     virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
     virtual void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+    virtual void InitDrawlist();
     // Threads
     void MoveThread( lsScene* scn, lsOpenGL* opengl, double delta );
     void OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
