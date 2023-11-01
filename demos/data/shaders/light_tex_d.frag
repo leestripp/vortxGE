@@ -51,14 +51,13 @@ void main(void)
         reflectVec = reflect( -lightVec, normal );
         // Spec factor
         spec = max( dot( reflectVec, viewVec ), 0.0 );
-        spec = pow( spec, vxMatShininess );// 16.0
+        spec = pow( spec, vxMatShininess );
         // Contribs
         specContrib += vxMatSpecular.rgb * vxLightSpecular[i].rgb * spec;
         diffContrib += vxMatDiffuse.rgb * vxLightDiffuse[0].rgb * max( dot( lightVec, normal ), 0.0 );
     }
 
     vec3 lightContrib = ambientContrib + diffContrib + specContrib;
-    lightContrib = lightContrib / vxLightCount;
 
     fragColour = vec4( (texColour.rgb * lightContrib) + specContrib, 1.0 );
     // fragColour = vec4( texColour.rgb * lightContrib, 1.0 );

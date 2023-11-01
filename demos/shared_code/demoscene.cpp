@@ -24,6 +24,12 @@
 #include <assets/lsAsset_Quad.h>
 #include <assets/lsAsset_MeshGuide_Empty.h>
 #include <assets/lsAsset_MeshGuide_Grid.h>
+// bullet
+#include <assets/lsAsset_BulletShape_Box.h>
+#include <assets/lsAsset_BulletShape_Plane.h>
+
+// Physics
+#include <physics/lsBulletObject.h>
 
 // datablocks
 #include <datablocks/lsBatch.h>
@@ -31,6 +37,7 @@
 #include <datablocks/lsBatch_Quad.h>
 #include <datablocks/lsMesh.h>
 #include <datablocks/lsFBO_ColourDepth_8.h>
+#include <datablocks/lsBulletShape.h>
 
 // Controls
 #include <controls/lsControlManager.h>
@@ -50,6 +57,7 @@
 #include <scene/lsNode.h>
 #include <scene/lsScene.h>
 #include <scene/lsObject.h>
+#include <scene/lsObjectEmitter.h>
 #include <scene/lsCamera.h>
 #include <scene/lsLight_Point.h>
 
@@ -119,18 +127,13 @@ bool DemoScene::Init()
 
         vortxge->Init();
 
-        // Check GL errors
-        vortxge->getOpenGL()->CheckGLErrors( "DemoScene::Init() vortxge->Init() END" );
+        // Set some openGL defaults
+        glFrontFace( GL_CCW );
+        glEnable( GL_CULL_FACE );
+        glCullFace( GL_BACK );
 
         setupControls();
-
-        // Check GL errors
-        vortxge->getOpenGL()->CheckGLErrors( "DemoScene::Init() setupControls( END" );
-
         setupTestScene();
-
-        // Check GL errors
-        vortxge->getOpenGL()->CheckGLErrors( "DemoScene::Init() setupTestScene() END" );
 
     } else
     {
@@ -195,6 +198,7 @@ void DemoScene::setupControls()
             {
                 quad->setName( "Quad" );
                 quad->Set_Pos( 0, 0, 0 );
+                quad->Set_Rot( 0, 180, 0 ); // Face camera.
 
                 // Use quad asset
                 asset_quad = quad_viewer->getAssetManager()->CreateAsset_Quad();
@@ -230,7 +234,7 @@ void DemoScene::setupControls()
         vortxge->getControlManager()->Add_Control( viewer );
 
         // Create viewer scene : World 1000 meters with 10 max proxies
-        viewer_scene = new lsScene( 1000.0, 10 );
+        viewer_scene = new lsScene( 1000.0, 1000 );
         if( viewer_scene )
         {
             viewer->getSceneManager()->Add_Scene( viewer_scene );
@@ -267,7 +271,7 @@ void DemoScene::setupControls()
                     asset_quad->Set_texture( lsfbo->getTexture() );
                 }
 
-                pass_fbo->setBackground_colour( lsVector4( 0, 1.0, 0, 1.0 ) );
+                pass_fbo->setBackground_colour( lsVector4( 0, 0, 0, 1.0 ) );
 
                 viewer->getPassManager()->Add_Pass( pass_fbo );
                 pass_fbo->setScene( viewer_scene );
@@ -289,7 +293,6 @@ void DemoScene::setupTestScene()
 {
 	cout << "DemoScene::setupTestScene() called" << endl;
 
-    lsLight_Point *point_light;
     lsAnimationManager *lam;
     lsObject *debug_empty;
 
@@ -354,6 +357,22 @@ void DemoScene::setupTestScene()
         // Set a light
         object->getLightManager()->Add_Light( point_light );
         viewer_scene->Add_Node( object );
+
+
+        // Create bullet shape
+        lsAsset_BulletShape_Plane *asset_bsp = viewer->getAssetManager()->CreateAsset_BulletShape_Plane( 0, 1, 0 );
+        if( asset_bsp )
+        {
+            asset_bsp->AllocAsset();
+
+            lsBulletShape *bulletshape;
+            bulletshape = (lsBulletShape *)asset_bsp->getData();
+
+            // lsBulletObject( lsObject* obj, btCollisionShape* bs );
+            lsBulletObject *bo = new lsBulletObject( object, bulletshape->getShape() );
+            bo->Init( 0.0 ); // 0 = static
+        }
+
     }
 
     // Monkey
@@ -413,6 +432,42 @@ void DemoScene::setupTestScene()
         viewer_scene->Add_Node( object );
     }
 
+    // Object emitter
+    setupObjectEmitter();
+
+}
+
+
+void DemoScene::setupObjectEmitter()
+{
+    // Load Mesh asset
+    lsAsset_Mesh *asset_mesh;
+    asset_mesh = viewer->getAssetManager()->CreateAsset_Mesh( "data/meshes/Cube_tex_dns.vbm" );
+    if( asset_mesh )
+    {
+        asset_mesh->AllocAsset();
+    } else return;
+
+    // Create bullet shape
+    lsAsset_BulletShape_Box *asset_bs = viewer->getAssetManager()->CreateAsset_BulletShape_Box( 1.0, 1.0, 1.0 );
+    if( asset_bs )
+    {
+        asset_bs->AllocAsset();
+    } else return;
+
+    // Add emitter to scene
+    lsObjectEmitter *oe = new lsObjectEmitter( asset_mesh, asset_bs, viewer_scene );
+    if( oe )
+    {
+        oe->setName( "Object Emitter" );
+        oe->Set_Pos( 0, 20, 20 );
+
+        oe->setEmit_life( 10 * 1000 ); // 10 sec
+        oe->setEmittime( 100 ); // Emit 1 every second
+        oe->setEmit_light( point_light );
+
+        viewer_scene->Add_Node( oe );
+    }
 }
 
 void DemoScene::moveCamera( bool f, bool b, bool l, bool r, double delta, double factor )

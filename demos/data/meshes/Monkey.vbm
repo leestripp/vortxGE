@@ -10005,10 +10005,10 @@ face 2 1/1/1 502/4/4 1506/5/5 503/6/6
 face 1 1/1/1 501/2/2 1552/3/3 502/4/4
 
 # Material
-ambiant 0.005 0.005 0.005 1
+ambiant 0.1 0.1 0.1 1
 diffuse 1 0 0 1
 specular 1 1 1 1
-shininess 25.0
+shininess 50
 transparent 1
 glow 1
 shader light_tex_none

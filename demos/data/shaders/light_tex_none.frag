@@ -53,7 +53,6 @@ void main(void)
         diffContrib += vxMatDiffuse.rgb * vxLightDiffuse[0].rgb * max( dot( lightVec, normal ), 0.0 );
     }
     vec3 lightContrib = ambientContrib + diffContrib;
-    lightContrib = lightContrib / vxLightCount;
 
     fragColour = vec4( (vxMatDiffuse.rgb * lightContrib) + specContrib, 1.0 );
 }

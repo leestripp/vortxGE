@@ -36,24 +36,20 @@ bool sdlApp::Init()
 
 	} else
 	{
-		/*
 		// Use OpenGL core - SDL_GL_CONTEXT_DEBUG_FLAG
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 		SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG  );
-		SDL_GL_SetAttribute( SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1 );
-		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-			SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-		SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+		SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 );
+		SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 );
+		SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 );
+		SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 );
+		SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
 		SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 		SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, 1 );
 		SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 4 );
-		*/
-
-		SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 
 		//Create window
-		window = SDL_CreateWindow( "vortxGE demo using SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
+		window = SDL_CreateWindow( "vortxGE demo using SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1920, 1080, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
 		if( window == NULL )
 		{
 			cout << "SDL could not Create a window! SDL Error: " << SDL_GetError() << endl;
@@ -61,8 +57,6 @@ bool sdlApp::Init()
 
 		} else
 		{
-
-
 			//Create context
 			context = SDL_GL_CreateContext( window );
 			if( context == NULL )
@@ -75,7 +69,7 @@ bool sdlApp::Init()
 				SDL_GL_MakeCurrent( window, context );
 
 				// 0 for immediate updates, 1 for updates synchronized with the vertical retrace, -1 for adaptive vsync
-				if( SDL_GL_SetSwapInterval( 1 ) < 0 ) // vSync = 1
+				if( SDL_GL_SetSwapInterval( 0 ) < 1 ) // vSync = 1
 				{
 					cout << "Unable to set VSync method. SDL Error: " << SDL_GetError() << endl;
 				}

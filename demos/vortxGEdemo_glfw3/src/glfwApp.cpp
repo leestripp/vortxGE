@@ -180,8 +180,8 @@ bool glfwApp::Init()
         return false;
     }
 
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 2 );
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
     glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 
     glfwWindowHint( GLFW_DECORATED, true );
@@ -190,7 +190,7 @@ bool glfwApp::Init()
     window = glfwCreateWindow( 1920, 1080, "vortxGEdemo_glfw3", NULL, NULL );
     if(! window )
     {
-        cout << "glfwCreateWindow - Could not create window..." << endl;
+        cout << "ERROR: glfwCreateWindow - Could not create window..." << endl;
         glfwTerminate();
         return false;
     }
@@ -203,8 +203,8 @@ bool glfwApp::Init()
     glfwSetWindowSizeCallback( window, Resize_Callback );
 
     glfwMakeContextCurrent( window );
-    glfwSwapInterval(1); // vSync
-    glfwSetWindowPos(window, 256, 256);
+    glfwSwapInterval( 1 ); // vSync
+    glfwSetWindowPos( window, 256, 256 );
     glfwShowWindow( window );
 
     // Create demo scene

@@ -74,7 +74,6 @@ void main(void)
     }
 
     vec3 lightContrib = ambientContrib + diffContrib;
-    lightContrib = lightContrib / vxLightCount;
 
     fragColour = vec4( (texColour.rgb * lightContrib) + specContrib, 1.0 );
 }

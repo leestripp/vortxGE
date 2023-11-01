@@ -75,7 +75,6 @@ void main(void)
         diffContrib += vxMatDiffuse.rgb * vxLightDiffuse[0].rgb * max( dot( lightVec_tangentspace, texNormal_tangentspace ), 0.0 );
     }
     vec3 lightContrib = ambientContrib + diffContrib;
-    lightContrib = lightContrib / vxLightCount;
     specContrib *= texSpecular.rgb;
 
     fragColour = vec4( (texColour.rgb * lightContrib) + specContrib, 1.0 );

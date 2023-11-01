@@ -11,6 +11,7 @@ class lsViewer;
 class lsObject;
 class lsCamera;
 class lsEvent;
+class lsLight_Point;
 
 using namespace std;
 
@@ -32,6 +33,7 @@ public:
 protected:
     void setupControls();
     void setupTestScene();
+    void setupObjectEmitter();
     // Scene Events
     void processEvent( lsEvent* event );
 
@@ -43,6 +45,8 @@ private:
     lsViewer *viewer;
     // objects
     lsObject *light_control;
+    // lights
+    lsLight_Point *point_light;
     // Camera
     lsCamera *camera;
     lsObject *camera_base;
