@@ -5,7 +5,7 @@
 vortxGE is a graphics library written in C++ around OpenGL and Bullet physics. It aims to keep platform code seperate from the engine.
 License : LGPL
 
-![image](screenshots/wx_vortxGE.png)
+![image](screenshots/vortxGE.png)
 
 ## Features
 * Spline animation for objects and Materials. You can also add your own animation properties.
