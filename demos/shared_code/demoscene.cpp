@@ -348,7 +348,6 @@ void DemoScene::setupTestScene()
     if( object )
     {
         object->setName( "Floor" );
-        object->Set_Scale( 2.0, 2.0, 2.0 );
 
         // Load Mesh asset
         lsAsset_Mesh *asset_mesh;
@@ -359,22 +358,6 @@ void DemoScene::setupTestScene()
         // Set a light
         object->getLightManager()->Add_Light( point_light );
         viewer_scene->Add_Node( object );
-
-        // Create bullet shape
-        lsAsset_BulletShape_Plane *asset_bsp = viewer->getAssetManager()->CreateAsset_BulletShape_Plane( 0, 1, 0 );
-        if( asset_bsp )
-        {
-            asset_bsp->AllocAsset();
-
-            lsBulletShape *bulletshape;
-            bulletshape = (lsBulletShape *)asset_bsp->getData();
-
-            // create a bullet object
-            lsBulletObject *bo = new lsBulletObject( object, bulletshape->getShape(), viewer_scene->getBulletworld()->getMax_proxies() );
-
-            // Connects it all up and checks btcollisonWorld before adding ridged body.
-            bo->Init( 0.0 ); // 0 = static
-        }
     }
 
     // Monkey
@@ -423,6 +406,32 @@ void DemoScene::setupTestScene()
 
 void DemoScene::setupObjectEmitter()
 {
+    lsObject *object;
+
+    // Floor Collision
+    object = new lsObject( viewer_scene );
+    if( object )
+    {
+        object->setName( "Floor Collsion" );
+
+        // Create bullet shape
+        lsAsset_BulletShape_Plane *asset_bsp = viewer->getAssetManager()->CreateAsset_BulletShape_Plane( 0, 1, 0 );
+        if( asset_bsp )
+        {
+            asset_bsp->AllocAsset();
+
+            lsBulletShape *bulletshape;
+            bulletshape = (lsBulletShape *)asset_bsp->getData();
+
+            // create a bullet object
+            lsBulletObject *bo = new lsBulletObject( object, bulletshape->getShape(), viewer_scene->getBulletworld()->getMax_proxies() );
+
+            // Connects it all up and checks btcollisonWorld before adding ridged body.
+            bo->Init( 0.0 ); // 0 = static
+        }
+        viewer_scene->Add_Node( object );
+    }
+
     // Load Mesh asset
     lsAsset_Mesh *asset_mesh;
     asset_mesh = viewer->getAssetManager()->CreateAsset_Mesh( "data/meshes/Cube_tex_dns.vbm" );

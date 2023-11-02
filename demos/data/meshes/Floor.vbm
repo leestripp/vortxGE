@@ -2,13 +2,13 @@
 
 batch start
 # bsphere : x y z radius
-bsphere 0 0 0 7.07107
+bsphere 0 0 0 14.1
 
 # vertex : index x y z
-vertex 4 -5 0 5
-vertex 3 5 0 5
-vertex 2 -5 0 -5
-vertex 1 5 0 -5
+vertex 4 -10 0 10
+vertex 3 10 0 10
+vertex 2 -10 0 -10
+vertex 1 10 0 -10
 # normals and tangents : index x y z
 normal 1 0 1 0
 tangent 1 -1 0 -0
