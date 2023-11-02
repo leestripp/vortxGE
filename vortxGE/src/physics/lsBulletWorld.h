@@ -77,6 +77,11 @@ public:
 		maxProxies = arg1;
 	}
 
+	int getMax_proxies() const
+	{
+		return maxProxies;
+	}
+
 
 private:
 	lsScene *scene;

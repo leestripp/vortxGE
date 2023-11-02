@@ -31,7 +31,7 @@
 #include "lsBulletObject.h"
 
 
-lsBulletObject::lsBulletObject( lsObject* obj, btCollisionShape* bs )
+lsBulletObject::lsBulletObject( lsObject* obj, btCollisionShape* bs, int maxProxies )
 {
 	object = obj;
 	object->setBulletObject( this );
@@ -41,6 +41,8 @@ lsBulletObject::lsBulletObject( lsObject* obj, btCollisionShape* bs )
 
 	body = NULL;
 	body_shape = bs;
+
+	m_maxProxies = maxProxies;
 
     // get our world
     lsScene *scn;
@@ -81,9 +83,9 @@ void lsBulletObject::Init( float basemass )
 	{
 		position = btVector3( object->position.x, object->position.y, object->position.z );
 
-		btTransform groundTransform;
-		groundTransform.setIdentity();
-		groundTransform.setOrigin( position );
+		btTransform b_Transform;
+		b_Transform.setIdentity();
+		b_Transform.setOrigin( position );
 
 		//rigidbody is dynamic if and only if mass is non zero, otherwise static
 		bool isDynamic = (mass != 0.0);
@@ -92,7 +94,7 @@ void lsBulletObject::Init( float basemass )
 		if (isDynamic)
 			body_shape->calculateLocalInertia( mass, localInertia );
 
-		myMotionState = new btDefaultMotionState( groundTransform );
+		myMotionState = new btDefaultMotionState( b_Transform );
 		btRigidBody::btRigidBodyConstructionInfo rbInfo( mass, myMotionState, body_shape, localInertia );
 
 		body = new btRigidBody( rbInfo );
@@ -102,7 +104,7 @@ void lsBulletObject::Init( float basemass )
 			body->setUserPointer( object );
 
 			//add the body to the dynamics world
-			if( dynamicsWorld ) dynamicsWorld->addRigidBody( body );
+			AddToSim();
 		}
 	}
 }
@@ -128,9 +130,17 @@ void lsBulletObject::AddToSim()
     cout << "lsBulletObject::AddToSim" << endl;
 #endif
 
-    if( body )
+	// Make sure we dont exced maxProxies - bullet will crash.
+    if(( body )&&( dynamicsWorld ))
 	{
-		if( dynamicsWorld ) dynamicsWorld->addRigidBody( body );
+		// dynamicsWorld
+		if( dynamicsWorld->getCollisionWorld()->getNumCollisionObjects() < m_maxProxies )
+		{
+			dynamicsWorld->addRigidBody( body );
+		} else
+		{
+			cout << "WARNING: lsBulletObject::AddToSim() - Exceded maxProxies" << endl;
+		}
 	}
 }
 

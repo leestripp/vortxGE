@@ -30,6 +30,7 @@
 
 // Physics
 #include <physics/lsBulletObject.h>
+#include <physics/lsBulletWorld.h>
 
 // datablocks
 #include <datablocks/lsBatch.h>
@@ -197,8 +198,7 @@ void DemoScene::setupControls()
             if( quad )
             {
                 quad->setName( "Quad" );
-                quad->Set_Pos( 0, 0, 0 );
-                quad->Set_Rot( 0, 180, 0 ); // Face camera.
+                quad->Set_Rot( 0, 180, 0 ); // Rotate to face camera.
 
                 // Use quad asset
                 asset_quad = quad_viewer->getAssetManager()->CreateAsset_Quad();
@@ -233,7 +233,9 @@ void DemoScene::setupControls()
         viewer->Init();
         vortxge->getControlManager()->Add_Control( viewer );
 
-        // Create viewer scene : World 1000 meters with 10 max proxies
+        // Create viewer scene :
+        // World size 1000 meters
+        // maxProxies - Set this high enough for your physics objects or they wont be added to the sim.
         viewer_scene = new lsScene( 1000.0, 1000 );
         if( viewer_scene )
         {
@@ -338,7 +340,7 @@ void DemoScene::setupTestScene()
         viewer_scene->Add_Node( light_control );
     }
 
-    // Add some Objects
+    // Add some test Objects
     lsObject *object;
 
     // Floor
@@ -358,7 +360,6 @@ void DemoScene::setupTestScene()
         object->getLightManager()->Add_Light( point_light );
         viewer_scene->Add_Node( object );
 
-
         // Create bullet shape
         lsAsset_BulletShape_Plane *asset_bsp = viewer->getAssetManager()->CreateAsset_BulletShape_Plane( 0, 1, 0 );
         if( asset_bsp )
@@ -368,11 +369,12 @@ void DemoScene::setupTestScene()
             lsBulletShape *bulletshape;
             bulletshape = (lsBulletShape *)asset_bsp->getData();
 
-            // lsBulletObject( lsObject* obj, btCollisionShape* bs );
-            lsBulletObject *bo = new lsBulletObject( object, bulletshape->getShape() );
+            // create a bullet object
+            lsBulletObject *bo = new lsBulletObject( object, bulletshape->getShape(), viewer_scene->getBulletworld()->getMax_proxies() );
+
+            // Connects it all up and checks btcollisonWorld before adding ridged body.
             bo->Init( 0.0 ); // 0 = static
         }
-
     }
 
     // Monkey
@@ -405,25 +407,6 @@ void DemoScene::setupTestScene()
         // Load Mesh asset
         lsAsset_Mesh *asset_mesh;
         asset_mesh = viewer->getAssetManager()->CreateAsset_Mesh( "data/meshes/Cube_logo.vbm" );
-        asset_mesh->AllocAsset();
-        object->Set_Asset( asset_mesh );
-
-        // Set a light
-        object->getLightManager()->Add_Light( point_light );
-        viewer_scene->Add_Node( object );
-    }
-
-    // Cube 2
-    object = new lsObject( viewer_scene );
-    if( object )
-    {
-        object->setName( "Cube2" );
-        object->Set_Pos( 0, 1, 0 );
-        object->Set_Scale( 1.0, 1.0, 1.0 );
-
-        // Load Mesh asset
-        lsAsset_Mesh *asset_mesh;
-        asset_mesh = viewer->getAssetManager()->CreateAsset_Mesh( "data/meshes/Cube_tex_dns.vbm" );
         asset_mesh->AllocAsset();
         object->Set_Asset( asset_mesh );
 

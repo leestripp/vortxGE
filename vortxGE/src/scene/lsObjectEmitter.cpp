@@ -19,6 +19,7 @@
 
 // Physics
 #include "../physics/lsBulletObject.h"
+#include "../physics/lsBulletWorld.h"
 
 // Assets
 #include "../assets/lsAsset.h"
@@ -118,11 +119,14 @@ void lsObjectEmitter::EmitObject( lsScene *scn, lsOpenGL *opengl, double delta )
             }
 
             // Add lsBulletObject
-            bulletobject = new lsBulletObject( object, bulletshape->getShape() );
+            bulletobject = new lsBulletObject( object, bulletshape->getShape(), scn->getBulletworld()->getMax_proxies() );
             if( bulletobject )
             {
                 bulletobject->Init( 1.0 ); // Mass 0 = static
                 bulletobject->Set_Gravity( 0, -10, 0 );
+                // match position
+                bulletobject->Set_Position( ox, oy, oz );
+
                 // rotation
                 if( rand_rotation )
                 {
@@ -130,13 +134,28 @@ void lsObjectEmitter::EmitObject( lsScene *scn, lsOpenGL *opengl, double delta )
                     oy = m_random.Rand_FloatRange( 0, 360.0 );
                     oz = m_random.Rand_FloatRange( 0, 360.0 );
                     bulletobject->Set_Rotation( ox, oy, oz );
+                    object->Set_Rot( ox, oy, oz );
                 }
                 // velocity
                 ox = m_random.Rand_FloatRange( -rand_velocity.x, rand_velocity.x );
                 oy = m_random.Rand_FloatRange( -rand_velocity.y, rand_velocity.y );
                 oz = m_random.Rand_FloatRange( -rand_velocity.z, rand_velocity.z );
                 bulletobject->Set_Velocity( ox, oy, oz );
-            }
+
+            }// if( bulletobject )
+
+            // Update object ModelMatrix to stop flickering.
+            // Set transform
+            lsMatrix4x4 transmat;
+            lsMatrix4x4 rotmat;
+            lsMatrix4x4 scalemat;
+
+            transmat.TranslateMatrix( object->position.x, object->position.y, object->position.z );
+            rotmat.RotateMatrix( object->rotation.x, 1, 0, 0 );
+            rotmat.RotateMatrix( object->rotation.y, 0, 1, 0 );
+            rotmat.RotateMatrix( object->rotation.z, 0, 0, 1 );
+            scalemat.ScaleMatrix( object->scale.x, object->scale.y, object->scale.z );
+            object->ModelMatrix = transmat * rotmat * scalemat;
 
         }// if object
     }// if emittime

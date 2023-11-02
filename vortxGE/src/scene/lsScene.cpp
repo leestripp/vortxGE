@@ -94,13 +94,14 @@ void lsScene::Move( lsScene* scn, lsOpenGL* opengl, double delta )
     cout << "lsScene::Move : Process events, Physics Step, Init ModelMatrix" << endl;
 #endif
 
+    // Base Matrix
+    ModelMatrix.LoadIdentity();
+
     // Update physics engine
     if( opengl->getStats() ) opengl->getStats()->Physics_Start();
     if( bulletworld ) bulletworld->BulletStep( 10, delta );
     if( opengl->getStats() ) opengl->getStats()->Physics_Stop();
 
-    // Base Matrix
-    ModelMatrix.LoadIdentity();
 #ifdef VORTX_DEBUG_NODES
     ModelMatrix.debug( "lsScene ModelMatrix: " + getName() );
 #endif

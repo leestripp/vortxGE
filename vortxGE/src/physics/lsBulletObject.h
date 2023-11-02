@@ -45,7 +45,7 @@ class lsObject;
 class lsBulletObject
 {
 public:
-	lsBulletObject( lsObject* obj, btCollisionShape* bs );
+	lsBulletObject( lsObject* obj, btCollisionShape* bs, int maxProxies );
 	virtual ~lsBulletObject();
 
 	void Init( float basemass );
@@ -74,6 +74,7 @@ public:
 	int         motion_type;
 	btScalar 	mass;
 	btVector3 	position;
+	int			m_maxProxies;
 
 };
 

@@ -32,11 +32,13 @@ class lsObject;
 using namespace std;
 
 /*!
- * \brief The lsScene class
+ * \brief The lsScene class must be used for any Scene.
  *
  * The base node for any scene in vortxGE.\n
  * \n
  * Holds an Event Manager that controls all nodes in this scene. e.g. To delete a scene object just create an Event and the Scene node will take care of it safely.\n
+ * \n
+ * maxProxies - Make sure you set this high enough to cover all your ridged bodies (bullet physics) or bullet will crash.\n
  *
  */
 class lsScene : public lsNode
