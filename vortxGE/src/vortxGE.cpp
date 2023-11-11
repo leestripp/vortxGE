@@ -195,11 +195,11 @@ void vortxGE::Render()
     // render - all elements to screen
     if( controlmanager ) controlmanager->Render();
 
-    stats->Loop_Stop();
-    stats->Update();
-
     // reset framebuffer
     opengl->RestoreFBO();
+
+    stats->Loop_Stop();
+    stats->Update();
 
 #ifdef VORTX_DEBUG_RENDER
     cout << "vortxGE::Render() - END" << endl;
