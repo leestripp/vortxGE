@@ -1,0 +1,25 @@
+var classlsLight =
+[
+    [ "lsLight", "classlsLight.html#a702c6a125217c3cf742b82b5895ea506", null ],
+    [ "~lsLight", "classlsLight.html#a3ab5ff95aab552a934bf2b26c98fa6fd", null ],
+    [ "buildShadowmap_matrix", "classlsLight.html#a420896eb4e77e304a1dbc336ca054abc", null ],
+    [ "getHas_shadowmap", "classlsLight.html#ae59e7e97ec2f4dcda3bbecc5fe445a99", null ],
+    [ "getLight_type", "classlsLight.html#ad73351f81787a87a356ff26f03346ac7", null ],
+    [ "getPixel_x", "classlsLight.html#afb9ad7e3cd5b4e5bf98987d2de535150", null ],
+    [ "getPixel_y", "classlsLight.html#a2da12ce1b582568986706dd722c4b240", null ],
+    [ "getShadow_bias", "classlsLight.html#a1f4a3390a32bdb63e43cdc6b8f79da39", null ],
+    [ "getTex_shadowmap", "classlsLight.html#a007a6db215d6a8bee8af70e4b38ef0ed", null ],
+    [ "Optimize", "classlsLight.html#abfad4f86598f48da15bf8e2129f31445", null ],
+    [ "setHas_shadowmap", "classlsLight.html#ae13943f9bc2665896814ab203f242f54", null ],
+    [ "setLight_type", "classlsLight.html#a4cf71e06c61bbe9fda2fb74696ec7309", null ],
+    [ "setPixel_x", "classlsLight.html#a1aabf4aaccfb281a0508836e9e8e5174", null ],
+    [ "setPixel_y", "classlsLight.html#aaad9e6b73cf7ed1604f065caab1762bb", null ],
+    [ "setShadow_bias", "classlsLight.html#abf9980c3cf3cf85f20f859cc7d0950b7", null ],
+    [ "setTex_shadowmap", "classlsLight.html#af3e80ff8760a86c05d7ced86ef9d7b8f", null ],
+    [ "toString", "classlsLight.html#a07e2b349cb9f851220ff3ac0acc09572", null ],
+    [ "ambient", "classlsLight.html#a34e850570c9c08c5520ec88da6e17f29", null ],
+    [ "diffuse", "classlsLight.html#a386b47e0a12332987baba5f8c9301942", null ],
+    [ "ShadowmapMatrix", "classlsLight.html#a8143a2d5ea221b1db51dafa356544415", null ],
+    [ "specular", "classlsLight.html#afaea1d2784998bacf0dfa86d66050379", null ],
+    [ "spot_cutoff", "classlsLight.html#a2c760f294736488e8cb4ad4f3820499c", null ]
+];
