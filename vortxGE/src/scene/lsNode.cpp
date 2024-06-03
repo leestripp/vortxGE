@@ -115,19 +115,19 @@ void lsNode::MoveThread( lsScene* scn, lsOpenGL* opengl, double delta )
 #ifdef VORTX_DEBUG_NODETHREADS
     cout << "lsNode::MoveThred()" << endl;
 #endif
-
+	
     vector<thread> th;
     lsNode *ptr;
     int threads = 1;
     int tc = 0;
-
+	
     // Threads
     threads = thread::hardware_concurrency();
-
+	
 #ifdef VORTX_DEBUG_NODETHREADS
     cout << "lsNode::MoveThread - Thread count : " << threads << endl;
 #endif
-
+	
     // cycle through children nodes.
     // Parents Matrix has been set.
     ptr = getNode_list();
@@ -155,7 +155,15 @@ void lsNode::MoveThread( lsScene* scn, lsOpenGL* opengl, double delta )
         }
         ptr = ptr->getNext_node();
     }
-
+	// Join last threads.
+	if(! th.empty() )
+	{
+		for( auto &t : th )
+		{
+			t.join();
+		}
+	}
+	
     // pass it on
     if( getNode_list() ) getNode_list()->MoveThread( scn, opengl, delta );
     if( getNext_node() ) getNext_node()->MoveThread( scn, opengl, delta );
@@ -220,7 +228,15 @@ void lsNode::OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL
         }
         ptr = ptr->getNext_node();
     }
-
+	// Join last threads.
+	if(! th.empty() )
+	{
+		for( auto &t : th )
+		{
+			t.join();
+		}
+	}
+	
     // Pass it on
     if( getNode_list() ) getNode_list()->OptimizeThread( cam, pass, scn, opengl );
     if( getNext_node() ) getNext_node()->OptimizeThread( cam, pass, scn, opengl );

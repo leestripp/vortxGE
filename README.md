@@ -1,4 +1,4 @@
-## vortxGE v0.6.5
+## vortxGE v0.6
 
 # NOTE: Only tested on manjaro Linux (Linux only for now).
 

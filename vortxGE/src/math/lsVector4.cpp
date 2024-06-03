@@ -55,15 +55,24 @@ lsVector4::~lsVector4()
 // ***** Methods
 // ***************
 
+lsVector4& lsVector4::operator=( const lsVector4& other )
+{
+	x = other.x;
+	y = other.y;
+	z = other.z;
+	w = other.w;
+	return *this;
+}
+
 lsVector4 lsVector4::operator+(float s)
 {
     lsVector4 res;
-
+	
     res.x = x + s;
     res.y = y + s;
     res.z = z + s;
     res.w = w;
-
+	
     return(res);
 }
 

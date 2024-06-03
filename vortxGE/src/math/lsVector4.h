@@ -44,7 +44,8 @@ public:
 	lsVector4( float XX, float YY, float ZZ, float WW );
 	lsVector4( const lsVector4 &v );
 	virtual ~lsVector4();
-
+	
+	lsVector4& operator=(const lsVector4& other);
 	lsVector4 operator+(float s);
 	lsVector4 operator+(const lsVector4 &v);
 	lsVector4 operator-(const lsVector4 &v);
@@ -102,16 +103,14 @@ public:
 	{
 		this->w = w;
 	}
-
-
+	
 	float x;
 	float y;
 	float z;
 	float w;
-
+	
 private:
     string output;
-
 };
 
 #endif /* LSVECTOR3_H_ */

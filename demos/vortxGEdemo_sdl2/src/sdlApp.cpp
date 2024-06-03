@@ -69,7 +69,7 @@ bool sdlApp::Init()
 				SDL_GL_MakeCurrent( window, context );
 
 				// 0 for immediate updates, 1 for updates synchronized with the vertical retrace, -1 for adaptive vsync
-				if( SDL_GL_SetSwapInterval( 0 ) < 1 ) // vSync = 1
+				if( SDL_GL_SetSwapInterval( 1 ) < 1 ) // vSync = 1
 				{
 					cout << "Unable to set VSync method. SDL Error: " << SDL_GetError() << endl;
 				}
