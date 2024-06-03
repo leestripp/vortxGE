@@ -56,9 +56,8 @@ lsVector3::~lsVector3()
 lsVector3& lsVector3::operator=(const lsVector3 &v)
 {
 	// Same object?
-	if (this == &v)
-		return *this;
-
+	if (this == &v) return *this;
+	
 	x = v.x;
 	y = v.y;
 	z = v.z;

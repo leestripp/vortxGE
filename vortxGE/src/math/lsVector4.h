@@ -46,13 +46,13 @@ public:
 	virtual ~lsVector4();
 	
 	lsVector4& operator=(const lsVector4& other);
-	lsVector4 operator+(float s);
-	lsVector4 operator+(const lsVector4 &v);
-	lsVector4 operator-(const lsVector4 &v);
-	lsVector4 operator*(const lsVector4 &v);
-	lsVector4 operator*(float t);
-	lsVector4 operator/(float t);
-	lsVector4 operator-();
+	lsVector4& operator+(float s);
+	lsVector4& operator+(const lsVector4 &v);
+	lsVector4& operator-(const lsVector4 &v);
+	lsVector4& operator*(const lsVector4 &v);
+	lsVector4& operator*(float t);
+	lsVector4& operator/(float t);
+	lsVector4& operator-();
 
 	float length();
 	void normalize();

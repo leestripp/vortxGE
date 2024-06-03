@@ -184,18 +184,19 @@ void lsMatrix3x3::Inverse( const lsMatrix3x3 &mat )
     // We have our inverse
 }
 
-lsMatrix3x3 &lsMatrix3x3::operator=(const lsMatrix3x3 &m)
+lsMatrix3x3& lsMatrix3x3::operator=(const lsMatrix3x3 &m)
 {
     for( int i=0; i<9; i++ )
         matrix[i] = m.matrix[i];
-
+	
     return *this;
 }
 
-lsMatrix3x3 &lsMatrix3x3::operator*=(const lsMatrix3x3 &B)
+lsMatrix3x3& lsMatrix3x3::operator*=(const lsMatrix3x3 &B)
 {
-    lsMatrix3x3 A = *this;
-
+    lsMatrix3x3 A;
+	for( int i=0; i<9; i++ ) A.matrix[i] = matrix[i];
+	
     for( int i = 0; i < 3; i++ )
     {
         float ai0 = A.matrix[0*3+i];
@@ -209,11 +210,12 @@ lsMatrix3x3 &lsMatrix3x3::operator*=(const lsMatrix3x3 &B)
     return *this;
 }
 
-lsMatrix3x3 lsMatrix3x3::operator*(const lsMatrix3x3 &B)
+lsMatrix3x3& lsMatrix3x3::operator*(const lsMatrix3x3 &B)
 {
     lsMatrix3x3 ret;
-    lsMatrix3x3 A = *this;
-
+	lsMatrix3x3 A;
+	for( int i=0; i<9; i++ ) A.matrix[i] = matrix[i];
+	
     for( int i = 0; i < 3; i++ )
     {
         float ai0 = A.matrix[0*3+i];
@@ -224,6 +226,7 @@ lsMatrix3x3 lsMatrix3x3::operator*(const lsMatrix3x3 &B)
         ret.matrix[1*3+i] = ai0 * B.matrix[ 3] + ai1 * B.matrix[ 4] + ai2 * B.matrix[ 5];
         ret.matrix[2*3+i] = ai0 * B.matrix[ 6] + ai1 * B.matrix[ 7] + ai2 * B.matrix[ 8];
     }
+	
     return ret;
 }
 

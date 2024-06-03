@@ -39,13 +39,14 @@ public:
 	lsVector2();
 	lsVector2( float v1, float v2 );
 	virtual ~lsVector2();
-
-	lsVector2 operator+(const lsVector2 &v);
-	lsVector2 operator-(const lsVector2 &v);
-	lsVector2 operator*(const lsVector2 &v);
-	lsVector2 operator*(float t);
-	lsVector2 operator/(float t);
-
+	
+	lsVector2& operator=( const lsVector2& other );
+	lsVector2& operator+(const lsVector2 &v);
+	lsVector2& operator-(const lsVector2 &v);
+	lsVector2& operator*(const lsVector2 &v);
+	lsVector2& operator*(float t);
+	lsVector2& operator/(float t);
+	
     const string& toString();
 
 	float x;

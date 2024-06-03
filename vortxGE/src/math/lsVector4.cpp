@@ -64,7 +64,7 @@ lsVector4& lsVector4::operator=( const lsVector4& other )
 	return *this;
 }
 
-lsVector4 lsVector4::operator+(float s)
+lsVector4& lsVector4::operator+(float s)
 {
     lsVector4 res;
 	
@@ -76,7 +76,7 @@ lsVector4 lsVector4::operator+(float s)
     return(res);
 }
 
-lsVector4 lsVector4::operator+(const lsVector4 &v)
+lsVector4& lsVector4::operator+(const lsVector4 &v)
 {
 	lsVector4 res;
 
@@ -88,7 +88,7 @@ lsVector4 lsVector4::operator+(const lsVector4 &v)
 	return(res);
 }
 
-lsVector4 lsVector4::operator-(const lsVector4 &v)
+lsVector4& lsVector4::operator-(const lsVector4 &v)
 {
 	lsVector4 res;
 
@@ -100,7 +100,7 @@ lsVector4 lsVector4::operator-(const lsVector4 &v)
 	return(res);
 }
 
-lsVector4 lsVector4::operator-(void)
+lsVector4& lsVector4::operator-(void)
 {
 	lsVector4 res;
 
@@ -113,7 +113,7 @@ lsVector4 lsVector4::operator-(void)
 }
 
 
-lsVector4 lsVector4::operator*(const lsVector4 &v)
+lsVector4& lsVector4::operator*(const lsVector4 &v)
 {
 	lsVector4 res;
 
@@ -125,7 +125,7 @@ lsVector4 lsVector4::operator*(const lsVector4 &v)
 	return (res);
 }
 
-lsVector4 lsVector4::operator*(float t)
+lsVector4& lsVector4::operator*(float t)
 {
 	lsVector4 res;
 
@@ -138,7 +138,7 @@ lsVector4 lsVector4::operator*(float t)
 }
 
 
-lsVector4 lsVector4::operator/(float t)
+lsVector4& lsVector4::operator/(float t)
 {
 	lsVector4 res;
 

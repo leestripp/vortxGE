@@ -51,7 +51,7 @@ public:
 
     lsMatrix3x3& operator=(const lsMatrix3x3& m);
     lsMatrix3x3& operator*=( const lsMatrix3x3& B );
-    lsMatrix3x3 operator*( const lsMatrix3x3& B );
+    lsMatrix3x3& operator*( const lsMatrix3x3& B );
 
     // convert 4x4
     void ExtractRotationMatrix4x4( const lsMatrix4x4& mat );
@@ -61,10 +61,9 @@ public:
 
     // data
     float matrix[9];
-
+	
 private:
     float moe; // margin of error
-
 };
 
 #endif // LSMATRIX3X3_H

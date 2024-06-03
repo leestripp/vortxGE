@@ -50,7 +50,7 @@ void lsBatch_Bullet::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
     if( getNext_batch() ) getNext_batch()->Draw( cam, object, pass );
 }
 
-void lsBatch_Bullet::Update( double delta )
+void lsBatch_Bullet::Update( __attribute__((unused)) double delta )
 {
     // Not used but must exsist
 }

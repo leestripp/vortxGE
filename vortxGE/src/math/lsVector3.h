@@ -50,7 +50,7 @@ public:
     lsVector3& operator*=(const lsVector3 &v);
     lsVector3& operator*=(float s);
     lsVector3& operator/=(float s);
-
+	
     lsVector3 operator+(float s);
     lsVector3 operator+(const lsVector3 &v);
     lsVector3 operator-(float s);
