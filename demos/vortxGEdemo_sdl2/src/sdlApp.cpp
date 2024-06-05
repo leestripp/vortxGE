@@ -181,7 +181,7 @@ void sdlApp::on_key( SDL_KeyboardEvent* key )
 	}// switch( key->type )
 }
 
-void sdlApp::on_mousemove( int x, int y, int rx, int ry )
+void sdlApp::on_mousemove( __attribute__((unused)) int x, __attribute__((unused)) int y, int rx, int ry )
 {
 	if( SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN )
 	{

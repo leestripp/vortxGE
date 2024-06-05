@@ -36,111 +36,10 @@ lsVector3::lsVector3( float XX, float YY, float ZZ )
 	z = ZZ;
 }
 
-lsVector3::lsVector3( const lsVector3 &v )
-{
-	x = v.x;
-	y = v.y;
-	z = v.z;
-
-}
-
-lsVector3::~lsVector3()
-{
-}
-
 
 // ***************
 // ***** Methods
 // ***************
-
-lsVector3& lsVector3::operator=(const lsVector3 &v)
-{
-	// Same object?
-	if (this == &v) return *this;
-	
-	x = v.x;
-	y = v.y;
-	z = v.z;
-
-	return *this;
-}
-
-lsVector3& lsVector3::operator+=(const lsVector3 &v)
-{
-	// Same object?
-	if (this == &v)
-		return *this;
-
-	x += v.x;
-	y += v.y;
-	z += v.z;
-
-	return *this;
-}
-
-lsVector3& lsVector3::operator+=(float s)
-{
-	x += s;
-	y += s;
-	z += s;
-
-	return *this;
-}
-
-
-lsVector3& lsVector3::operator-=(const lsVector3 &v)
-{
-	// Same object?
-	if (this == &v)
-		return *this;
-
-	x -= v.x;
-	y -= v.y;
-	z -= v.z;
-
-	return *this;
-}
-
-lsVector3& lsVector3::operator-=(float s)
-{
-	x -= s;
-	y -= s;
-	z -= s;
-
-	return *this;
-}
-
-lsVector3& lsVector3::operator*=(const lsVector3 &v)
-{
-	x = y * v.z - z * v.y;
-	y = z * v.x - x * v.z;
-	z = x * v.y - y * v.x;
-
-	return *this;
-}
-
-lsVector3& lsVector3::operator*=(float t)
-{
-	x *= t;
-	y *= t;
-	z *= t;
-
-	return *this;
-}
-
-lsVector3& lsVector3::operator/=(float t)
-{
-	float f = 1.0 / t;
-	x *= f;
-	y *= f;
-	z *= f;
-
-	return *this;
-}
-
-
-
-
 
 lsVector3 lsVector3::operator+(float s)
 {
@@ -297,7 +196,7 @@ float lsVector3::length()
 
 lsVector3& lsVector3::normalize()
 {
-	return (*this /= sqrt(x * x + y * y + z * z));
+	return (*this = *this / sqrt(x * x + y * y + z * z));
 }
 
 void lsVector3::copy(const lsVector3 &v)

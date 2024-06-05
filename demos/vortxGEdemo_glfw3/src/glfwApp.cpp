@@ -14,8 +14,10 @@ glfwApp glfw_app;
 // *************************************
 // GLFW Callbacks
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+static void key_callback(GLFWwindow* window, int key, __attribute__((unused)) int scancode, int action, int mods)
 {
+	if( mods != 0 ) return;
+	
     switch( action )
     {
         case GLFW_PRESS:
@@ -42,7 +44,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
             } // switch( key )
             break;
 
-        case GLFW_RELEASE:
+		case GLFW_RELEASE:
             switch( key )
             {
                 case GLFW_KEY_W:
@@ -86,15 +88,15 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     } // switch( action )
 }
 
-static void cursor_position_callback( GLFWwindow* window, double xpos, double ypos )
+static void cursor_position_callback( __attribute__((unused)) GLFWwindow* window, double xpos, double ypos )
 {
     // cout << "Cursor Pos : " <<  xpos << " x " << ypos << endl;
-
+	
     glfw_app.setPos_x( xpos );
     glfw_app.setPos_y( ypos );
 }
 
-static void Resize_Callback( GLFWwindow* window, int width, int height )
+static void Resize_Callback( __attribute__((unused)) GLFWwindow* window, int width, int height )
 {
     glfw_app.setWin_width( width );
     glfw_app.setWin_height( height );
@@ -102,10 +104,8 @@ static void Resize_Callback( GLFWwindow* window, int width, int height )
 
 void error_callback( int error, const char* description )
 {
-    fprintf(stderr, "Error: %s\n", description);
+	cerr << "ERROR: " << description << ", code=" << error << endl;
 }
-
-
 
 
 // *************************************
@@ -244,8 +244,8 @@ void glfwApp::Run()
 	lsTimer timer;
 	timer.start_Timer();
     // Mouse
-    double rot_x, rot_y;
-
+    double rot_x=0.0, rot_y=0.0;
+	
     // match window size
     glfwGetWindowSize( window, &m_win_width, &m_win_height );
 
@@ -260,7 +260,7 @@ void glfwApp::Run()
 
 		if( demoscene )
 		{
-            // Only update camera in fullscreen
+            // Only update camera in fullscreen mode
             if( m_fullscreen )
             {
                 // Rotate
@@ -308,7 +308,7 @@ void glfwApp::Run()
 // ************************
 // MAIN
 
-int main( int argc, const char * argv[] )
+int main( /* int argc, const char * argv[] */ )
 {
     if( glfw_app.Init() )
     {

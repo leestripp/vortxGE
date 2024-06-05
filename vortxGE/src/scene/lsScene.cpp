@@ -88,7 +88,7 @@ lsScene::~lsScene()
  * \param opengl
  * \param delta
  */
-void lsScene::Move( lsScene* scn, lsOpenGL* opengl, double delta )
+void lsScene::Move( __attribute__((unused)) lsScene* scn, lsOpenGL* opengl, double delta )
 {
 #ifdef VORTX_DEBUG_NODES
     cout << "lsScene::Move : Process events, Physics Step, Init ModelMatrix" << endl;
@@ -96,7 +96,7 @@ void lsScene::Move( lsScene* scn, lsOpenGL* opengl, double delta )
 
     // Base Matrix
     ModelMatrix.LoadIdentity();
-
+	
     // Update physics engine
     if( opengl->getStats() ) opengl->getStats()->Physics_Start();
     if( bulletworld ) bulletworld->BulletStep( 10, delta );
@@ -130,17 +130,17 @@ void lsScene::InitDrawlist()
  * \param scn
  * \param opengl
  */
-void lsScene::Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl )
+void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene* scn, lsOpenGL* opengl )
 {
 #ifdef VORTX_DEBUG_RENDER
     cout << "lsScene::Draw" << endl;
 #endif
     // Draw stats
     if( opengl->getStats() ) opengl->getStats()->Draw_Start();
-
+	
     // Draw our draw list
     if( draw_list ) draw_list->Draw( cam, pass, this, opengl );
-
+	
     if( opengl->getStats() ) opengl->getStats()->Draw_Stop();
 }
 

@@ -37,34 +37,12 @@ lsVector4::lsVector4( float XX, float YY, float ZZ, float WW )
 
 }
 
-lsVector4::lsVector4( const lsVector4 &v )
-{
-	x = v.x;
-	y = v.y;
-	z = v.z;
-	w = v.w;
-
-}
-
-lsVector4::~lsVector4()
-{
-}
-
 
 // ***************
 // ***** Methods
 // ***************
 
-lsVector4& lsVector4::operator=( const lsVector4& other )
-{
-	x = other.x;
-	y = other.y;
-	z = other.z;
-	w = other.w;
-	return *this;
-}
-
-lsVector4& lsVector4::operator+(float s)
+lsVector4 lsVector4::operator+(float s)
 {
     lsVector4 res;
 	
@@ -73,22 +51,22 @@ lsVector4& lsVector4::operator+(float s)
     res.z = z + s;
     res.w = w;
 	
-    return(res);
+    return res;
 }
 
-lsVector4& lsVector4::operator+(const lsVector4 &v)
+lsVector4 lsVector4::operator+(const lsVector4 &v)
 {
 	lsVector4 res;
-
+	
 	res.x = x + v.x;
 	res.y = y + v.y;
 	res.z = z + v.z;
 	res.w = w;
-
-	return(res);
+	
+	return res;
 }
 
-lsVector4& lsVector4::operator-(const lsVector4 &v)
+lsVector4 lsVector4::operator-(const lsVector4 &v)
 {
 	lsVector4 res;
 
@@ -97,10 +75,10 @@ lsVector4& lsVector4::operator-(const lsVector4 &v)
 	res.z = z - v.z;
 	res.w = w;
 
-	return(res);
+	return res;
 }
 
-lsVector4& lsVector4::operator-(void)
+lsVector4 lsVector4::operator-(void)
 {
 	lsVector4 res;
 
@@ -109,11 +87,11 @@ lsVector4& lsVector4::operator-(void)
 	res.z = -z;
 	res.w = w;
 
-	return(res);
+	return res;
 }
 
 
-lsVector4& lsVector4::operator*(const lsVector4 &v)
+lsVector4 lsVector4::operator*(const lsVector4 &v)
 {
 	lsVector4 res;
 
@@ -122,10 +100,10 @@ lsVector4& lsVector4::operator*(const lsVector4 &v)
 	res.z = x * v.y - y * v.x;
 	res.w = w;
 
-	return (res);
+	return res;
 }
 
-lsVector4& lsVector4::operator*(float t)
+lsVector4 lsVector4::operator*(float t)
 {
 	lsVector4 res;
 
@@ -134,11 +112,11 @@ lsVector4& lsVector4::operator*(float t)
 	res.z = z * t;
 	res.w = w;
 
-	return (res);
+	return res;
 }
 
 
-lsVector4& lsVector4::operator/(float t)
+lsVector4 lsVector4::operator/(float t)
 {
 	lsVector4 res;
 
@@ -147,7 +125,7 @@ lsVector4& lsVector4::operator/(float t)
 	res.z = z / t;
 	res.w = w;
 
-	return (res);
+	return res;
 }
 
 

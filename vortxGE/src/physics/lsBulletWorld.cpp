@@ -105,7 +105,7 @@ void lsBulletWorld::lsTickCallback( btDynamicsWorld *world, btScalar timeStep )
 
 }
 
-void lsBulletWorld::lsProcessCallback( btScalar timeStep )
+void lsBulletWorld::lsProcessCallback( __attribute__((unused)) btScalar timeStep )
 {
 	// local instance callback
 	// cout << scene->getName() << " : world just ticked by " << timeStep << " seconds" << endl;

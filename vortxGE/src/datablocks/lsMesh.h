@@ -55,7 +55,7 @@ public:
     void Draw( lsCamera *cam, lsPass *pass, lsObject *object );
     void Update_Animation();
 
-    void LoadVBM( const string& filename, lsAssetManager *am, lsShaderManager *sm, bool debug=false );
+    void LoadVBM( const string& filename, lsAssetManager *am, lsShaderManager *sm );
     void Add_Batch( lsBatch* batch );
 
     const lsBoundingSphere& getBSphere()

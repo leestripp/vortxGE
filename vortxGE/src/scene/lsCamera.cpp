@@ -101,7 +101,7 @@ lsCamera::~lsCamera()
 {
 }
 
-void lsCamera::Move( lsScene* scn, lsOpenGL* opengl, double delta )
+void lsCamera::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl, __attribute__((unused)) double delta )
 {
     // Auto update
     update_counter++;
@@ -135,10 +135,10 @@ void lsCamera::Move( lsScene* scn, lsOpenGL* opengl, double delta )
         ModelMatrix = getParent()->ModelMatrix;
     else
         ModelMatrix.LoadIdentity();
-
+	
     // Build matrix
-    ModelMatrix *= transmat * rotmat * scalemat;
-
+     ModelMatrix = ModelMatrix *  transmat * rotmat * scalemat;
+	
 #ifdef VORTX_DEBUG_NODES
     // debug
     ModelMatrix.debug( "lsCamera ModelMatrix: " + getName() );
@@ -146,10 +146,9 @@ void lsCamera::Move( lsScene* scn, lsOpenGL* opengl, double delta )
 
     // Camera and Light ViewMatrix updates
     Update_Camera();
-
 }
 
-void lsCamera::Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl )
+void lsCamera::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl )
 {
     // Do nothing
 }
@@ -162,10 +161,9 @@ void lsCamera::Set_Perspective( float view_angle, float width_ratio, float nplan
     cam_ratio = width_ratio;
     cam_near = nplane;
     cam_far = fplane;
-
+	
     frustum.Set_Perspective( view_angle, width_ratio, nplane, fplane );
     camera_mode = LSCM_PERSPECTIVE;
-
 }
 
 void lsCamera::Set_ViewRatio( float vr )

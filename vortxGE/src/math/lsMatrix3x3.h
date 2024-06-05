@@ -40,19 +40,16 @@ class lsMatrix3x3
 {
 public:
     lsMatrix3x3();
-    virtual ~lsMatrix3x3();
-
+	
     void LoadIdentity();
     void Transpose( const lsMatrix3x3& mat );
     void Inverse( const lsMatrix3x3& mat );
     // checks
     bool isEqual( const lsMatrix3x3& mat );
     bool isIdentity();
-
-    lsMatrix3x3& operator=(const lsMatrix3x3& m);
-    lsMatrix3x3& operator*=( const lsMatrix3x3& B );
-    lsMatrix3x3& operator*( const lsMatrix3x3& B );
-
+	
+    lsMatrix3x3 operator*( const lsMatrix3x3& B );
+	
     // convert 4x4
     void ExtractRotationMatrix4x4( const lsMatrix4x4& mat );
 

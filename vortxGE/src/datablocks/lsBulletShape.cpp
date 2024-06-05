@@ -215,3 +215,13 @@ void lsBulletShape::Make_TriMesh( const string& filename, float size )
 	if( batch ) delete batch;
 }
 
+btCollisionShape* lsBulletShape::getShape()
+{
+	if(! shape )
+	{
+		// Default shape sphere.
+		Make_Sphere( 1.0 );
+		return shape;
+	} else return shape;
+}
+

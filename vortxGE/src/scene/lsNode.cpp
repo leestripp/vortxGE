@@ -67,37 +67,40 @@ lsNode::~lsNode()
     // Nodes never self deletes
 }
 
-void lsNode::Move( lsScene* scn, lsOpenGL* opengl, double delta )
+void lsNode::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl, __attribute__((unused)) double delta )
 {
 #ifdef VORTX_DEBUG_NODES
     cout << "lsNode::Move()" << endl;
 #endif
-
+	
     // Set transform
     lsMatrix4x4 transmat;
     lsMatrix4x4 rotmat;
     lsMatrix4x4 scalemat;
-
+	
     transmat.TranslateMatrix( position.x, position.y, position.z );
     rotmat.RotateMatrix( rotation.x, 1, 0, 0 );
     rotmat.RotateMatrix( rotation.y, 0, 1, 0 );
     rotmat.RotateMatrix( rotation.z, 0, 0, 1 );
     scalemat.ScaleMatrix( scale.x, scale.y, scale.z );
-
+	
     if( parent )
-        ModelMatrix = parent->ModelMatrix;
-    else
-        ModelMatrix.LoadIdentity();
-
-    ModelMatrix *= transmat * rotmat * scalemat;
+	{
+		ModelMatrix = parent->ModelMatrix;
+	} else
+	{
+		ModelMatrix.LoadIdentity();
+	}
+	
+	ModelMatrix = ModelMatrix * transmat * rotmat * scalemat;
+	
 #ifdef VORTX_DEBUG_NODES
     // debug
     ModelMatrix.debug( "lsNode ModelMatrix: " + getName() );
 #endif
-
+	
     // time to die
     // checkLife( scn );
-
 }
 
 /*!
@@ -176,7 +179,7 @@ void lsNode::InitDrawlist()
 }
 
 // used by Threading
-void lsNode::Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl )
+void lsNode::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl )
 {
     // Do nothing
 }
@@ -242,7 +245,7 @@ void lsNode::OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL
     if( getNext_node() ) getNext_node()->OptimizeThread( cam, pass, scn, opengl );
 }
 
-void lsNode::Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl )
+void lsNode::Draw( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl )
 {
 #ifdef VORTX_DEBUG_NODES
     cout << "lsNode::Draw() - Name: " << getName() << endl;

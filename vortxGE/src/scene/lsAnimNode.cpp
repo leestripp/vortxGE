@@ -78,7 +78,7 @@ lsAnimNode::~lsAnimNode()
 }
 
 
-void lsAnimNode::Move( lsScene* scn, lsOpenGL* opengl, double delta )
+void lsAnimNode::Move( lsScene* scn, __attribute__((unused)) lsOpenGL* opengl, double delta )
 {
     // apply animation
     if( getAnimationManager() ) getAnimationManager()->UpdateAll( delta );
@@ -99,17 +99,17 @@ void lsAnimNode::Move( lsScene* scn, lsOpenGL* opengl, double delta )
     else
         ModelMatrix.LoadIdentity();
 
-    ModelMatrix *= transmat * rotmat * scalemat;
-
+    ModelMatrix = ModelMatrix * transmat * rotmat * scalemat;
+	
     // Life
     checkLife( scn );
 }
 
-void lsAnimNode::Optimize(lsCamera *cam, lsPass *pass, lsScene *scn, lsOpenGL *opengl)
+void lsAnimNode::Optimize( __attribute__((unused)) lsCamera *cam, __attribute__((unused)) lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsOpenGL *opengl)
 {
 }
 
-void lsAnimNode::Draw(lsCamera *cam, lsPass *pass, lsScene *scn, lsOpenGL *opengl)
+void lsAnimNode::Draw( __attribute__((unused)) lsCamera *cam, __attribute__((unused)) lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsOpenGL *opengl)
 {
 }
 

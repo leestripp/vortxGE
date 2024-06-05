@@ -87,7 +87,7 @@ lsObject::~lsObject()
 }
 
 
-void lsObject::Move( lsScene* scn, lsOpenGL* opengl, double delta )
+void lsObject::Move( lsScene* scn, __attribute__((unused)) lsOpenGL* opengl, double delta )
 {
     if( bulletobject )
     {
@@ -131,14 +131,14 @@ void lsObject::Move( lsScene* scn, lsOpenGL* opengl, double delta )
         else
             ModelMatrix.LoadIdentity();
 
-        ModelMatrix *= transmat * rotmat * scalemat;
+        ModelMatrix = ModelMatrix * transmat * rotmat * scalemat;
     }
 
     // time to die
     checkLife( scn );
 }
 
-void lsObject::Optimize( lsCamera *cam, lsPass *pass, lsScene *scn, lsOpenGL *opengl )
+void lsObject::Optimize( __attribute__((unused)) lsCamera *cam, lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsOpenGL *opengl )
 {
     switch( pass->getPass_type() )
     {
@@ -156,7 +156,7 @@ void lsObject::Optimize( lsCamera *cam, lsPass *pass, lsScene *scn, lsOpenGL *op
         lsVector3 objpos = lsVector3( ModelMatrix.matrix[12], ModelMatrix.matrix[13], ModelMatrix.matrix[14] );
         lsVector3 campos = lsVector3( cam->ModelMatrix.matrix[12], cam->ModelMatrix.matrix[13], cam->ModelMatrix.matrix[14] );
         setDistance_to_camera( campos.distance( objpos ) );
-
+		
         // check frustum
         lsMesh *mesh;
         mesh = (lsMesh*)asset->getData();
@@ -168,7 +168,7 @@ void lsObject::Optimize( lsCamera *cam, lsPass *pass, lsScene *scn, lsOpenGL *op
                 setCull_mesh( false );
             }
         }
-
+		
         if( ! getcull_mesh() )
         {
             scn->Add_DrawObject( this );
@@ -228,7 +228,7 @@ void lsObject::Draw( lsCamera *cam, lsPass *pass, lsScene *scn, lsOpenGL *opengl
     if( getNext_drawobject() ) getNext_drawobject()->Draw( cam, pass, scn, opengl );
 }
 
-void lsObject::DrawSingle( lsCamera *cam, lsPass *pass, lsScene *scn, lsOpenGL *opengl )
+void lsObject::DrawSingle( lsCamera *cam, lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsOpenGL *opengl )
 {
 #ifdef VORTX_DEBUG_RENDER
     cout << "lsObject::DrawSingle" << endl;

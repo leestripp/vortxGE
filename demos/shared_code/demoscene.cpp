@@ -74,16 +74,20 @@
 
 // Callback for OpenGL errors.
 void GLAPIENTRY MessageCallback( GLenum source,
-                 GLenum type,
-                 GLuint id,
-                 GLenum severity,
-                 GLsizei length,
-                 const GLchar* message,
-                 const void* userParam )
+			GLenum type,
+			GLuint id,
+			GLenum severity,
+			__attribute__((unused)) GLsizei length,
+			const GLchar* message,
+			__attribute__((unused)) const void* userParam )
 {
-  fprintf( stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-           ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
-            type, severity, message );
+	cerr << "ERROR: " << ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "unknown" );
+	cerr << ", message: " << message;
+	cerr << ", source: " << source;
+	cerr << ", id: " << id;
+	cerr << ", severity: " << severity;
+	cerr << ", id: " << id;
+	cerr << endl;
 }
 
 
@@ -472,7 +476,7 @@ void DemoScene::moveCamera( bool f, bool b, bool l, bool r, double delta, double
         cx = camera->ModelMatrix.matrix[0];
         cy = camera->ModelMatrix.matrix[1];
         cz = camera->ModelMatrix.matrix[2];
-        move_strafe += lsVector3( cx, cy, cz );
+        move_strafe = move_strafe + lsVector3( cx, cy, cz );
         move_strafe.normalize();
     }
     if( r ) // right
@@ -480,7 +484,7 @@ void DemoScene::moveCamera( bool f, bool b, bool l, bool r, double delta, double
         cx = camera->ModelMatrix.matrix[0];
         cy = camera->ModelMatrix.matrix[1];
         cz = camera->ModelMatrix.matrix[2];
-        move_strafe -= lsVector3( cx, cy, cz );
+        move_strafe = move_strafe - lsVector3( cx, cy, cz );
         move_strafe.normalize();
     }
     if( l && r ) move_strafe = lsVector3(0,0,0);;
@@ -492,7 +496,7 @@ void DemoScene::moveCamera( bool f, bool b, bool l, bool r, double delta, double
         cx = camera->ModelMatrix.matrix[8];
         cy = camera->ModelMatrix.matrix[9];
         cz = camera->ModelMatrix.matrix[10];
-        move_walk += lsVector3( cx, cy, cz );
+        move_walk = move_walk + lsVector3( cx, cy, cz );
         move_walk.normalize();
     }
     if( b ) // backwards
@@ -500,19 +504,19 @@ void DemoScene::moveCamera( bool f, bool b, bool l, bool r, double delta, double
         cx = camera->ModelMatrix.matrix[8];
         cy = camera->ModelMatrix.matrix[9];
         cz = camera->ModelMatrix.matrix[10];
-        move_walk -= lsVector3( cx, cy, cz );
+        move_walk = move_walk - lsVector3( cx, cy, cz );
         move_walk.normalize();
     }
     if( f && b ) move_walk = lsVector3(0,0,0);;
     if( !f && !b ) move_walk = lsVector3(0,0,0);;
 
     lsVector3 dir = move_walk + move_strafe;
-    cam_pos += dir * (delta*factor);
+    cam_pos = cam_pos + dir * (delta*factor);
 
     camera_base->Set_Pos( cam_pos.x, cam_pos.y, cam_pos.z  );
 }
 
-void DemoScene::rotateCamera( double rot_x, double rot_y, double rot_z )
+void DemoScene::rotateCamera( double rot_x, double rot_y, __attribute__((unused)) double rot_z )
 {
 	// X rotates camera base Y
 	camera_base->Set_Rot( 0, rot_x, 0 );

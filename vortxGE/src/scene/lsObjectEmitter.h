@@ -61,7 +61,7 @@ public:
     virtual ~lsObjectEmitter();
 
     // Emit
-    void EmitObject( lsScene *scn, lsOpenGL *opengl, double delta );
+    void EmitObject( lsScene *scn, lsOpenGL *opengl );
 
     // Override functions
     virtual void Move( lsScene* scn, lsOpenGL* opengl, double delta );

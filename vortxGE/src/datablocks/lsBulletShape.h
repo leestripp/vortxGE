@@ -46,12 +46,8 @@ public:
 	void Make_ConvexHull( const string& filename, lsOpenGL *opengl );
     void Make_TriMesh( const string& filename, float size = 1.0 );
 
-
-	btCollisionShape *getShape() const
-	{
-		return shape;
-	}
-
+	btCollisionShape *getShape();
+	
 private:
     btCollisionShape *shape;
 

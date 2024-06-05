@@ -38,18 +38,7 @@ class lsVector3
 {
 public:
     lsVector3();
-    lsVector3( float XX, float YY, float ZZ );
-    lsVector3( const lsVector3 &v );
-    virtual ~lsVector3();
-
-    lsVector3& operator=(const lsVector3 &v);
-    lsVector3& operator+=(const lsVector3 &v);
-    lsVector3& operator+=(float s);
-    lsVector3& operator-=(const lsVector3 &v);
-    lsVector3& operator-=(float s);
-    lsVector3& operator*=(const lsVector3 &v);
-    lsVector3& operator*=(float s);
-    lsVector3& operator/=(float s);
+	lsVector3( float XX, float YY, float ZZ );
 	
     lsVector3 operator+(float s);
     lsVector3 operator+(const lsVector3 &v);

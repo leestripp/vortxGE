@@ -13,6 +13,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(vortxGE)
+add_subdirectory(tests)
 add_subdirectory(demos/vortxGEdemo_gtkmm)
 add_subdirectory(demos/vortxGEdemo_glfw3)
 add_subdirectory(demos/vortxGEdemo_sdl2)

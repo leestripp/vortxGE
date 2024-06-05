@@ -77,14 +77,14 @@ lsLight::~lsLight()
 }
 
 
-void lsLight::Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl )
+void lsLight::Optimize( __attribute__((unused)) lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl )
 {
     // Build shadowman matrix
     switch( pass->getPass_type() )
     {
-    case LSPT_SHADOWMAP:
-        buildShadowmap_matrix();
-        break;
+		case LSPT_SHADOWMAP:
+			buildShadowmap_matrix();
+			break;
     }
 }
 
@@ -96,8 +96,8 @@ void lsLight::buildShadowmap_matrix()
                             0.5, 0.5, 0.5, 1.0 };
 
     ShadowmapMatrix = bias;
-    ShadowmapMatrix *= frustum.getProjectionMatrix();
-    ShadowmapMatrix *= ViewMatrix;
+    ShadowmapMatrix = ShadowmapMatrix * frustum.getProjectionMatrix();
+    ShadowmapMatrix = ShadowmapMatrix * ViewMatrix;
 }
 
 // Base class, not used

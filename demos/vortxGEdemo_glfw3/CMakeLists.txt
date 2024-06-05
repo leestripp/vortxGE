@@ -2,11 +2,6 @@ cmake_minimum_required(VERSION 3.5)
 
 project(vortxGEdemo_glfw3 LANGUAGES CXX)
 
-set(CMAKE_BUILD_TYPE Debug)
-# set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 find_package(Bullet REQUIRED)
 find_package(PkgConfig REQUIRED)
 
@@ -46,4 +41,8 @@ target_link_libraries(vortxGEdemo_glfw3
     ${GLFW_LIBRARIES}
     ${GLEW_LIBRARIES}
     OpenGL::EGL
+)
+
+add_dependencies(vortxGEdemo_glfw3
+	vortxGE
 )

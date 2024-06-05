@@ -57,15 +57,15 @@ public:
     // openGL data - on video card : needed by the asset system
     void Copy_GLdata();
     void Clear_GLdata();
-
+	
 	// Utils
 	bool CloseEnough( const float fCandidate, const float fCompare, const float fEpsilon );
-
+	
 private:
 	GLuint nMaxIndexes;
 	GLuint nNumIndexes;
 	GLuint nNumVerts;
-
+	
 	GLushort *pIndexes;
 	Vector3f *pVerts;
 };

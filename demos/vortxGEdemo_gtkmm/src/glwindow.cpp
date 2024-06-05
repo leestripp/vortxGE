@@ -51,77 +51,95 @@ glviewwindow::~glviewwindow()
 }
 
 
-bool glviewwindow::on_key_pressed( guint keyval, guint, Gdk::ModifierType state )
+bool glviewwindow::on_key_pressed( guint keyval, guint, __attribute__((unused)) Gdk::ModifierType state )
 {
-  // Modifiers
-  // state & (Gdk::ModifierType::SHIFT_MASK | Gdk::ModifierType::CONTROL_MASK | Gdk::ModifierType::ALT_MASK)
-
-  switch( keyval )
-  {
-    case GDK_KEY_w:
-      // cout << "w pressed" << endl;
-      key_w = true;
-      break;
-
-    case GDK_KEY_a:
-      // cout << "a pressed" << endl;
-      key_a = true;
-      break;
-
-    case GDK_KEY_s:
-      // cout << "s pressed" << endl;
-      key_s = true;
-      break;
-
-    case GDK_KEY_d:
-      // cout << "d pressed" << endl;
-      key_d = true;
-      break;
-
-    default:
-      break;
-  }
-  return false;
+	// Modifiers
+	// state : (Gdk::ModifierType::SHIFT_MASK | Gdk::ModifierType::CONTROL_MASK | Gdk::ModifierType::ALT_MASK)
+	
+	switch( keyval )
+	{
+		case GDK_KEY_w:
+		{
+			// cout << "w pressed" << endl;
+			key_w = true;
+			break;
+		}
+		
+		case GDK_KEY_a:
+		{
+			// cout << "a pressed" << endl;
+			key_a = true;
+			break;
+		}
+		
+		case GDK_KEY_s:
+		{
+			// cout << "s pressed" << endl;
+			key_s = true;
+			break;
+		}
+		
+		case GDK_KEY_d:
+		{
+			// cout << "d pressed" << endl;
+			key_d = true;
+			break;
+		}
+		
+		default: { break; }
+	}
+	
+	return false;
 }
 
-void glviewwindow::on_key_released(guint keyval, guint, Gdk::ModifierType state)
+void glviewwindow::on_key_released(guint keyval, guint, __attribute__((unused)) Gdk::ModifierType state)
 {
-  switch( keyval )
-  {
-    case GDK_KEY_w:
-      key_w = false;
-      break;
-
-    case GDK_KEY_a:
-      key_a = false;
-      break;
-
-    case GDK_KEY_s:
-      key_s = false;
-      break;
-
-    case GDK_KEY_d:
-      key_d = false;
-      break;
-
-    case GDK_KEY_F1:
-      if( property_fullscreened() )
-      {
-        unfullscreen();
-
-      } else
-      {
-        fullscreen();
-      }
-      break;
-
-    case GDK_KEY_Escape:
-      close();
-      break;
-
-    default:
-      break;
-  }
+	switch( keyval )
+	{
+		case GDK_KEY_w:
+		{
+			key_w = false;
+			break;
+		}
+		
+		case GDK_KEY_a:
+		{
+			key_a = false;
+			break;
+		}
+		
+		case GDK_KEY_s:
+		{
+			key_s = false;
+			break;
+		}
+		
+		case GDK_KEY_d:
+		{
+			key_d = false;
+			break;
+		}
+		
+		case GDK_KEY_F1:
+		{
+			if( property_fullscreened() )
+			{
+				unfullscreen();
+			} else
+			{
+				fullscreen();
+			}
+			break;
+		}
+		
+		case GDK_KEY_Escape:
+		{
+			close();
+			break;
+		}
+		
+		default: { break; }
+	}
 }
 
 void glviewwindow::on_mouse_motion( double x, double y )
@@ -142,31 +160,43 @@ void glviewwindow::on_mouse_motion( double x, double y )
 
 bool glviewwindow::on_my_event( const Glib::RefPtr<const Gdk::Event> &event )
 {
-  switch( event->get_event_type() )
-  {
-    case Gdk::Event::Type::BUTTON_PRESS:
-      // cout << "Process event. BUTTON_PRESS #: " << event->get_button() << endl;
-      switch( event->get_button() )
-      {
-        case 1:
-          lmb_down = true;
-          break;
-      }
-      break;
-
-    case Gdk::Event::Type::BUTTON_RELEASE:
-      // cout << "Process event. BUTTON_RELEASE #: " << event->get_button() << endl;
-      switch( event->get_button() )
-      {
-        case 1:
-          lmb_down = false;
-          break;
-      }
-      break;
-  }
-
-  // make sure we pass on unused events
-  return false;
+	switch( event->get_event_type() )
+	{
+		case Gdk::Event::Type::BUTTON_PRESS:
+		{
+			// cout << "Process event. BUTTON_PRESS #: " << event->get_button() << endl;
+			switch( event->get_button() )
+			{
+				case 1:
+				{
+					lmb_down = true;
+					break;
+				}
+				
+				default: { break; }
+			}
+			break;
+		}
+		
+		case Gdk::Event::Type::BUTTON_RELEASE:
+		// cout << "Process event. BUTTON_RELEASE #: " << event->get_button() << endl;
+		switch( event->get_button() )
+		{
+			case 1:
+			{
+				lmb_down = false;
+				break;
+			}
+			
+			default: { break; }
+		}
+		break;
+		
+		default: { break; }
+	}
+	
+	// make sure we pass on unused events
+	return false;
 }
 
 bool glviewwindow::Update()
@@ -270,12 +300,11 @@ void glviewwindow::gla_resize( int width, int height )
 }
 
 
-  // cout << "gla_render called..." << endl;
-
 /* *************************
  * GLArea - Render
  * */
-bool glviewwindow::gla_render(const Glib::RefPtr<Gdk::GLContext> &context )
+ 
+bool glviewwindow::gla_render( __attribute__((unused)) const Glib::RefPtr<Gdk::GLContext> &context )
 {
   // cout << "gla_render called..." << endl;
 

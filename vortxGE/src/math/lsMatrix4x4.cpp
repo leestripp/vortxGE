@@ -31,22 +31,14 @@ lsMatrix4x4::lsMatrix4x4()
 {
     // margin of error
     moe = 0.00001;
-
     LoadIdentity();
 }
 
-lsMatrix4x4::lsMatrix4x4(const float mat4[16])
-{
-    memcpy( matrix, mat4, sizeof(float)*16 );
-}
 
-lsMatrix4x4::lsMatrix4x4(const lsQuaternion& q, float x, float y, float z)
+lsMatrix4x4& lsMatrix4x4::operator=( const float mat4[16] )
 {
-    Set(q,x,y,z);
-}
-
-lsMatrix4x4::~lsMatrix4x4()
-{
+	memcpy( matrix, mat4, 16 );
+	return *this;
 }
 
 /*!
@@ -87,14 +79,14 @@ void lsMatrix4x4::LoadIdentity()
  * \param v
  * \return
  */
-lsVector3 lsMatrix4x4::Rotate(const lsVector3& v)
+lsVector3 lsMatrix4x4::Rotate( const lsVector3& v )
 {
-    lsVector3 ret;
-
+	lsVector3 ret;
+	
     ret.x = matrix[ 0]*v.x + matrix[ 1]*v.y + matrix[ 2]*v.z;
     ret.y = matrix[ 4]*v.x + matrix[ 5]*v.y + matrix[ 6]*v.z;
     ret.z = matrix[ 8]*v.x + matrix[ 9]*v.y + matrix[10]*v.z;
-
+	
     return ret;
 }
 
@@ -139,31 +131,6 @@ void lsMatrix4x4::Set( const lsQuaternion& q, float x, float y, float z)
 }
 
 
-lsMatrix4x4& lsMatrix4x4::operator=( const lsMatrix4x4& m )
-{
-    for( int i=0; i<16; i++ )
-        matrix[i] = m.matrix[i];
-
-    return *this;
-}
-
-lsMatrix4x4& lsMatrix4x4::operator*=( const lsMatrix4x4& B )
-{
-    lsMatrix4x4 A = *this;
-
-    for( int i = 0; i < 4; i++ )
-    {
-        float ai0 = A.matrix[0*4+i],  ai1 = A.matrix[1*4+i],  ai2 = A.matrix[2*4+i],  ai3 = A.matrix[3*4+i];
-
-        matrix[0*4+i] = ai0 * B.matrix[ 0] + ai1 * B.matrix[ 1] + ai2 * B.matrix[ 2] + ai3 * B.matrix[ 3];
-        matrix[1*4+i] = ai0 * B.matrix[ 4] + ai1 * B.matrix[ 5] + ai2 * B.matrix[ 6] + ai3 * B.matrix[ 7];
-        matrix[2*4+i] = ai0 * B.matrix[ 8] + ai1 * B.matrix[ 9] + ai2 * B.matrix[10] + ai3 * B.matrix[11];
-        matrix[3*4+i] = ai0 * B.matrix[12] + ai1 * B.matrix[13] + ai2 * B.matrix[14] + ai3 * B.matrix[15];
-    }
-    return *this;
-}
-
-
 /*!
  * \brief lsMatrix4x4::operator *
  *
@@ -171,31 +138,52 @@ lsMatrix4x4& lsMatrix4x4::operator*=( const lsMatrix4x4& B )
  * \param B
  * \return
  */
+
 lsMatrix4x4 lsMatrix4x4::operator*( const lsMatrix4x4& B )
 {
-    lsMatrix4x4 ret;
-    lsMatrix4x4 A = *this;
-
-    for( int i = 0; i < 4; i++ )
-    {
-        float ai0 = A.matrix[0*4+i],  ai1 = A.matrix[1*4+i],  ai2 = A.matrix[2*4+i],  ai3 = A.matrix[3*4+i];
-
-        ret.matrix[0*4+i] = ai0 * B.matrix[ 0] + ai1 * B.matrix[ 1] + ai2 * B.matrix[ 2] + ai3 * B.matrix[ 3];
-        ret.matrix[1*4+i] = ai0 * B.matrix[ 4] + ai1 * B.matrix[ 5] + ai2 * B.matrix[ 6] + ai3 * B.matrix[ 7];
-        ret.matrix[2*4+i] = ai0 * B.matrix[ 8] + ai1 * B.matrix[ 9] + ai2 * B.matrix[10] + ai3 * B.matrix[11];
-        ret.matrix[3*4+i] = ai0 * B.matrix[12] + ai1 * B.matrix[13] + ai2 * B.matrix[14] + ai3 * B.matrix[15];
-    }
-    return ret;
+	lsMatrix4x4 res;
+	lsMatrix4x4 A(*this);
+	
+	for( int i = 0; i < 4; i++ )
+	{
+		float ai0 = A.matrix[0*4+i],  ai1 = A.matrix[1*4+i],  ai2 = A.matrix[2*4+i],  ai3 = A.matrix[3*4+i];
+		
+		res.matrix[0*4+i] = ai0 * B.matrix[ 0] + ai1 * B.matrix[ 1] + ai2 * B.matrix[ 2] + ai3 * B.matrix[ 3];
+		res.matrix[1*4+i] = ai0 * B.matrix[ 4] + ai1 * B.matrix[ 5] + ai2 * B.matrix[ 6] + ai3 * B.matrix[ 7];
+		res.matrix[2*4+i] = ai0 * B.matrix[ 8] + ai1 * B.matrix[ 9] + ai2 * B.matrix[10] + ai3 * B.matrix[11];
+		res.matrix[3*4+i] = ai0 * B.matrix[12] + ai1 * B.matrix[13] + ai2 * B.matrix[14] + ai3 * B.matrix[15];
+	}
+	return res;
 }
 
-lsVector3 lsMatrix4x4::operator*(const lsVector3& v)
+
+lsMatrix4x4 lsMatrix4x4::operator*( const float mat4[16] )
+{
+	lsMatrix4x4 res;
+	lsMatrix4x4 A(*this);
+	lsMatrix4x4 B;
+	for( int i=0; i<16; i++ ) B.matrix[i] = mat4[i];
+	
+	for( int i = 0; i < 4; i++ )
+	{
+		float ai0 = A.matrix[0*4+i],  ai1 = A.matrix[1*4+i],  ai2 = A.matrix[2*4+i],  ai3 = A.matrix[3*4+i];
+		
+		res.matrix[0*4+i] = ai0 * B.matrix[ 0] + ai1 * B.matrix[ 1] + ai2 * B.matrix[ 2] + ai3 * B.matrix[ 3];
+		res.matrix[1*4+i] = ai0 * B.matrix[ 4] + ai1 * B.matrix[ 5] + ai2 * B.matrix[ 6] + ai3 * B.matrix[ 7];
+		res.matrix[2*4+i] = ai0 * B.matrix[ 8] + ai1 * B.matrix[ 9] + ai2 * B.matrix[10] + ai3 * B.matrix[11];
+		res.matrix[3*4+i] = ai0 * B.matrix[12] + ai1 * B.matrix[13] + ai2 * B.matrix[14] + ai3 * B.matrix[15];
+	}
+    return res;
+}
+
+lsVector3 lsMatrix4x4::operator*( const lsVector3& v )
 {
     lsVector3 ret;
-
+	
     ret.x = matrix[ 0]*v.x + matrix[ 1]*v.y + matrix[ 2]*v.z + matrix[ 3];
     ret.y = matrix[ 4]*v.x + matrix[ 5]*v.y + matrix[ 6]*v.z + matrix[ 7];
     ret.z = matrix[ 8]*v.x + matrix[ 9]*v.y + matrix[10]*v.z + matrix[11];
-
+	
     return ret;
 }
 
@@ -247,8 +235,8 @@ void lsMatrix4x4::RotateMatrix( float angle, float x, float y, float z )
     rot.matrix[ 7] = 0.0;
     rot.matrix[11] = 0.0;
     rot.matrix[15] = 1.0;
-
-    *this *= rot;
+	
+    *this = *this * rot;
 }
 
 void lsMatrix4x4::TranslateMatrix(float x, float y, float z)
@@ -351,7 +339,18 @@ void lsMatrix4x4::LookAt( const lsVector3& eyePosition, const lsVector3& lookAt,
 
     transmat.TranslateMatrix( -e.x, -e.y, -e.z );
 
-    *this *= rotmat * transmat;
+    *this = *this * rotmat * transmat;
+}
+
+lsMatrix4x4& lsMatrix4x4::transpose( const lsMatrix4x4& m )
+{
+	for( int n=0; n<16; n++ )
+	{
+		int i = n/4;
+		int j = n%4;
+		matrix[n] = m.matrix[4*j + i];
+	}
+	return *this;
 }
 
 bool lsMatrix4x4::isEqual(const lsMatrix4x4 &mat)
@@ -400,7 +399,7 @@ void lsMatrix4x4::debug( const string& str )
         msg << endl;
     }
     msg << endl;
-
+	
     cout << msg.str();
 }
 

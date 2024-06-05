@@ -94,13 +94,15 @@ void lsShader::setShader_type( int val )
     case LSST_LIGHT_TEX_DNS:
         // Texture
         iTex_specular = glGetUniformLocation( shader, "tex_specular" );
+		[[fallthrough]];
     case LSST_LIGHT_TEX_DN:
         // Texture
         iTex_normal = glGetUniformLocation( shader, "tex_normal" );
+		[[fallthrough]];
     case LSST_LIGHT_TEX_D:
         // Texture
         iTex_diffuse = glGetUniformLocation( shader, "tex_diffuse" );
-
+		[[fallthrough]];
     case LSST_LIGHT_TEX_NONE:
         // Lights
         iLightCount = glGetUniformLocation( shader, "vxLightCount" );
@@ -119,7 +121,7 @@ void lsShader::setShader_type( int val )
         iLightPos3 = glGetUniformLocation( shader, "vxLightPos[2]" );
         iLightDiffuse3 = glGetUniformLocation( shader, "vxLightDiffuse[2]" );
         iLightSpecular3 = glGetUniformLocation( shader, "vxLightSpecular[2]" );
-
+		
         // Material
         iMatAmbiant = glGetUniformLocation( shader, "vxMatAmbiant" );
         iMatDiffuse = glGetUniformLocation( shader, "vxMatDiffuse" );
@@ -137,17 +139,18 @@ void lsShader::setShader_type( int val )
     case LSST_QUAD:
         // Texture
         iTex_diffuse = glGetUniformLocation( shader, "tex_diffuse" );
+		[[fallthrough]];
     case LSST_DEBUG:
         // Need ModelViewMatrix and ProjectionMatrix
         imvpMatrix = glGetUniformLocation( shader, "mvpMatrix" );
         break;
 
     } // switch shader_type
-
+	
     glUseProgram(0);
 }
 
-void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch *batch )
+void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused)) lsPass *pass, lsBatch *batch )
 {
 #ifdef VORTX_DEBUG_SHADERS
     cout << "lsShader::UseShader() - Called" << endl;
@@ -168,83 +171,85 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch
     batch_quad = (lsBatch_Quad*)batch;
 
     glUseProgram( shader );
+	
+	switch( shader_type )
+	{
+		case LSST_LIGHT_TEX_DNS:
+			// Texture specular
+			glActiveTexture( GL_TEXTURE2 );
+			glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_specular );
+			glUniform1i( iTex_specular, 2 );
+			[[fallthrough]];
+		case LSST_LIGHT_TEX_DN:
+			// Texture normal
+			glActiveTexture( GL_TEXTURE1 );
+			glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_normal );
+			glUniform1i( iTex_normal, 1 );
+			[[fallthrough]];
+		case LSST_LIGHT_TEX_D:
+			// Texture diffuse
+			glActiveTexture( GL_TEXTURE0 );
+			glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_diffuse );
+			glUniform1i( iTex_diffuse, 0 );
+			[[fallthrough]];
+		case LSST_LIGHT_TEX_NONE:
+		case LSST_DEBUG_NORMALS:
+			// Material
+			if( batch->getBatch_type() == LSBT_MESH )
+			{
+				glUniform4f( iMatAmbiant, batch_mesh->ambiant.x, batch_mesh->ambiant.y, batch_mesh->ambiant.z, batch_mesh->ambiant.w );
+				glUniform4f( iMatDiffuse, batch_mesh->diffuse.x, batch_mesh->diffuse.y, batch_mesh->diffuse.z, batch_mesh->diffuse.w );
+				glUniform4f( iMatSpecular, batch_mesh->specular.x, batch_mesh->specular.y, batch_mesh->specular.z, batch_mesh->specular.w );
+				glUniform1f( iMatShininess, batch_mesh->shininess );
+				glUniform1f( iMatGlow, batch_mesh->glow );
+			}
+			
+			// Matrix data
+			pMatrix = pMatrix * cam->frustum.getProjectionMatrix();
+			mvMatrix = mvMatrix * cam->ViewMatrix * object->ModelMatrix;
+			// Normal Matrix
+			m_eMatrix.ExtractRotationMatrix4x4( mvMatrix );
+			m_iMatrix.Inverse( m_eMatrix );
+			nMatrix.Transpose( m_iMatrix );
+			
+			glUniformMatrix4fv( imvMatrix, 1, GL_FALSE, mvMatrix.matrix );
+			glUniformMatrix4fv( ipMatrix, 1, GL_FALSE, pMatrix.matrix );
+			glUniformMatrix3fv( inMatrix, 1, GL_FALSE, nMatrix.matrix );
+			break;
 
-    switch( shader_type )
-    {
-    case LSST_LIGHT_TEX_DNS:
-        // Texture specular
-        glActiveTexture( GL_TEXTURE2 );
-        glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_specular );
-        glUniform1i( iTex_specular, 2 );
-    case LSST_LIGHT_TEX_DN:
-        // Texture normal
-        glActiveTexture( GL_TEXTURE1 );
-        glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_normal );
-        glUniform1i( iTex_normal, 1 );
-    case LSST_LIGHT_TEX_D:
-        // Texture diffuse
-        glActiveTexture( GL_TEXTURE0 );
-        glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_diffuse );
-        glUniform1i( iTex_diffuse, 0 );
-
-    case LSST_LIGHT_TEX_NONE:
-    case LSST_DEBUG_NORMALS:
-        // Material
-        if( batch->getBatch_type() == LSBT_MESH )
-        {
-            glUniform4f( iMatAmbiant, batch_mesh->ambiant.x, batch_mesh->ambiant.y, batch_mesh->ambiant.z, batch_mesh->ambiant.w );
-            glUniform4f( iMatDiffuse, batch_mesh->diffuse.x, batch_mesh->diffuse.y, batch_mesh->diffuse.z, batch_mesh->diffuse.w );
-            glUniform4f( iMatSpecular, batch_mesh->specular.x, batch_mesh->specular.y, batch_mesh->specular.z, batch_mesh->specular.w );
-            glUniform1f( iMatShininess, batch_mesh->shininess );
-            glUniform1f( iMatGlow, batch_mesh->glow );
-        }
-
-        // Matrix data
-        pMatrix *= cam->frustum.getProjectionMatrix();
-        mvMatrix *= cam->ViewMatrix * object->ModelMatrix;
-        // Normal Matrix
-        m_eMatrix.ExtractRotationMatrix4x4( mvMatrix );
-        m_iMatrix.Inverse( m_eMatrix );
-        nMatrix.Transpose( m_iMatrix );
-
-        glUniformMatrix4fv( imvMatrix, 1, GL_FALSE, mvMatrix.matrix );
-        glUniformMatrix4fv( ipMatrix, 1, GL_FALSE, pMatrix.matrix );
-        glUniformMatrix3fv( inMatrix, 1, GL_FALSE, nMatrix.matrix );
-        break;
-
-    case LSST_QUAD:
-        mvpMatrix.LoadIdentity();
-        mvMatrix.LoadIdentity();
-        pMatrix.LoadIdentity();
-
-        pMatrix *= cam->frustum.getProjectionMatrix();
-        mvMatrix *= cam->ViewMatrix * object->ModelMatrix;
-        mvpMatrix *= pMatrix * mvMatrix;
-        glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
-
-        // Textures
-        glActiveTexture( GL_TEXTURE0 );
-        glBindTexture( GL_TEXTURE_2D, batch_quad->getTex_diffuse() );
-        glUniform1i( iTex_diffuse, 0 );
-        break;
-
-    case LSST_DEBUG:
-        mvpMatrix.LoadIdentity();
-        mvMatrix.LoadIdentity();
-        pMatrix.LoadIdentity();
-
-        pMatrix *= cam->frustum.getProjectionMatrix();
-        mvMatrix *= cam->ViewMatrix * object->ModelMatrix;
-        mvpMatrix *= pMatrix * mvMatrix;
-        glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
-        break;
-
-    default:
+		case LSST_QUAD:
+			mvpMatrix.LoadIdentity();
+			mvMatrix.LoadIdentity();
+			pMatrix.LoadIdentity();
+			
+			pMatrix = pMatrix * cam->frustum.getProjectionMatrix();
+			mvMatrix = mvMatrix * cam->ViewMatrix * object->ModelMatrix;
+			mvpMatrix = mvpMatrix * pMatrix * mvMatrix;
+			glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
+			
+			// Textures
+			glActiveTexture( GL_TEXTURE0 );
+			glBindTexture( GL_TEXTURE_2D, batch_quad->getTex_diffuse() );
+			glUniform1i( iTex_diffuse, 0 );
+			break;
+		
+		case LSST_DEBUG:
+			mvpMatrix.LoadIdentity();
+			mvMatrix.LoadIdentity();
+			pMatrix.LoadIdentity();
+			
+			pMatrix = pMatrix * cam->frustum.getProjectionMatrix();
+			mvMatrix = mvMatrix * cam->ViewMatrix * object->ModelMatrix;
+			mvpMatrix = mvpMatrix * pMatrix * mvMatrix;
+			glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
+			break;
+		
+		default:
 #ifdef VORTX_DEBUG_SHADERS
-        cout << "ERROR: lsShader::UseShader() - Unsupported shader type" << endl;
+			cout << "ERROR: lsShader::UseShader() - Unsupported shader type" << endl;
 #endif
-        break;
-    }
+			break;
+	}
 }
 
 void lsShader::Load_Shader( const string& name )
@@ -458,42 +463,42 @@ void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
  * \param light
  * \param object
  */
-void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, lsObject *object )
+void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__((unused)) lsObject *object )
 {
-    lsMatrix4x4 lMatrix;
-
-    // Light in camera Space
-    lMatrix *= camera->ViewMatrix;
-    lMatrix *= light->ModelMatrix;
-    // if( pass->getPass_type() == LSPT_Reflection ) lMatrix.ScaleMatrix( 1.0, -1.0, 1.0 );
-
-    switch( i )
-    {
-    case 0:
-        glUniform3f( iLightPos1, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
-        glUniform1i( iLightType1, light->getLight_type() );
-        glUniform4f( iLightDiffuse1, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
-        glUniform4f( iLightSpecular1, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
-        break;
-
-    case 1:
-        glUniform3f( iLightPos2, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
-        glUniform1i( iLightType2, light->getLight_type() );
-        glUniform4f( iLightDiffuse2, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
-        glUniform4f( iLightSpecular2, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
-        break;
-
-    case 2:
-        glUniform3f( iLightPos3, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
-        glUniform1i( iLightType3, light->getLight_type() );
-        glUniform4f( iLightDiffuse3, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
-        glUniform4f( iLightSpecular3, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
-        break;
-
-    default:
-        // should never get here
-        cout << "ERROR: More then 3 lights attached" << endl;
-        break;
-    }
+	lsMatrix4x4 lMatrix;
+	
+	// Light in camera Space
+	lMatrix = lMatrix * camera->ViewMatrix;
+	lMatrix = lMatrix * light->ModelMatrix;
+	// if( pass->getPass_type() == LSPT_Reflection ) lMatrix.ScaleMatrix( 1.0, -1.0, 1.0 );
+	
+	switch( i )
+	{
+		case 0:
+			glUniform3f( iLightPos1, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
+			glUniform1i( iLightType1, light->getLight_type() );
+			glUniform4f( iLightDiffuse1, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
+			glUniform4f( iLightSpecular1, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+			break;
+		
+		case 1:
+			glUniform3f( iLightPos2, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
+			glUniform1i( iLightType2, light->getLight_type() );
+			glUniform4f( iLightDiffuse2, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
+			glUniform4f( iLightSpecular2, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+			break;
+		
+		case 2:
+			glUniform3f( iLightPos3, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
+			glUniform1i( iLightType3, light->getLight_type() );
+			glUniform4f( iLightDiffuse3, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
+			glUniform4f( iLightSpecular3, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+			break;
+		
+		default:
+			// should never get here
+			cout << "ERROR: More then 3 lights attached" << endl;
+			break;
+	}
 }
 

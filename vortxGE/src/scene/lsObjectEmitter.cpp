@@ -70,18 +70,18 @@ lsObjectEmitter::~lsObjectEmitter()
 {
 }
 
-void lsObjectEmitter::EmitObject( lsScene *scn, lsOpenGL *opengl, double delta )
+void lsObjectEmitter::EmitObject( lsScene *scn, lsOpenGL *opengl )
 {
     lsObject *object;
     lsBulletObject *bulletobject;
     lsBulletShape *bulletshape;
     float ox, oy, oz;
-
+	
     if( timer_emit.get_ElapsedTime() > emittime )
     {
         // reset timer
         timer_emit.start_Timer();
-
+		
         object = new lsObject( m_scene );
         if( object )
         {
@@ -114,7 +114,9 @@ void lsObjectEmitter::EmitObject( lsScene *scn, lsOpenGL *opengl, double delta )
                 break;
 
             default:
-                cout << "ERROR: Wrong Asset attached as bullet shape to " << getName() << endl;
+                cout << "Warning: Wrong Asset attached as bullet shape to : " << getName() << ", adding default sphere shape" << endl;
+				bulletshape = new lsBulletShape( opengl );
+				bulletshape->Make_Sphere( 1.0 );
                 break;
             }
 
@@ -166,28 +168,27 @@ void lsObjectEmitter::Move( lsScene *scn, lsOpenGL *opengl, double delta )
 {
     // apply animation
     if( getAnimationManager() ) getAnimationManager()->UpdateAll( delta );
-
+	
     // Set transform
     lsMatrix4x4 transmat;
     lsMatrix4x4 rotmat;
     lsMatrix4x4 scalemat;
-
+	
     transmat.TranslateMatrix( position.x, position.y, position.z );
     rotmat.RotateMatrix( rotation.x, 1, 0, 0 );
     rotmat.RotateMatrix( rotation.y, 0, 1, 0 );
     rotmat.RotateMatrix( rotation.z, 0, 0, 1 );
     scalemat.ScaleMatrix( scale.x, scale.y, scale.z );
-
+	
     if( getParent() )
         ModelMatrix = getParent()->ModelMatrix;
     else
         ModelMatrix.LoadIdentity();
-
-    ModelMatrix *= transmat * rotmat * scalemat;
-
+	
+    ModelMatrix = ModelMatrix * transmat * rotmat * scalemat;
+	
     // Emit Object
-    EmitObject( scn, opengl, delta );
-
+    EmitObject( scn, opengl );
     // Life
     checkLife( scn );
 }

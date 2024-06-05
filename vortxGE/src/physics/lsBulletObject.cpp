@@ -154,8 +154,7 @@ void lsBulletObject::Apply_Physics( lsObject* obj )
 
 	// New Matrix
 	obj->ModelMatrix.LoadIdentity();
-	obj->ModelMatrix *= bm;
-
+	obj->ModelMatrix = obj->ModelMatrix * bm;
 }
 
 /*! Reset physics

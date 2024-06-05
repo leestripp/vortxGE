@@ -108,7 +108,7 @@ void lsMesh::Update_Animation()
 }
 
 
-void lsMesh::LoadVBM(const string& filename, lsAssetManager *am, lsShaderManager *sm, bool debug )
+void lsMesh::LoadVBM(const string& filename, lsAssetManager *am, lsShaderManager *sm )
 {
     // Set shader type
     if( filename == "" )
