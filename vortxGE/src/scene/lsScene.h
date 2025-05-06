@@ -46,20 +46,20 @@ class lsScene : public lsNode
 public:
     lsScene( float world_size, int maxProxies );
     virtual ~lsScene();
-
+	
     // from lsNode
     void Move( lsScene* scn, lsOpenGL* opengl, double delta );
     void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
     void InitDrawlist();
-
+	
     // Get the base Scene, every node has this func.
     lsScene *Get_Scene();
     lsEventManager *Get_EventManager();
-
+	
     void Del_Node( lsNode* node );
     void ClearScene();
     void Add_DrawObject( lsObject* object );
-
+	
     // Events
     void Add_Event( lsEvent* event );
     lsEvent* Poll_Event();

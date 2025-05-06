@@ -75,7 +75,7 @@ class lsNode
 public:
     lsNode( lsNode* parent );
     virtual ~lsNode();
-
+	
     // Override functions
     virtual void Move( lsScene* scn, lsOpenGL* opengl, double delta );
     virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
@@ -84,7 +84,7 @@ public:
     // Threads
     void MoveThread( lsScene* scn, lsOpenGL* opengl, double delta );
     void OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
-
+	
     // Scene
     virtual lsScene *Get_Scene();
     virtual lsEventManager *Get_EventManager();
@@ -92,24 +92,23 @@ public:
     // Life
     void checkLife( lsScene *scn );
     void Set_Life( double val );
-
+	
     // Node tree
     void Add_Node( lsNode *node );
     void Find_Node( lsScene* scn, const string& name );
     void Del_AllChildren();
     void Del_AllNodes();
-
+	
     // Transforms
     virtual void Set_Pos(float x, float y, float z);
     virtual void Set_Rot(float x, float y, float z);
     virtual void Set_Scale(float x, float y, float z);
-
+	
     // Save data
     void Save();
     virtual const string& toString() = 0;
     string save_str;
-
-
+	
     // Navi --------------------------
 
     lsNode* getNext_node() const

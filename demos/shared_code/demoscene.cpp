@@ -456,10 +456,10 @@ void DemoScene::setupObjectEmitter()
     if( oe )
     {
         oe->setName( "Object Emitter" );
-        oe->Set_Pos( 0, 20, 20 );
+        oe->Set_Pos( 0, 20, 30 );
 
-        oe->setEmit_life( 10 * 1000 ); // 10 sec
-        oe->setEmittime( 100 ); // Emit 1 every second
+        oe->setEmit_life( 20 * 1000 ); // in ms
+        oe->setEmittime( 100 );	// in ms
         oe->setEmit_light( point_light );
 
         viewer_scene->Add_Node( oe );

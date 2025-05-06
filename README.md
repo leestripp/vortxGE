@@ -1,9 +1,10 @@
-## vortxGE v0.6
+# vortxGE v0.6.1
 
-# NOTE: Only tested on manjaro Linux (Linux only for now).
+## NOTE: Only tested on manjaro Linux
 
 vortxGE is a graphics library written in C++ around OpenGL and Bullet physics. It aims to keep platform code seperate from the engine.
-License : LGPL
+
+License : Mit
 
 ![image](screenshots/vortxGE.png)
 

@@ -1,19 +1,9 @@
-cmake_minimum_required(VERSION 3.5)
-
 project(vortxGEdemo_glfw3 LANGUAGES CXX)
 
-find_package(Bullet REQUIRED)
 find_package(PkgConfig REQUIRED)
 
 # GLFW
-pkg_search_module(GLFW REQUIRED glfw3)
-
-# GLEW used by vortxGE
-find_package(GLEW REQUIRED)
-
-# openGL - LEGACY / GLVND
-set(OpenGL_GL_PREFERENCE GLVND)
-find_package(OpenGL REQUIRED)
+pkg_search_module(GLFW REQUIRED glfw)
 
 
 include_directories(

@@ -1,24 +1,5 @@
-/*
- * Copyright (c) 2016 by Lee A. Stripp <leestripp@gmail.com>
- *
- * This file is part of the vortxGE library.
- *
- */
-
 #ifndef VORTX_DEBUG_H_
 #define VORTX_DEBUG_H_
-
-/* OpenGL
-#define VORTX_DEBUG_OPENGL
-#define VORTX_DEBUG_OPENGL_EXT
-#define VORTX_DEBUG_OPENGLERRORS
-*/
-#define VORTX_DEBUG_INFO
-#define VORTX_DEBUG_STATS
-
-/* Batches
-#define VORTX_DEBUG_BATCH
- */
 
 /* Rendering
 #define VORTX_DEBUG_OCCLUSION

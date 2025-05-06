@@ -6,7 +6,6 @@
 
 using namespace std;
 
-
 int main()
 {
 	cout << "vortxGE tests v0.1" << endl;

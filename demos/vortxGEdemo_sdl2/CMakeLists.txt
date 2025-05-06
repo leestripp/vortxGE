@@ -1,16 +1,6 @@
-cmake_minimum_required(VERSION 3.5)
-
 project(vortxGEdemo_sdl2 LANGUAGES CXX)
 
-find_package(Bullet REQUIRED)
 find_package(SDL2 REQUIRED)
-
-# GLEW used by vortxGE
-find_package(GLEW REQUIRED)
-
-# openGL - LEGACY / GLVND
-set(OpenGL_GL_PREFERENCE GLVND)
-find_package(OpenGL REQUIRED)
 
 
 include_directories(
