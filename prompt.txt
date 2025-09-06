@@ -1,0 +1,5 @@
+vortxGE: Main Game Engine class and core of the Static Library.
+lsBulletWorld: Base for the physic system, built on bullet library.
+
+Next Steps:
+I'd like to reimplement Shadow Map, I had them working but removed some of the code for a refactor.

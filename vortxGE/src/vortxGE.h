@@ -1,4 +1,3 @@
-
 #ifndef vortxGE_vortxGE_h
 #define vortxGE_vortxGE_h
 

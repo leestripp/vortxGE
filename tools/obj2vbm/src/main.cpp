@@ -1,8 +1,3 @@
-/*
- * Copyright (C) 2015 by Lee A. Stripp <leestripp@gmail.com>
- *
- */
-
 #include <iostream>
 #include <cassert>
 
