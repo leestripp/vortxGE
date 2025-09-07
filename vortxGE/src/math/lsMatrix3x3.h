@@ -9,6 +9,8 @@
 // array types
 typedef float	Matrix33f[9];
 
+class lsVector3; // Forward Declaration
+
 using namespace std;
 
 
@@ -30,6 +32,7 @@ public:
     bool isIdentity();
 	
     lsMatrix3x3 operator*( const lsMatrix3x3& B );
+    lsVector3 operator*( const lsVector3& v );
 	
     // convert 4x4
     void ExtractRotationMatrix4x4( const lsMatrix4x4& mat );

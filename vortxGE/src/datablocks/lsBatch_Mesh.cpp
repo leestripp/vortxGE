@@ -3,7 +3,12 @@
 #include "../vortx_debug.h"
 
 // Shaders
+#include "../shader/lsShaderManager.h"
 #include "../shader/lsShader.h"
+
+// passes
+#include "../passes/lsPass.h"
+#include "../passes/lsPass_ShadowMap.h"
 
 // Scene
 #include "../scene/lsNode.h"
@@ -120,12 +125,20 @@ void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
     cout << "lsBatch_Mesh::Draw - START: " << object->getName() << endl;
 #endif
 
-    if( getShader() )
-    {
-        getShader()->UseShader( cam, object, pass, this );
+    lsShader* shaderToUse = getShader();
+    if (pass->getPass_type() == LSPT_SHADOWMAP) {
+        shaderToUse = getOgl()->getShaderManager()->Find_Shader("shadowmap");
+    }
 
-        // Lights
-        getShader()->Setup_Lights( cam, object );
+    if( shaderToUse )
+    {
+        shaderToUse->UseShader( cam, object, pass, this );
+
+        // Lights only for non-shadow passes
+        if (pass->getPass_type() != LSPT_SHADOWMAP)
+        {
+            shaderToUse->Setup_Lights( cam, object );
+        }
 
     } else
     {
@@ -137,7 +150,7 @@ void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
 
     glDrawElements( GL_TRIANGLES, count_tris, GL_UNSIGNED_SHORT, 0 );
 
-    if( getShader() ) glUseProgram(0);
+    if( shaderToUse ) glUseProgram(0);
 
 #ifdef VORTX_DEBUG_RENDER
     cout << "lsBatch_Mesh::Draw - END: " << object->getName() << endl;

@@ -11,7 +11,7 @@ class lsViewer;
 class lsObject;
 class lsCamera;
 class lsEvent;
-class lsLight_Point;
+class lsLight_Spot;
 
 using namespace std;
 
@@ -43,10 +43,8 @@ private:
     // Globals
     lsScene *viewer_scene;
     lsViewer *viewer;
-    // objects
-    lsObject *light_control;
     // lights
-    lsLight_Point *point_light;
+    lsLight_Spot *spot_light;
     // Camera
     lsCamera *camera;
     lsObject *camera_base;

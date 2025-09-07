@@ -2,7 +2,7 @@
 #include <sstream>
 
 // math
-#include "../math/lsVector3.h"
+#include "math/lsVector3.h"
 
 #include "lsmesh_normal.h"
 

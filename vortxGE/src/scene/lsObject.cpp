@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2016 by Lee A. Stripp <leestripp@gmail.com>
- *
- * This file is part of the vortxGE library.
- *
- * vortxGE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * vortxGE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with vortxGE.  If not, see <http://www.gnu.org/licenses/>
- */
-
 // core
 #include "../vortx_debug.h"
 
@@ -69,6 +50,10 @@ lsObject::lsObject( lsNode* parent ) : lsAnimNode(parent)
     occlusion_type = LSOT_NONE;
     occlusion_id = 0;
 
+    // Shadows
+    casts_shadows = true;
+    receives_shadows = true;
+
     // Create light manager
     lightmanager = new lsLightManager();
     if(! lightmanager )
@@ -77,6 +62,7 @@ lsObject::lsObject( lsNode* parent ) : lsAnimNode(parent)
         cout << "lsObject::lsObject - ERROR: could now create lsLightManager instance" << endl;
     }
 }
+
 
 lsObject::~lsObject()
 {
@@ -214,16 +200,29 @@ void lsObject::Draw( lsCamera *cam, lsPass *pass, lsScene *scn, lsOpenGL *opengl
             break;
 
         case LSPT_SHADOWMAP:
-            cout << "lsObject::Draw: Shadow map not supported yet" << endl;
+            if( casts_shadows && ( asset ) && (asset->getData()))
+            {
+                switch( asset->getAsset_type() )
+                {
+                case LSAT_MESH:
+                case LSAT_QUAD:
+                    mesh = (lsMesh*)asset->getData();
+                    mesh->Draw( cam, pass, this );
+                    break;
+                default:
+                    // Guides and other things don't cast shadows.
+                    break;
+                }
+            }
             break;
-
+		
         default:
             cout << "lsObject::Draw: ERROR - Unknown pass type" << endl;
             break;
 
         }// switch pass_type
     }// if pass
-
+	
     // Pass it on
     if( getNext_drawobject() ) getNext_drawobject()->Draw( cam, pass, scn, opengl );
 }

@@ -5,10 +5,10 @@
 #include "../convert/lsString.h"
 
 // Math
-#include "../math/lsMath.h"
-#include "../math/lsVector2.h"
-#include "../math/lsVector3.h"
-#include "../math/lsVector4.h"
+#include "math/lsMath.h"
+#include "math/lsVector2.h"
+#include "math/lsVector3.h"
+#include "math/lsVector4.h"
 
 #include "lsMesh.h"
 #include "lsMesh_Vertex.h"

@@ -46,6 +46,13 @@ void lsShaderManager::Init()
         shd->Load_Shader("quad");
         Add_Shader( shd );
     }
+
+    shd = new lsShader( ogl );
+    if (shd)
+    {
+        shd->Load_Shader("shadowmap");
+        Add_Shader( shd );
+    }
 }
 
 void lsShaderManager::Add_Shader( lsShader* shader )

@@ -2,6 +2,7 @@
 #include <sstream>
 
 #include "lsMatrix3x3.h"
+#include "lsVector3.h"
 
 
 lsMatrix3x3::lsMatrix3x3()
@@ -28,34 +29,22 @@ void lsMatrix3x3::LoadIdentity()
     matrix[ 8 ] = 1;
 }
 
-//! Extract a rotation matrix
-/*!
- * Extract a rotation matrix from a 4x4 matrix
- * 
- * */
 void lsMatrix3x3::ExtractRotationMatrix4x4( const lsMatrix4x4& mat )
 {
-	// X
-	matrix[0] = mat.matrix[ 0];
-	matrix[1] = mat.matrix[ 1];
-	matrix[2] = mat.matrix[ 2];
-	// Y
-	matrix[3] = mat.matrix[ 4];
-	matrix[4] = mat.matrix[ 5];
-	matrix[5] = mat.matrix[ 6];
-	// Z
-	matrix[6] = mat.matrix[ 8];
-	matrix[7] = mat.matrix[ 9];
-    matrix[8] = mat.matrix[10];
+	// row 0
+	matrix[0] = mat.matrix[0];
+	matrix[1] = mat.matrix[4];
+	matrix[2] = mat.matrix[8];
+	// row 1
+	matrix[3] = mat.matrix[1];
+	matrix[4] = mat.matrix[5];
+	matrix[5] = mat.matrix[9];
+	// row 2
+	matrix[6] = mat.matrix[2];
+	matrix[7] = mat.matrix[6];
+	matrix[8] = mat.matrix[10];
 }
 
-/*!
- * \brief lsMatrix3x3::Transpose
- *
- * Flip rows for colums.\n
- *
- * \param mat
- */
 void lsMatrix3x3::Transpose( const lsMatrix3x3 &mat )
 {
     // Row 0
@@ -181,6 +170,15 @@ lsMatrix3x3 lsMatrix3x3::operator*(const lsMatrix3x3 &B)
     return res;
 }
 
+lsVector3 lsMatrix3x3::operator*(const lsVector3& v)
+{
+    lsVector3 res;
+    res.x = matrix[0] * v.x + matrix[1] * v.y + matrix[2] * v.z;
+    res.y = matrix[3] * v.x + matrix[4] * v.y + matrix[5] * v.z;
+    res.z = matrix[6] * v.x + matrix[7] * v.y + matrix[8] * v.z;
+    return res;
+}
+
 
 /*!
  * \brief lsMatrix3x3::debug
@@ -234,4 +232,3 @@ bool lsMatrix3x3::isIdentity()
     }
     return true;
 }
-

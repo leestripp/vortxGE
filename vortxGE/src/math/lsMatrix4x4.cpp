@@ -15,19 +15,12 @@ lsMatrix4x4::lsMatrix4x4()
     LoadIdentity();
 }
 
-
 lsMatrix4x4& lsMatrix4x4::operator=( const float mat4[16] )
 {
-	memcpy( matrix, mat4, 16 );
+	memcpy( matrix, mat4, sizeof(float) * 16 );
 	return *this;
 }
 
-/*!
- * \brief lsMatrix4x4::LoadIdentity
- *
- * Load the Identity Matrix.\n
- *
- */
 void lsMatrix4x4::LoadIdentity()
 {
     // identity
@@ -52,21 +45,13 @@ void lsMatrix4x4::LoadIdentity()
     matrix[15]=1;
 }
 
-/*!
- * \brief lsMatrix4x4::Rotate
- *
- * Rotate a Vector by this Matrix.\n
- *
- * \param v
- * \return
- */
 lsVector3 lsMatrix4x4::Rotate( const lsVector3& v )
 {
 	lsVector3 ret;
 	
-    ret.x = matrix[ 0]*v.x + matrix[ 1]*v.y + matrix[ 2]*v.z;
-    ret.y = matrix[ 4]*v.x + matrix[ 5]*v.y + matrix[ 6]*v.z;
-    ret.z = matrix[ 8]*v.x + matrix[ 9]*v.y + matrix[10]*v.z;
+    ret.x = matrix[0]*v.x + matrix[4]*v.y + matrix[8]*v.z;
+    ret.y = matrix[1]*v.x + matrix[5]*v.y + matrix[9]*v.z;
+    ret.z = matrix[2]*v.x + matrix[6]*v.y + matrix[10]*v.z;
 	
     return ret;
 }
@@ -111,49 +96,39 @@ void lsMatrix4x4::Set( const lsQuaternion& q, float x, float y, float z)
     matrix[15] = 1;
 }
 
-
-/*!
- * \brief lsMatrix4x4::operator *
- *
- *
- * \param B
- * \return
- */
-
 lsMatrix4x4 lsMatrix4x4::operator*( const lsMatrix4x4& B )
 {
 	lsMatrix4x4 res;
-	lsMatrix4x4 A(*this);
-	
-	for( int i = 0; i < 4; i++ )
-	{
-		float ai0 = A.matrix[0*4+i],  ai1 = A.matrix[1*4+i],  ai2 = A.matrix[2*4+i],  ai3 = A.matrix[3*4+i];
-		
-		res.matrix[0*4+i] = ai0 * B.matrix[ 0] + ai1 * B.matrix[ 1] + ai2 * B.matrix[ 2] + ai3 * B.matrix[ 3];
-		res.matrix[1*4+i] = ai0 * B.matrix[ 4] + ai1 * B.matrix[ 5] + ai2 * B.matrix[ 6] + ai3 * B.matrix[ 7];
-		res.matrix[2*4+i] = ai0 * B.matrix[ 8] + ai1 * B.matrix[ 9] + ai2 * B.matrix[10] + ai3 * B.matrix[11];
-		res.matrix[3*4+i] = ai0 * B.matrix[12] + ai1 * B.matrix[13] + ai2 * B.matrix[14] + ai3 * B.matrix[15];
-	}
-	return res;
-}
+    const float* a = this->matrix;
+    const float* b = B.matrix;
 
+    for (int j = 0; j < 4; ++j) {
+        for (int i = 0; i < 4; ++i) {
+            res.matrix[j * 4 + i] =
+                a[0 * 4 + i] * b[j * 4 + 0] +
+                a[1 * 4 + i] * b[j * 4 + 1] +
+                a[2 * 4 + i] * b[j * 4 + 2] +
+                a[3 * 4 + i] * b[j * 4 + 3];
+        }
+    }
+    return res;
+}
 
 lsMatrix4x4 lsMatrix4x4::operator*( const float mat4[16] )
 {
 	lsMatrix4x4 res;
-	lsMatrix4x4 A(*this);
-	lsMatrix4x4 B;
-	for( int i=0; i<16; i++ ) B.matrix[i] = mat4[i];
-	
-	for( int i = 0; i < 4; i++ )
-	{
-		float ai0 = A.matrix[0*4+i],  ai1 = A.matrix[1*4+i],  ai2 = A.matrix[2*4+i],  ai3 = A.matrix[3*4+i];
-		
-		res.matrix[0*4+i] = ai0 * B.matrix[ 0] + ai1 * B.matrix[ 1] + ai2 * B.matrix[ 2] + ai3 * B.matrix[ 3];
-		res.matrix[1*4+i] = ai0 * B.matrix[ 4] + ai1 * B.matrix[ 5] + ai2 * B.matrix[ 6] + ai3 * B.matrix[ 7];
-		res.matrix[2*4+i] = ai0 * B.matrix[ 8] + ai1 * B.matrix[ 9] + ai2 * B.matrix[10] + ai3 * B.matrix[11];
-		res.matrix[3*4+i] = ai0 * B.matrix[12] + ai1 * B.matrix[13] + ai2 * B.matrix[14] + ai3 * B.matrix[15];
-	}
+    const float* a = this->matrix;
+    const float* b = mat4;
+
+    for (int j = 0; j < 4; ++j) {
+        for (int i = 0; i < 4; ++i) {
+            res.matrix[j * 4 + i] =
+                a[0 * 4 + i] * b[j * 4 + 0] +
+                a[1 * 4 + i] * b[j * 4 + 1] +
+                a[2 * 4 + i] * b[j * 4 + 2] +
+                a[3 * 4 + i] * b[j * 4 + 3];
+        }
+    }
     return res;
 }
 
@@ -161,21 +136,13 @@ lsVector3 lsMatrix4x4::operator*( const lsVector3& v )
 {
     lsVector3 ret;
 	
-    ret.x = matrix[ 0]*v.x + matrix[ 1]*v.y + matrix[ 2]*v.z + matrix[ 3];
-    ret.y = matrix[ 4]*v.x + matrix[ 5]*v.y + matrix[ 6]*v.z + matrix[ 7];
-    ret.z = matrix[ 8]*v.x + matrix[ 9]*v.y + matrix[10]*v.z + matrix[11];
+    ret.x = matrix[0]*v.x + matrix[4]*v.y + matrix[8]*v.z + matrix[12];
+    ret.y = matrix[1]*v.x + matrix[5]*v.y + matrix[9]*v.z + matrix[13];
+    ret.z = matrix[2]*v.x + matrix[6]*v.y + matrix[10]*v.z + matrix[14];
 	
     return ret;
 }
 
-//! Rotate transform
-/*!
- * Build a rotation matrix.
- * \n\n
- * angle is given in degrees and rotates CCW.\n
- * x,y,z is the vector to rotate around.
- *
- * */
 void lsMatrix4x4::RotateMatrix( float angle, float x, float y, float z )
 {
     lsMatrix4x4 rot;
@@ -276,10 +243,6 @@ float lsMatrix4x4::Cotangent(float angle)
     return (float)(1.0 / tan(angle));
 }
 
-//! ViewMatrix
-/*!
- * Build a view matrix from the given values.
- * */
 void lsMatrix4x4::LookAt( const lsVector3& eyePosition, const lsVector3& lookAt, const lsVector3& upVector )
 {
     lsMath math;
@@ -383,4 +346,3 @@ void lsMatrix4x4::debug( const string& str )
 	
     cout << msg.str();
 }
-

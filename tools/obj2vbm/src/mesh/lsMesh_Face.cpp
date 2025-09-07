@@ -2,8 +2,8 @@
 #include <sstream>
 
 // Math
-#include "../math/lsVector2.h"
-#include "../math/lsVector3.h"
+#include "math/lsVector2.h"
+#include "math/lsVector3.h"
 
 #include "lsMesh_Face.h"
 #include "lsMesh_Vertex.h"

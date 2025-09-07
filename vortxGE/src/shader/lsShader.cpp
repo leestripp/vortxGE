@@ -6,6 +6,7 @@
 #include "../filesystem/lsFileIO.h"
 
 // math
+#include "../math/lsMath.h"
 #include "../math/lsMatrix4x4.h"
 #include "../math/lsMatrix3x3.h"
 
@@ -54,14 +55,6 @@ lsShader::~lsShader()
     glDeleteProgram( shader );
 }
 
-/*!
- * \brief lsShader::setShader_type
- *
- * Sets the shader type, then links all vars between shader and app.\n
- * \n
- *
- * \param val
- */
 void lsShader::setShader_type( int val )
 {
     shader_type = val;
@@ -85,21 +78,35 @@ void lsShader::setShader_type( int val )
         iTex_diffuse = glGetUniformLocation( shader, "tex_diffuse" );
 		[[fallthrough]];
     case LSST_LIGHT_TEX_NONE:
+    case LSST_DEBUG_NORMALS:
+        // Shadow Matrix
+        isMatrix = glGetUniformLocation( shader, "sMatrix" );
+        iTex_shadowmap = glGetUniformLocation( shader, "tex_shadowmap" );
+        iUse_shadowmap = glGetUniformLocation( shader, "use_shadowmap" );
         // Lights
         iLightCount = glGetUniformLocation( shader, "vxLightCount" );
         // Light 1
         iLightType1 = glGetUniformLocation( shader, "vxLightType[0]" );
         iLightPos1 = glGetUniformLocation( shader, "vxLightPos[0]" );
+        iLightDir1 = glGetUniformLocation( shader, "vxLightDir[0]" );
+        iLightCutoff1 = glGetUniformLocation( shader, "vxLightCutoff[0]" );
+        iLightOuterCutoff1 = glGetUniformLocation( shader, "vxLightOuterCutoff[0]" );
         iLightDiffuse1 = glGetUniformLocation( shader, "vxLightDiffuse[0]" );
         iLightSpecular1 = glGetUniformLocation( shader, "vxLightSpecular[0]" );
         // Light 2
         iLightType2 = glGetUniformLocation( shader, "vxLightType[1]" );
         iLightPos2 = glGetUniformLocation( shader, "vxLightPos[1]" );
+        iLightDir2 = glGetUniformLocation( shader, "vxLightDir[1]" );
+        iLightCutoff2 = glGetUniformLocation( shader, "vxLightCutoff[1]" );
+        iLightOuterCutoff2 = glGetUniformLocation( shader, "vxLightOuterCutoff[1]" );
         iLightDiffuse2 = glGetUniformLocation( shader, "vxLightDiffuse[1]" );
         iLightSpecular2 = glGetUniformLocation( shader, "vxLightSpecular[1]" );
         // Light 3
         iLightType3 = glGetUniformLocation( shader, "vxLightType[2]" );
         iLightPos3 = glGetUniformLocation( shader, "vxLightPos[2]" );
+        iLightDir3 = glGetUniformLocation( shader, "vxLightDir[2]" );
+        iLightCutoff3 = glGetUniformLocation( shader, "vxLightCutoff[2]" );
+        iLightOuterCutoff3 = glGetUniformLocation( shader, "vxLightOuterCutoff[2]" );
         iLightDiffuse3 = glGetUniformLocation( shader, "vxLightDiffuse[2]" );
         iLightSpecular3 = glGetUniformLocation( shader, "vxLightSpecular[2]" );
 		
@@ -112,6 +119,7 @@ void lsShader::setShader_type( int val )
 
         // Need ModelViewMatrix and ProjectionMatrix
         imvMatrix = glGetUniformLocation( shader, "mvMatrix" );
+        imMatrix = glGetUniformLocation( shader, "mMatrix" );
         ipMatrix = glGetUniformLocation( shader, "pMatrix" );
         // Normal Matrix
         inMatrix = glGetUniformLocation( shader, "nMatrix" );
@@ -123,6 +131,10 @@ void lsShader::setShader_type( int val )
 		[[fallthrough]];
     case LSST_DEBUG:
         // Need ModelViewMatrix and ProjectionMatrix
+        imvpMatrix = glGetUniformLocation( shader, "mvpMatrix" );
+        break;
+
+    case LSST_SHADOWMAP:
         imvpMatrix = glGetUniformLocation( shader, "mvpMatrix" );
         break;
 
@@ -142,6 +154,7 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused
 
     lsMatrix4x4 mvpMatrix;
     lsMatrix4x4 mvMatrix;
+    lsMatrix4x4 mMatrix;
     lsMatrix4x4 pMatrix;
     lsMatrix3x3 m_eMatrix;      // extract 3x3
     lsMatrix3x3 m_iMatrix;      // inverse modelview matrix
@@ -174,6 +187,47 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused
 			glUniform1i( iTex_diffuse, 0 );
 			[[fallthrough]];
 		case LSST_LIGHT_TEX_NONE:
+            // Shadow Map
+            if (object->getReceives_shadows() && object->getLightManager()->getLight_list()) {
+                lsLight* light = object->getLightManager()->getLight_list()->getLight();
+                if (light && light->getHas_shadowmap()) {
+                    glUniform1i(iUse_shadowmap, 1);
+                    glActiveTexture(GL_TEXTURE3);
+                    glBindTexture(GL_TEXTURE_2D, light->getTex_shadowmap());
+                    glUniform1i(iTex_shadowmap, 3);
+                    glUniformMatrix4fv(isMatrix, 1, GL_FALSE, light->ShadowmapMatrix.matrix);
+                } else {
+                    glUniform1i(iUse_shadowmap, 0);
+                }
+            } else {
+                glUniform1i(iUse_shadowmap, 0);
+            }
+
+			// Material
+			if( batch->getBatch_type() == LSBT_MESH )
+			{
+				glUniform4f( iMatAmbiant, batch_mesh->ambiant.x, batch_mesh->ambiant.y, batch_mesh->ambiant.z, batch_mesh->ambiant.w );
+				glUniform4f( iMatDiffuse, batch_mesh->diffuse.x, batch_mesh->diffuse.y, batch_mesh->diffuse.z, batch_mesh->diffuse.w );
+				glUniform4f( iMatSpecular, batch_mesh->specular.x, batch_mesh->specular.y, batch_mesh->specular.z, batch_mesh->specular.w );
+				glUniform1f( iMatShininess, batch_mesh->shininess );
+				glUniform1f( iMatGlow, batch_mesh->glow );
+			}
+			
+			// Matrix data
+			pMatrix = cam->frustum.getProjectionMatrix();
+			mvMatrix = cam->ViewMatrix * object->ModelMatrix;
+            mMatrix = object->ModelMatrix;
+			// Normal Matrix
+			m_eMatrix.ExtractRotationMatrix4x4( mvMatrix );
+			m_iMatrix.Inverse( m_eMatrix );
+			nMatrix.Transpose( m_iMatrix );
+			
+			glUniformMatrix4fv( ipMatrix, 1, GL_FALSE, pMatrix.matrix );
+			glUniformMatrix4fv( imvMatrix, 1, GL_FALSE, mvMatrix.matrix );
+            glUniformMatrix4fv( imMatrix, 1, GL_FALSE, mMatrix.matrix );
+			glUniformMatrix3fv( inMatrix, 1, GL_FALSE, nMatrix.matrix );
+			break;
+
 		case LSST_DEBUG_NORMALS:
 			// Material
 			if( batch->getBatch_type() == LSBT_MESH )
@@ -186,26 +240,22 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused
 			}
 			
 			// Matrix data
-			pMatrix = pMatrix * cam->frustum.getProjectionMatrix();
-			mvMatrix = mvMatrix * cam->ViewMatrix * object->ModelMatrix;
+			pMatrix = cam->frustum.getProjectionMatrix();
+			mvMatrix = cam->ViewMatrix * object->ModelMatrix;
 			// Normal Matrix
 			m_eMatrix.ExtractRotationMatrix4x4( mvMatrix );
 			m_iMatrix.Inverse( m_eMatrix );
 			nMatrix.Transpose( m_iMatrix );
 			
-			glUniformMatrix4fv( imvMatrix, 1, GL_FALSE, mvMatrix.matrix );
 			glUniformMatrix4fv( ipMatrix, 1, GL_FALSE, pMatrix.matrix );
+			glUniformMatrix4fv( imvMatrix, 1, GL_FALSE, mvMatrix.matrix );
 			glUniformMatrix3fv( inMatrix, 1, GL_FALSE, nMatrix.matrix );
 			break;
 
 		case LSST_QUAD:
-			mvpMatrix.LoadIdentity();
-			mvMatrix.LoadIdentity();
-			pMatrix.LoadIdentity();
-			
-			pMatrix = pMatrix * cam->frustum.getProjectionMatrix();
-			mvMatrix = mvMatrix * cam->ViewMatrix * object->ModelMatrix;
-			mvpMatrix = mvpMatrix * pMatrix * mvMatrix;
+			pMatrix = cam->frustum.getProjectionMatrix();
+			mvMatrix = cam->ViewMatrix * object->ModelMatrix;
+			mvpMatrix = pMatrix * mvMatrix;
 			glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
 			
 			// Textures
@@ -215,15 +265,18 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused
 			break;
 		
 		case LSST_DEBUG:
-			mvpMatrix.LoadIdentity();
-			mvMatrix.LoadIdentity();
-			pMatrix.LoadIdentity();
-			
-			pMatrix = pMatrix * cam->frustum.getProjectionMatrix();
-			mvMatrix = mvMatrix * cam->ViewMatrix * object->ModelMatrix;
-			mvpMatrix = mvpMatrix * pMatrix * mvMatrix;
+			pMatrix = cam->frustum.getProjectionMatrix();
+			mvMatrix = cam->ViewMatrix * object->ModelMatrix;
+			mvpMatrix = pMatrix * mvMatrix;
 			glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
 			break;
+
+        case LSST_SHADOWMAP:
+            pMatrix = cam->frustum.getProjectionMatrix();
+            mvMatrix = cam->ViewMatrix * object->ModelMatrix;
+            mvpMatrix = pMatrix * mvMatrix;
+            glUniformMatrix4fv(imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix);
+            break;
 		
 		default:
 #ifdef VORTX_DEBUG_SHADERS
@@ -356,8 +409,10 @@ void lsShader::Load_Shader( const string& name )
     } else  if( name == "debug_normals" )
     {
         setShader_type( LSST_DEBUG_NORMALS );
+    } else  if( name == "shadowmap" )
+    {
+        setShader_type( LSST_SHADOWMAP );
     }
-
 }
 
 void lsShader::debug( GLuint s )
@@ -433,47 +488,61 @@ void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
     glUniform1i( iLightCount, lc );
 }
 
-/*!
- * \brief lsShader::Set_Light
- *
- * Set light pos in object space - ModelView Matrix.\n
- * Then pass that position to the shader.\n
- *
- * \param i
- * \param camera
- * \param light
- * \param object
- */
 void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__((unused)) lsObject *object )
 {
-	lsMatrix4x4 lMatrix;
+	lsMatrix4x4 light_in_view_space_matrix;
 	
-	// Light in camera Space
-	lMatrix = lMatrix * camera->ViewMatrix;
-	lMatrix = lMatrix * light->ModelMatrix;
-	// if( pass->getPass_type() == LSPT_Reflection ) lMatrix.ScaleMatrix( 1.0, -1.0, 1.0 );
+	// Light position in camera Space
+	light_in_view_space_matrix = camera->ViewMatrix * light->ModelMatrix;
+
+    lsVector3 lightDir_view_space;
+    if (light->getLight_type() == LSLT_SPOT) {
+        // The light's direction is its local -Z axis. We transform this direction into view space.
+        // The rotation part of (View * Model) matrix will do this.
+        // The third column of the combined matrix is the transformed Z-axis.
+        // Since we want -Z, we negate it.
+        lightDir_view_space.x = -light_in_view_space_matrix.matrix[8];
+        lightDir_view_space.y = -light_in_view_space_matrix.matrix[9];
+        lightDir_view_space.z = -light_in_view_space_matrix.matrix[10];
+        lightDir_view_space.normalize();
+    }
 	
 	switch( i )
 	{
 		case 0:
-			glUniform3f( iLightPos1, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
+			glUniform3f( iLightPos1, light_in_view_space_matrix.matrix[12], light_in_view_space_matrix.matrix[13], light_in_view_space_matrix.matrix[14] );
 			glUniform1i( iLightType1, light->getLight_type() );
 			glUniform4f( iLightDiffuse1, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
 			glUniform4f( iLightSpecular1, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+            if (light->getLight_type() == LSLT_SPOT) {
+                glUniform3f( iLightDir1, lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
+                glUniform1f( iLightCutoff1, cos(light->spot_cutoff * ANG2RAD) );
+                glUniform1f( iLightOuterCutoff1, cos(light->spot_outer_cutoff * ANG2RAD) );
+            }
 			break;
 		
 		case 1:
-			glUniform3f( iLightPos2, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
+			glUniform3f( iLightPos2, light_in_view_space_matrix.matrix[12], light_in_view_space_matrix.matrix[13], light_in_view_space_matrix.matrix[14] );
 			glUniform1i( iLightType2, light->getLight_type() );
 			glUniform4f( iLightDiffuse2, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
 			glUniform4f( iLightSpecular2, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+            if (light->getLight_type() == LSLT_SPOT) {
+                glUniform3f( iLightDir2, lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
+                glUniform1f( iLightCutoff2, cos(light->spot_cutoff * ANG2RAD) );
+                glUniform1f( iLightOuterCutoff2, cos(light->spot_outer_cutoff * ANG2RAD) );
+            }
 			break;
 		
 		case 2:
-			glUniform3f( iLightPos3, lMatrix.matrix[12], lMatrix.matrix[13], lMatrix.matrix[14] );
+			glUniform3f( iLightPos3, light_in_view_space_matrix.matrix[12], light_in_view_space_matrix.matrix[13], light_in_view_space_matrix.matrix[14] );
 			glUniform1i( iLightType3, light->getLight_type() );
 			glUniform4f( iLightDiffuse3, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
 			glUniform4f( iLightSpecular3, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+            if (light->getLight_type() == LSLT_SPOT) {
+                glUniform3f( iLightDir3, lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
+                glUniform1f( iLightCutoff3, cos(light->spot_cutoff * ANG2RAD) );
+                glUniform1f( iLightOuterCutoff3, cos(light->spot_outer_cutoff * ANG2RAD) );
+            }
 			break;
 		
 		default:

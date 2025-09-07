@@ -26,6 +26,7 @@ const int LSST_QUAD                 = 9;
 const int LSST_LIGHT_TEX_NONE		= 10;
 const int LSST_BLOOM                = 11;
 const int LSST_DEBUG_NORMALS        = 12;
+const int LSST_SHADOWMAP            = 13;
 
 using namespace std;
 
@@ -108,13 +109,15 @@ private:
     GLuint shader_v;
     GLuint shader_f;
     GLuint shader;
-
-	// uniforms
+	
+    	// uniforms
 	GLint imvpMatrix;
     GLint ipMatrix;         // Projection Matrix
     GLint imvMatrix;        // Model View Matrix
+    GLint imMatrix;         // Model Matrix
     GLint inMatrix;         // Normal Matrix
     GLint isMatrix;         // Shadow Matrix
+    
 	// texture locations
 	GLint iTex_diffuse;
 	GLint iTex_normal;
@@ -136,16 +139,25 @@ private:
     // Light 1
 	GLint iLightType1;
     GLint iLightPos1;
+    GLint iLightDir1;
+    GLint iLightCutoff1;
+    GLint iLightOuterCutoff1;
     GLint iLightDiffuse1;
     GLint iLightSpecular1;
     // light 2
     GLint iLightType2;
     GLint iLightPos2;
+    GLint iLightDir2;
+    GLint iLightCutoff2;
+    GLint iLightOuterCutoff2;
     GLint iLightDiffuse2;
     GLint iLightSpecular2;
     // light 3
     GLint iLightType3;
     GLint iLightPos3;
+    GLint iLightDir3;
+    GLint iLightCutoff3;
+    GLint iLightOuterCutoff3;
     GLint iLightDiffuse3;
     GLint iLightSpecular3;
 
@@ -157,6 +169,5 @@ private:
     GLuint iMatGlow;
 
 };
-
 
 #endif

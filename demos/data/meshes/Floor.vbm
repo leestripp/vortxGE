@@ -5,10 +5,10 @@ batch start
 bsphere 0 0 0 14.1
 
 # vertex : index x y z
-vertex 4 -10 0 10
-vertex 3 10 0 10
-vertex 2 -10 0 -10
-vertex 1 10 0 -10
+vertex 4 -100 0 100
+vertex 3 100 0 100
+vertex 2 -100 0 -100
+vertex 1 100 0 -100
 # normals and tangents : index x y z
 normal 1 0 1 0
 tangent 1 -1 0 -0
@@ -30,8 +30,5 @@ specular 1 1 1 1
 shininess 50
 transparent 1
 glow 1
-tex_d data/textures/floor_d.tga
-tex_n data/textures/floor_n.tga
-tex_s data/textures/floor_s.tga
-shader light_tex_dns
+shader light_tex_none
 batch end

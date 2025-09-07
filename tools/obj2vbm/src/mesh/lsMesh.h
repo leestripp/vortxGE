@@ -11,8 +11,8 @@
 #include "../convert/lsString.h"
 
 // Math
-#include "../math/lsVector3.h"
-#include "../math/lsBoundingSphere.h"
+#include "math/lsVector3.h"
+#include "math/lsBoundingSphere.h"
 
 class lsMesh_Vertex;
 class lsMesh_Normal;

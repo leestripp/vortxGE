@@ -1,15 +1,16 @@
 project(obj2vbm LANGUAGES CXX)
 
 include_directories(
+	../../vortxGE/src/
     src/
 )
 
 file(GLOB MySources
+    ../../vortxGE/src/math/*.cpp
     src/convert/*.cpp
     src/filesystem/*.cpp
-    src/math/*.cpp
     src/mesh/*.cpp
-
+	
     src/*.cpp
 )
 

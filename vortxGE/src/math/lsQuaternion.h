@@ -1,19 +1,19 @@
-#ifndef LSQUATERNION_H_
-#define LSQUATERNION_H_
+#ifndef LSQUATERNION_H
+#define LSQUATERNION_H
+
+#include "lsMatrix4x4.h"
 
 #define DELTA 1e-10     // error tolerance
 
-//! Quaternion
-/*!
- * Not used, so the code was never finished.
- *
- */
+class lsVector3; // Forward declaration
+
 class lsQuaternion
 {
 public:
 	lsQuaternion();
 	lsQuaternion(float w, float x, float y, float z);
 	lsQuaternion(float roll, float pitch, float yaw);
+    lsQuaternion(const lsVector3& axis, float angle); // from axis-angle
 	virtual ~lsQuaternion();
 
 	lsQuaternion& operator*=( const lsQuaternion& q );
@@ -24,9 +24,17 @@ public:
 	void Slerp(const lsQuaternion &from, const lsQuaternion &to, float t);
 	void Lerp(const lsQuaternion &to, float t);
 
-	// Date
+    float magnitude() const;
+    void normalize();
+    lsQuaternion conjugate() const;
+    lsQuaternion inverse() const;
+    void fromAxisAngle(const lsVector3& axis, float angle);
+    float dot(const lsQuaternion& other) const;
+    void toMatrix4x4(lsMatrix4x4& mat) const;
+
+	// Data
 	float w, x, y, z;
 
 };
 
-#endif /* LSQUATERNION_H_ */
+#endif // LSQUATERNION_H
