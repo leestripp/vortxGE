@@ -102,7 +102,7 @@ void main(void)
         {
             vec3 lightDirection = normalize(vxLightDir[i]);
             vec3 lightDir_tangentspace = TBN * lightDirection;
-            float theta = dot(lightVec_tangentspace, -lightDir_tangentspace);
+            float theta = dot(-lightVec_tangentspace, lightDir_tangentspace);
             attenuation = smoothstep(vxLightOuterCutoff[i], vxLightCutoff[i], theta);
         }
 

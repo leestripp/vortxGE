@@ -314,7 +314,7 @@ void DemoScene::setupTestScene()
 	{
 		spot_light->setName("Shadow Spot Light");
 		spot_light->Set_Pos(0, 15, -10);
-		spot_light->Set_Rot(-140, 0, 0); // Pointing downwards at an angle
+		spot_light->Set_Rot(45, 0, 0); // Pointing downwards at an angle
 		viewer_scene->Add_Node(spot_light);
 		
 		// Add a debug empty to visualize the light's position and orientation

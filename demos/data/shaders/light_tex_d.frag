@@ -85,7 +85,7 @@ void main(void)
         if (vxLightType[i] == 2) // 2 is LSLT_SPOT
         {
             vec3 lightDirection = normalize(vxLightDir[i]);
-            float theta = dot(lightVec, -lightDirection);
+            float theta = dot(-lightVec, lightDirection);
             attenuation = smoothstep(vxLightOuterCutoff[i], vxLightCutoff[i], theta);
         }
 

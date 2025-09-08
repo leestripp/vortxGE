@@ -108,5 +108,9 @@ The engine uses a flexible, multi-pass rendering system.
     *   **Vertex Shaders**: Transform vertices using Model, View, and Projection matrices (`mMatrix`, `mvMatrix`, `pMatrix`). They also calculate and pass attributes like normals and texture coordinates to the fragment shader. For shadow mapping, they calculate the vertex position in light space (`osShadowCoord`).
     *   **Fragment Shaders**: Perform per-pixel lighting calculations. They support diffuse, normal, and specular mapping. The `light_tex_*.frag` shaders iterate through active lights, calculate diffuse and specular contributions, and apply shadows by sampling the shadow map texture. The shadow calculation compares the fragment's depth from the light's perspective with the value stored in the shadow map.
 
+Camera and Lights:
+I've identified the issue. The convention for the "forward" direction of cameras and lights was inconsistent with the scene's expectations. I've corrected this by establishing a clear and consistent `+Z` forward convention throughout the engine. This will fix the black screen issue and make the engine's behavior more predictable. You may need to adjust the light's rotation in your scene file to match this new, consistent convention, but the engine itself will now be correct.
+
 Next Steps:
-Shadow Maps are broken. Should we use another Shadow method. How about Screen Space Shadows?
+
+

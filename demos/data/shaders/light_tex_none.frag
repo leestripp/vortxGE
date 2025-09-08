@@ -41,15 +41,16 @@ float calculateShadow(vec4 shadowCoord)
     vec3 projCoords = shadowCoord.xyz / shadowCoord.w;
     
     // Don't shadow fragments outside of the light's frustum
-    if (projCoords.z > 1.0) {
+    if(projCoords.z > 1.0)
+    {
         return 1.0;
     }
-
-    float closestDepth = texture(tex_shadowmap, projCoords.xy).r; 
+	
+    float closestDepth = texture(tex_shadowmap, projCoords.xy).r;
     float currentDepth = projCoords.z;
     
     // With glPolygonOffset handling most of the work, we can use a much smaller bias.
-    float bias = 0.0005; 
+    float bias = 0.0005;
     
     float shadow = currentDepth - bias > closestDepth  ? 0.3 : 1.0;
     
@@ -61,7 +62,7 @@ void main(void)
     vec3 normal = normalize( osNormal );
     vec3 viewVec = normalize( -osVertex );
 
-    // Lighting - lights are in camera space
+    // Lighting
     vec3 lightVec;
     vec3 reflectVec;
     float spec;
@@ -84,7 +85,7 @@ void main(void)
         if (vxLightType[i] == 2) // 2 is LSLT_SPOT
         {
             vec3 lightDirection = normalize(vxLightDir[i]);
-            float theta = dot(lightVec, -lightDirection);
+            float theta = dot(-lightVec, lightDirection);
             attenuation = smoothstep(vxLightOuterCutoff[i], vxLightCutoff[i], theta);
         }
 

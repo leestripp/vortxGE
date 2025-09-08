@@ -39,7 +39,6 @@ void main(void)
     osColour = vec4( 1.0 );
 
     // Shadow coordinate
-    // CHANGE: Calculate from world space position
     vec4 worldPos = mMatrix * vxVertex;
     osShadowCoord = sMatrix * worldPos;
 }

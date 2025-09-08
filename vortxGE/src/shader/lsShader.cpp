@@ -188,9 +188,11 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused
 			[[fallthrough]];
 		case LSST_LIGHT_TEX_NONE:
             // Shadow Map
-            if (object->getReceives_shadows() && object->getLightManager()->getLight_list()) {
+            if(object->getReceives_shadows() && object->getLightManager()->getLight_list())
+            {
                 lsLight* light = object->getLightManager()->getLight_list()->getLight();
-                if (light && light->getHas_shadowmap()) {
+                if (light && light->getHas_shadowmap())
+                {
                     glUniform1i(iUse_shadowmap, 1);
                     glActiveTexture(GL_TEXTURE3);
                     glBindTexture(GL_TEXTURE_2D, light->getTex_shadowmap());
@@ -486,11 +488,13 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 	
 	// Light position in camera Space
 	light_in_view_space_matrix = camera->ViewMatrix * light->ModelMatrix;
-
+	
     lsVector3 lightDir_view_space;
-    if (light->getLight_type() == LSLT_SPOT) {
-        // The light's direction is its local -Z axis.
-        lsVector3 lightDir_local(0.0f, 0.0f, -1.0f);
+    if(light->getLight_type() == LSLT_SPOT)
+    {
+        // The light's direction is its local +Z axis, to be consistent
+        // with the engine's camera convention (looking down +Z).
+        lsVector3 lightDir_local(0.0f, 0.0f, 1.0f);
 
         // Transform it to world space using the light's model matrix (rotation only)
         lsVector3 lightDir_world = light->ModelMatrix.Rotate(lightDir_local);
@@ -507,7 +511,8 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 			glUniform1i( iLightType1, light->getLight_type() );
 			glUniform4f( iLightDiffuse1, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
 			glUniform4f( iLightSpecular1, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
-            if (light->getLight_type() == LSLT_SPOT) {
+            if (light->getLight_type() == LSLT_SPOT)
+            {
                 glUniform3f( iLightDir1, lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
                 glUniform1f( iLightCutoff1, cos(light->spot_cutoff * ANG2RAD) );
                 glUniform1f( iLightOuterCutoff1, cos(light->spot_outer_cutoff * ANG2RAD) );
