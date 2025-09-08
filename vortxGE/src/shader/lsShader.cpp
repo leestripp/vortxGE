@@ -452,14 +452,6 @@ bool lsShader::debugProgram()
     return true;
 }
 
-/*!
- * \brief lsShader::Setup_Lights
- *
- * Cycle through lights and call Set_Light on each.\n
- *
- * \param camera
- * \param object
- */
 void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 {
     int lc;
@@ -497,13 +489,14 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 
     lsVector3 lightDir_view_space;
     if (light->getLight_type() == LSLT_SPOT) {
-        // The light's direction is its local -Z axis. We transform this direction into view space.
-        // The rotation part of (View * Model) matrix will do this.
-        // The third column of the combined matrix is the transformed Z-axis.
-        // Since we want -Z, we negate it.
-        lightDir_view_space.x = -light_in_view_space_matrix.matrix[8];
-        lightDir_view_space.y = -light_in_view_space_matrix.matrix[9];
-        lightDir_view_space.z = -light_in_view_space_matrix.matrix[10];
+        // The light's direction is its local -Z axis.
+        lsVector3 lightDir_local(0.0f, 0.0f, -1.0f);
+
+        // Transform it to world space using the light's model matrix (rotation only)
+        lsVector3 lightDir_world = light->ModelMatrix.Rotate(lightDir_local);
+
+        // Transform it to view space using the camera's view matrix (rotation only)
+        lightDir_view_space = camera->ViewMatrix.Rotate(lightDir_world);
         lightDir_view_space.normalize();
     }
 	

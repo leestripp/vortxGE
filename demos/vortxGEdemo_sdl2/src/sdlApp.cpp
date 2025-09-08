@@ -1,9 +1,7 @@
 #include "sdlApp.h"
 #include "demoscene.h"
 
-
 #include <timers/lsTimer.h>
-
 
 sdlApp::sdlApp()
 {

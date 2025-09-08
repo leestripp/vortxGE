@@ -39,12 +39,20 @@ out vec4 fragColour;
 float calculateShadow(vec4 shadowCoord)
 {
     vec3 projCoords = shadowCoord.xyz / shadowCoord.w;
+    
+    // Don't shadow fragments outside of the light's frustum
+    if (projCoords.z > 1.0) {
+        return 1.0;
+    }
+
     float closestDepth = texture(tex_shadowmap, projCoords.xy).r; 
     float currentDepth = projCoords.z;
-    float bias = 0.005;
+    
+    // With glPolygonOffset handling most of the work, we can use a much smaller bias.
+    float bias = 0.0005; 
+    
     float shadow = currentDepth - bias > closestDepth  ? 0.3 : 1.0;
-    if(projCoords.z > 1.0)
-        shadow = 1.0;
+    
     return shadow;
 }
 

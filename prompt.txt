@@ -1,41 +1,112 @@
-vortxGE: Main Game Engine class and core of the Static Library.
-lsBulletWorld: Base for the physic system, built on bullet library.
-Spot Light Cone is now working correctly.
+### Overall Architecture
+`vortxGE` is a C++20 3D graphics engine built on modern OpenGL (4.3+). It employs a hierarchical scene graph structure and a flexible render pass system. The core design separates application logic, scene management, resource handling, and rendering into distinct, manageable components. The engine is designed to be integrated into various windowing toolkits, as demonstrated by the GLFW3, GTKmm, and SDL2 demos.
+
+---
+### 1. The `vortxGE` Core
+
+*   **`vortxGE` Class**: This is the main engine class. It acts as the central hub, responsible for initializing and owning the primary managers (`lsControlManager`, `lsShaderManager`, `lsAssetManager`, `lsOpenGL`, `lsStats`).
+*   **Initialization (`vortxGE::Init`)**: Must be called after an OpenGL context is created. It sets up all core managers and subsystems.
+*   **Main Loop (`vortxGE::Update`, `vortxGE::Render`)**: The application's main loop calls these functions.
+    *   `Update(delta)`: Kicks off the update cycle for all controls, scenes, physics simulations, and animations.
+    *   `Render()`: Initiates the rendering pipeline, executing all defined render passes.
+*   **Cleanup (`vortxGE::Cleanup`)**: Safely deallocates all managers and engine resources.
+
+---
+
+### 2. Controls & Viewers
+
+The control system provides a hierarchical structure for managing different parts of an application, such as separate 3D views, UI overlays, or different game states.
+
+*   **`lsControlManager`**: Manages a list of `lsControl` objects. The main `vortxGE` class has a root `lsControlManager`. Controls can also contain their own `lsControlManager` to create a tree-like hierarchy.
+*   **`lsControl`**: The abstract base class for all UI/view components.
+*   **`lsViewer`**: A concrete `lsControl` that represents a 3D viewport. It is a self-contained unit that owns its own `lsSceneManager`, `lsPassManager`, and `lsAssetManager`. This powerful design allows for multiple independent scenes and rendering pipelines within a single application (e.g., a main 3D view and a separate smaller debug view).
+*   **`lsComposite`**: Functionally similar to `lsViewer`, it also contains its own set of managers. It's designed for creating layered or composite final images by combining the outputs of multiple render passes.
+
+---
+
+### 3. The Scene and Scene Objects
+
+The engine uses a traditional scene graph hierarchy.
+
+*   **`lsSceneManager`**: Manages a list of `lsScene` objects.
+*   **`lsScene`**: The root of a scene graph. It is a specialized `lsNode` that contains:
+    *   A list of child `lsNode`s.
+    *   An `lsBulletWorld` instance for physics simulation.
+    *   An `lsEventManager` for handling asynchronous events like object collisions or deletions.
+*   **`lsNode`**: The fundamental building block of the scene graph. It handles parent-child relationships and transformations. Each node has a `ModelMatrix` which is calculated by combining its local position, rotation, and scale with its parent's `ModelMatrix`.
+*   **`lsAnimNode`**: A subclass of `lsNode` that adds an `lsAnimationManager` and a property system, making it and its subclasses (like `lsObject` and `lsCamera`) animatable.
+*   **`lsObject`**: The primary renderable entity in the scene. It connects various engine components:
+    *   Holds an `lsAsset` (typically a mesh) for its visual representation.
+    *   Can have an `lsBulletObject` for physics interaction.
+    *   Has its own `lsLightManager` to determine which lights affect it.
+    *   Contains flags for culling, occlusion, and shadow casting/receiving.
+*   **`lsCamera`**: A specialized node that defines a viewpoint and projection. It contains an `lsFrustum` to manage its view volume (for projection matrices and culling) and calculates a `ViewMatrix`.
+*   **`lsLight`**: Represents a light source. It inherits from `lsCamera`, which cleverly allows a light to be treated as a camera. This is essential for shadow mapping, where the scene is rendered from the light's perspective.
+    *   **`lsLight_Spot`**: A spot light implementation.
+    *   **`lsLight_Point`**: A point light implementation.
+*   **`lsObjectEmitter`**: A utility node that periodically creates and emits new `lsObject` instances into the scene, complete with physics properties. This is useful for effects like falling debris or projectiles.
+
+---
+
+### 4. Assets
+
+Assets are shared resources like meshes and textures, managed to prevent redundant loading.
+
+*   **`lsAssetManager`**: Creates, finds, and manages all `lsAsset` objects. It prevents duplicate loading by checking if an asset with the same name (e.g., file path) already exists.
+*   **`lsAsset`**: The base class for all loadable resources. It uses a simple reference count (`users`) to track how many `lsObject`s are using it.
+    *   `AllocAsset()`: The virtual function responsible for loading the resource data from disk and creating the corresponding GPU object (e.g., loading a `.vbm` file into VBOs or an image into a texture).
+    *   `FreeAsset()`: Deallocates the resource and frees GPU memory.
+*   **`lsAsset_Mesh`**: Represents a 3D model loaded from a custom `.vbm` file.
+*   **`lsAsset_Texture`**: Represents a texture loaded from an image file (e.g., TGA).
+*   **`lsAsset_Quad`**: A procedural asset that creates a simple two-triangle quad, useful for fullscreen effects and rendering FBO textures.
+*   **`lsAsset_BulletShape_*`**: A family of assets that define collision shapes for the Bullet physics engine (e.g., `_Box`, `_Plane`).
+
+---
+
+### 5. Mesh and Batch Mesh
+
+This system defines how geometry is stored and rendered.
+
+*   **`obj2vbm` Tool**: A command-line utility that converts Wavefront `.obj` files into the engine's custom `.vbm` (vortx Batch Mesh) format. It processes vertices, normals, UVs, calculates tangents, and organizes the data into batches based on materials.
+*   **`lsMesh`**: A data block that represents a complete 3D model. It is a container for one or more `lsBatch` objects. A single mesh can have multiple batches if it uses multiple materials. It also stores a bounding sphere for culling.
+*   **`lsBatch`**: The base class for a chunk of renderable geometry. It's the lowest-level drawable unit.
+    *   **`lsBatch_Mesh`**: The most common type, representing a standard indexed triangle mesh with vertices, normals, tangents, and texture coordinates. It holds the VBOs and VAO for the geometry and is responsible for issuing the `glDrawElements` call. It also contains material properties (diffuse color, shininess, etc.) and texture IDs.
+    *   **`lsBatch_Lines`**: Used for debug rendering, like drawing coordinate axes (`buildEmpty`) or a grid (`buildGrid`).
+    *   **`lsBatch_Quad`**: A specialized batch for rendering a simple quad, used by `lsAsset_Quad`.
+
+---
+
+### 6. Passes and FBOs (The Rendering Pipeline)
+
+The engine uses a flexible, multi-pass rendering system.
+
+*   **`lsPassManager`**: Manages a list of `lsPass` objects. It executes each pass in sequence during the `Render` phase. The order of pass addition is important; new passes are added to the front of the list, so the last pass added is the first to execute.
+*   **`lsPass`**: The abstract base class for a single rendering step. It defines a scene, a camera for viewing, and a camera for culling.
+*   **`lsPass_DR` (Direct Render)**: A simple pass that renders a scene directly to the default framebuffer (i.e., the window).
+*   **`lsFBO` (Framebuffer Object)**: A wrapper around an OpenGL FBO.
+    *   **`lsFBO_ColourDepth_8`**: Creates an FBO with an 8-bit RGBA color texture and a depth texture.
+    *   **`lsFBO_Depth`**: Creates a depth-only FBO, essential for shadow mapping.
+*   **`lsPass_FBO`**: Renders a scene to a specified `lsFBO` instead of the screen. This is the core of render-to-texture techniques. The `demoscene` uses this to render the main 3D scene to a texture, which is then drawn onto a quad in a final `lsPass_DR`.
+*   **`lsPass_ShadowMap`**: A specialized pass for creating shadow maps.
+    1.  It uses an `lsFBO_Depth` as its render target.
+    2.  It treats a specified `lsLight` as its camera.
+    3.  It renders only the depth of shadow-casting objects from the light's point of view.
+    4.  The resulting depth texture is stored in the `lsLight` object.
+
+---
+
+### 7. Shaders and OpenGL
+
+*   **`lsOpenGL`**: A wrapper class that holds OpenGL state and information. It provides utility functions like `CheckGLErrors` and manages the default FBO binding. It also holds pointers to the global `lsShaderManager` and `lsStats`.
+*   **`lsShaderManager`**: Loads, caches, and provides access to `lsShader` programs. It pre-loads default shaders like `debug`, `quad`, and `shadowmap`.
+*   **`lsShader`**: Encapsulates a compiled and linked GLSL shader program. It handles:
+    *   Loading vertex and fragment shader source from files.
+    *   Compilation and linking.
+    *   Querying and caching uniform locations for performance.
+    *   `UseShader()`: A central function that binds the program and sets up all necessary uniforms (matrices, materials, textures) before a `lsBatch` is drawn.
+*   **GLSL Shaders**: The provided shaders implement a standard forward lighting model.
+    *   **Vertex Shaders**: Transform vertices using Model, View, and Projection matrices (`mMatrix`, `mvMatrix`, `pMatrix`). They also calculate and pass attributes like normals and texture coordinates to the fragment shader. For shadow mapping, they calculate the vertex position in light space (`osShadowCoord`).
+    *   **Fragment Shaders**: Perform per-pixel lighting calculations. They support diffuse, normal, and specular mapping. The `light_tex_*.frag` shaders iterate through active lights, calculate diffuse and specular contributions, and apply shadows by sampling the shadow map texture. The shadow calculation compares the fragment's depth from the light's perspective with the value stored in the shadow map.
 
 Next Steps:
-Lets Fix these Errors From the app's output.
-lee@dev-pc "cpp-dev" build %> ./demos/vortxGEdemo_sdl2/vortxGEdemo_sdl2
-Unable to set VSync method. SDL Error: 
-sdlApp::Init() : demoscene instance created.
-DemoScene::Init() called
-NEW instance : vortxGE v0.6.5 by Lee A. Stripp
-ERROR: unknown, message: Shader Stats: SGPRS: 40 VGPRS: 16 Code Size: 600 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 1 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (VS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 8 VGPRS: 12 Code Size: 104 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 1 InlineUniforms: 0 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 40 VGPRS: 12 Code Size: 600 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 1 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (VS, W64), source: 33352, id: 1, severity: 33387, id: 1
-DemoScene::setupControls() called
-ERROR: unknown, message: Shader Stats: SGPRS: 24 VGPRS: 12 Code Size: 284 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 1 InlineUniforms: 0 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 32 VGPRS: 12 Code Size: 480 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (VS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 8 VGPRS: 4 Code Size: 0 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-FBO created ID: 1
-DemoScene::setupTestScene() called
-Depth FBO created ID: 2
-ERROR: unknown, message: Shader Stats: SGPRS: 88 VGPRS: 24 Code Size: 932 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 3 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (VS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 32 VGPRS: 28 Code Size: 2220 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 1 InlineUniforms: 4 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 16 VGPRS: 4 Code Size: 48 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (CS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 88 VGPRS: 28 Code Size: 948 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 3 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (VS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 32 VGPRS: 32 Code Size: 2292 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 1 InlineUniforms: 4 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 128 VGPRS: 24 Code Size: 332 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (CS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 128 VGPRS: 12 Code Size: 148 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (CS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 16 VGPRS: 12 Code Size: 108 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 1 InlineUniforms: 0 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 88 VGPRS: 32 Code Size: 1044 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 4 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (VS, W64), source: 33352, id: 1, severity: 33387, id: 1
-sdlApp::Init() : demoscene->Init() OK.
-ERROR: unknown, message: Shader Stats: SGPRS: 56 VGPRS: 48 Code Size: 2924 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 1 InlineUniforms: 4 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 8 VGPRS: 4 Code Size: 0 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 16 VGPRS: 8 Code Size: 216 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (VS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 8 VGPRS: 8 Code Size: 52 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 1 InlineUniforms: 0 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 128 VGPRS: 24 Code Size: 264 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 1 InlineUniforms: 0 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 32 VGPRS: 28 Code Size: 988 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 1 InlineUniforms: 4 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 40 VGPRS: 32 Code Size: 1028 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 1 InlineUniforms: 4 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 80 VGPRS: 36 Code Size: 2844 LDS: 0 Scratch: 0 Max Waves: 16 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 3 PSOutputs: 0 InlineUniforms: 0 DivergentLoop: 0 (VS, W64), source: 33352, id: 1, severity: 33387, id: 1
-ERROR: unknown, message: Shader Stats: SGPRS: 48 VGPRS: 52 Code Size: 1416 LDS: 0 Scratch: 0 Max Waves: 12 Spilled SGPRs: 0 Spilled VGPRs: 0 PrivMem VGPRs: 0 LSOutputs: 0 HSOutputs: 0 HSPatchOuts: 0 ESOutputs: 0 GSOutputs: 0 VSOutputs: 0 PSOutputs: 1 InlineUniforms: 4 DivergentLoop: 0 (PS, W64), source: 33352, id: 1, severity: 33387, id: 1
-lee@dev-pc "cpp-dev" build %> 
+Shadow Maps are broken. Should we use another Shadow method. How about Screen Space Shadows?

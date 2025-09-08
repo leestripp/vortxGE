@@ -49,14 +49,20 @@ void lsPass_ShadowMap::Render()
         glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y);
         
         glEnable(GL_DEPTH_TEST);
-        glCullFace(GL_FRONT); // Use front-face culling for shadow maps
+        
+        // Use polygon offset to combat shadow acne. This is more robust
+        // than just shader-side bias or front-face culling.
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(4.0f, 4.0f);
         
         fbo->ClearBuffers();
         
         // Render scene from light's perspective
         if (getScene()) getScene()->Draw(getLight(), this, NULL, getOgl());
 
-        glCullFace(GL_BACK); // Restore back-face culling
+        // Restore OpenGL state
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        
         getOgl()->RestoreFBO();
     }
 }
