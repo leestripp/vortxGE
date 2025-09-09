@@ -102,11 +102,9 @@ Shadow Maps are now working correctly.
 
 Use the Asset Manager on the lsScene class for assets in a scene.
 First Person Rig scene node is working.
-Also the Jump is working, but when we are in the AIR we can still move around with w,a,s,d.
+
 
 Next Steps:
-Lets focus on speeding up the Bullet Physics. Lets switch to using Threaded components were possible.
-Threaded Solver etc...
 
 
 

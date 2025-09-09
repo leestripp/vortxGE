@@ -2,7 +2,7 @@
 
 batch start
 # bsphere : x y z radius
-bsphere 0 0 0 14.1
+bsphere 0 0 0 140.0
 
 # vertex : index x y z
 vertex 4 -100 0 100

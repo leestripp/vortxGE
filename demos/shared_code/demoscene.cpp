@@ -452,27 +452,25 @@ void DemoScene::setupObjectEmitter()
 	if( oe )
 	{
 		oe->setName( "Object Emitter" );
-		oe->Set_Pos( 0, 20, 30 );
-
+		oe->Set_Pos( 0, 20, 20 );
+		
 		oe->setEmit_life( 20 * 1000 ); // in ms
-		oe->setEmittime( 100 );	// in ms
+		oe->setEmittime( 500 );	// in ms
 		oe->setEmit_light( spot_light );
-
+		
 		viewer_scene->Add_Node( oe );
 	}
 }
 
 void DemoScene::Update( double delta )
 {
-	// cout << "DemoScene::Update" << endl;
-
 	// process scene events
 	lsEvent *e;
 	while( (e = viewer_scene->Poll_Event()) )
 	{
 		processEvent( e );
 	}
-
+	
 	// vortxGE update
 	if( vortxge )
 	{

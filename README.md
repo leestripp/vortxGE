@@ -20,7 +20,6 @@ License : Mit
 ## Simple examples showing how to use vortxGE with other libraries.
 * vortxGEdemo_gtkmm - gtkmm v4 example
 * vortxGEdemo_glfw3 - GLFW v3 example
-* vortxGEdemo_sdl2 - SDL v2 example
 
 # Tools
 * [obj2vbm](tools/obj2vbm) OBJ to VBM (Native Mesh) converter
