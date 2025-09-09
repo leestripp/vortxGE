@@ -61,4 +61,3 @@ private:
     double old_x, old_y;
     double pos_x, pos_y;
 };
-

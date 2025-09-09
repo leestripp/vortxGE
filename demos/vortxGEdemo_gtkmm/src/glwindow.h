@@ -1,3 +1,5 @@
+#pragma once
+
 #include <gtkmm/window.h>
 #include <gtkmm/glarea.h>
 
@@ -46,18 +48,13 @@ private:
     lsTimer     *timer;
 
     // keys
-    bool key_a;
-    bool key_d;
-    bool key_w;
-    bool key_s;
-    double move_speed;
+    bool key_w, key_a, key_s, key_d;
+    bool key_jump, key_sprint, key_crouch;
 
     // Mouse
-    double rot_speed;
-    double rot_x;
-    double rot_y;
     double old_x;
     double old_y;
     bool lmb_down;
 
 };
+

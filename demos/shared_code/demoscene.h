@@ -23,9 +23,9 @@ public:
 
     bool Init();
     void Resize( int x, int y, int w, int h );
-    // Camera movement
+    // Player movement
     void movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch);
-    void rotatePlayerView( double rot_x, double rot_y );
+    void rotatePlayerView( double delta_x, double delta_y);
     // vortxGE - Scene events and Camera
     void Update( double delta );
     void Render();

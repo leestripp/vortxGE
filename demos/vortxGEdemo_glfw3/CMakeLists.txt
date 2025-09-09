@@ -3,7 +3,7 @@ project(vortxGEdemo_glfw3 LANGUAGES CXX)
 find_package(PkgConfig REQUIRED)
 
 # GLFW
-pkg_search_module(GLFW REQUIRED glfw)
+pkg_search_module(GLFW REQUIRED glfw3)
 
 
 include_directories(

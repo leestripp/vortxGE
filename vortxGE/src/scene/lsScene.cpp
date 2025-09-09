@@ -102,6 +102,81 @@ void lsScene::Move( __attribute__((unused)) lsScene* scn, lsOpenGL* opengl, doub
 #endif
 }
 
+/*!
+ * \brief lsScene::Draw
+ *
+ * Calls Draw() on the Draw list. Also starts and stops stats for Draw.
+ * \n
+ *
+ * \param cam
+ * \param pass
+ * \param scn
+ * \param opengl
+ */
+void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene* scn, lsOpenGL* opengl )
+{
+#ifdef VORTX_DEBUG_RENDER
+    cout << "lsScene::Draw" << endl;
+#endif
+    // Draw stats
+    if( opengl->getStats() ) opengl->getStats()->Draw_Start();
+	
+    // Draw our draw list
+    if( draw_list ) draw_list->Draw( cam, pass, this, opengl );
+	
+    if( opengl->getStats() ) opengl->getStats()->Draw_Stop();
+}
+
+/*!
+ * \brief lsScene::Get_Scene
+ *
+ * Only use when building you scene. Could be slow on a huge heirarchy.\n
+ * \n
+ *
+ * \return - Returns the base scene of a lsNode structure.
+ */
+lsScene* lsScene::Get_Scene()
+{
+    return this;
+}
+
+/*!
+ * \brief lsScene::Get_EventManager
+ *
+ * Only use when building you scene. Could be slow on a huge heirarchy.\n
+ * \n
+ *
+ * \return - Returns the base scene Event Manager.
+ */
+lsEventManager* lsScene::Get_EventManager()
+{
+    return root_eventmanager;
+}
+
+/*!
+ * \brief lsScene::ClearScene
+ *
+ * Deletes everything in this scene but leave the scene node.\n
+ * \n
+ *
+ */
+void lsScene::ClearScene()
+{
+#ifdef VORTX_DEBUG_NODES
+    cout << "lsScene::ClearScene() - Scene Name: " << getName() << "  *******************" << endl;
+#endif
+
+    if( getNode_list() )
+    {
+        getNode_list()->Del_AllNodes();
+#ifdef VORTX_DEBUG_NODES
+        cout << "lsScene::ClearScene() - Last node : " << getNode_list()->getName() << endl;
+#endif
+        delete getNode_list();
+        setNode_list( NULL );
+    }
+}
+
 /**
  InitDrawlist ready for drawing\n
  Called from Passes

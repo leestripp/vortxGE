@@ -30,15 +30,8 @@ private:
 
     bool running;
 	// keys
-    bool key_a;
-    bool key_d;
-    bool key_w;
-    bool key_s;
-    // Mouse
-    double rot_speed;
-    double move_speed;
-    double rot_x;
-    double rot_y;
+    bool key_w, key_a, key_s, key_d;
+    bool key_jump, key_sprint, key_crouch;
 };
 
 #endif // SDLAPP_H

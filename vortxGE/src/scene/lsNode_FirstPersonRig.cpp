@@ -6,9 +6,10 @@
 #include "../assets/lsAssetManager.h"
 #include "../assets/lsAsset_BulletShape_Pill.h"
 #include "../datablocks/lsBulletShape.h"
+#include "../math/lsMath.h"
 #include <cmath> // For sin, cos
 
-lsNode_FirstPersonRig::lsNode_FirstPersonRig(lsNode* parent) : lsAnimNode(parent)
+lsNode_FirstPersonRig::lsNode_FirstPersonRig(lsNode* parent) : lsObject(parent)
 {
     setNode_type(LSNT_FIRSTPERSONRIG);
     setName("FirstPersonRig");
@@ -29,7 +30,7 @@ lsNode_FirstPersonRig::lsNode_FirstPersonRig(lsNode* parent) : lsAnimNode(parent
     m_bulletObject->Init(80.0f); // Mass of 80kg
 
     // 3. Configure the rigid body
-    btRigidBody* body = m_bulletObject->body;
+    btRigidBody* body = m_bulletObject->getBody();
     if (body) {
         body->setAngularFactor(btVector3(0, 1, 0)); // Only allow rotation around Y (yaw)
         body->setSleepingThresholds(0.0, 0.0);      // Prevent player from sleeping
@@ -64,7 +65,7 @@ void lsNode_FirstPersonRig::handleInput(bool forward, bool backward, bool left, 
 void lsNode_FirstPersonRig::handleMouseLook(float deltaYaw, float deltaPitch)
 {
     m_yaw -= deltaYaw * m_mouseSensitivity; // Invert for standard controls
-    m_pitch -= deltaPitch * m_mouseSensitivity; // Invert for standard controls
+    m_pitch += deltaPitch * m_mouseSensitivity; // Invert for standard controls
 
     // Clamp pitch to avoid flipping
     m_pitch = std::clamp(m_pitch, -89.0f, 89.0f);
@@ -72,25 +73,25 @@ void lsNode_FirstPersonRig::handleMouseLook(float deltaYaw, float deltaPitch)
 
 bool lsNode_FirstPersonRig::onGround()
 {
-    if (!m_bulletObject || !m_bulletObject->body) return false;
-
-    btVector3 start = m_bulletObject->body->getWorldTransform().getOrigin();
+    if (!m_bulletObject || !m_bulletObject->getBody()) return false;
+	
+    btVector3 start = m_bulletObject->getBody()->getWorldTransform().getOrigin();
     // Ray starts from the center and goes down just past the bottom of the capsule
     btVector3 end = start - btVector3(0, m_capsuleHeight * 0.5f + 0.6f, 0);
-
+	
     btCollisionWorld::ClosestRayResultCallback rayCallback(start, end);
     Get_Scene()->getBulletworld()->getDynamicsWorld()->rayTest(start, end, rayCallback);
-
+	
     return rayCallback.hasHit();
 }
 
-void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
+void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* /* opengl */, double delta)
 {
-    if (!m_bulletObject || !m_bulletObject->body) return;
+    if (!m_bulletObject || !m_bulletObject->getBody()) return;
 
-    btRigidBody* body = m_bulletObject->body;
+    btRigidBody* body = m_bulletObject->getBody();
 
-    // 1. Apply Yaw rotation to the physics body
+    // 1. Apply Yaw rotation to the physics body from mouse input
     btTransform trans;
     body->getMotionState()->getWorldTransform(trans);
     btQuaternion yawQuat;
@@ -98,46 +99,58 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
     trans.setRotation(yawQuat);
     body->getMotionState()->setWorldTransform(trans);
     body->setCenterOfMassTransform(trans);
+	
+    // 2. Handle movement and jumping, only if on the ground
+    bool is_on_ground = onGround();
 
+    if (is_on_ground)
+    {
+        // Calculate target velocity from keyboard input
+        float speed = m_isCrouching ? m_crouchSpeed : (m_isSprinting ? m_sprintSpeed : m_walkSpeed);
+        btVector3 forwardDir(sin(m_yaw * ANG2RAD), 0, cos(m_yaw * ANG2RAD));
+        btVector3 sideDir(-cos(m_yaw * ANG2RAD), 0, sin(m_yaw * ANG2RAD));
 
-    // 2. Calculate movement direction
-    float speed = m_isCrouching ? m_crouchSpeed : (m_isSprinting ? m_sprintSpeed : m_walkSpeed);
-    
-    btVector3 forwardDir(sin(m_yaw * ANG2RAD), 0, cos(m_yaw * ANG2RAD));
-    btVector3 sideDir(-cos(m_yaw * ANG2RAD), 0, sin(m_yaw * ANG2RAD));
+        btVector3 targetVelocity(0, 0, 0);
+        if (m_moveForward)  targetVelocity += forwardDir;
+        if (m_moveBackward) targetVelocity -= forwardDir;
+        if (m_strafeLeft)   targetVelocity -= sideDir;
+        if (m_strafeRight)  targetVelocity += sideDir;
 
-    btVector3 desiredVelocity(0, 0, 0);
-    if (m_moveForward)  desiredVelocity += forwardDir;
-    if (m_moveBackward) desiredVelocity -= forwardDir;
-    if (m_strafeLeft)   desiredVelocity += sideDir;
-    if (m_strafeRight)  desiredVelocity -= sideDir;
+        if (targetVelocity.length2() > 0) {
+            targetVelocity.normalize();
+            targetVelocity *= speed;
+        }
 
-    // 3. Set velocity
-    btVector3 currentVelocity = body->getLinearVelocity();
-    if (desiredVelocity.length2() > 0) {
-        desiredVelocity.normalize();
-        desiredVelocity *= speed;
+        // Calculate the force needed to reach the target velocity in one timestep
+        btVector3 currentVelocity = body->getLinearVelocity();
+        // We only want to affect horizontal velocity
+        btVector3 velocityChange = targetVelocity - btVector3(currentVelocity.x(), 0, currentVelocity.z());
+
+        // Convert delta from ms to seconds for physics calculation
+        float dt = delta / 1000.0f;
+        if (dt > 0) {
+            // F = m * a = m * (dv/dt)
+            btVector3 requiredForce = (velocityChange / dt) * body->getMass();
+            body->applyCentralForce(requiredForce);
+        }
+
+        // Handle Jumping
+        if (m_wantsToJump)
+        {
+            // Apply a vertical impulse for the jump
+            body->applyCentralImpulse(btVector3(0, m_jumpForce, 0));
+        }
     }
     
-    // Preserve vertical velocity for gravity/jumping
-    desiredVelocity.setY(currentVelocity.getY());
-    body->setLinearVelocity(desiredVelocity);
-
-    // 4. Handle Jumping
-    if (m_wantsToJump && onGround()) {
-        body->applyCentralImpulse(btVector3(0, m_jumpForce, 0));
-    }
-
-    // 5. Handle Crouching (camera height)
+    // 3. Handle Crouching (camera height)
     float targetCamHeight = m_isCrouching ? m_crouchedCamHeight : m_standingCamHeight;
     m_camera->position.y = targetCamHeight;
 
 
-    // 6. Update this node's transform from the physics simulation
+    // 4. Update this node's transform from the physics simulation
     m_bulletObject->Apply_Physics(this);
 
-    // 7. Update the child camera's local rotation for pitch.
-    // The scene graph traversal will handle the rest.
+    // 5. Update the child camera's local rotation for pitch (mouse look up/down)
     m_camera->Set_Rot(m_pitch, 0, 0);
 
     // Life
@@ -158,4 +171,3 @@ const string& lsNode_FirstPersonRig::toString()
     save_str = "add_firstpersonrig";
     return save_str;
 }
-

@@ -26,7 +26,6 @@ lsBulletWorld::lsBulletWorld( lsScene* scn )
     overlappingPairCache = NULL;
     dispatcher = NULL;
     collisionConfiguration = NULL;
-
 }
 
 lsBulletWorld::~lsBulletWorld()
@@ -44,30 +43,32 @@ void lsBulletWorld::Init()
 {
 	//collision configuration contains default setup for memory, collision setup. Advanced users can create their own configuration.
 	collisionConfiguration = new btDefaultCollisionConfiguration();
-
+	
 	//use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
 	dispatcher = new btCollisionDispatcher( collisionConfiguration );
-
+	
 	btVector3 worldAabbMin( -world_size,-world_size,-world_size );
 	btVector3 worldAabbMax( world_size,world_size,world_size );
-
+	
 	axis_sweep3 = new btAxisSweep3( worldAabbMin, worldAabbMax, maxProxies );
 	overlappingPairCache = axis_sweep3->getOverlappingPairCache();
     ghostpaircallback = new btGhostPairCallback();
 	axis_sweep3->getOverlappingPairCache()->setInternalGhostPairCallback( ghostpaircallback );
-
+	
+	// TODO: Change to threaded.
 	//the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
 	solver = new btSequentialImpulseConstraintSolver;
-
+	
 	dynamicsWorld = new btDiscreteDynamicsWorld( dispatcher, axis_sweep3, solver, collisionConfiguration );
-	dynamicsWorld->setGravity(btVector3(0,-10,0));
-
+	
+	// Realistic gravity is 9.8 m/s squared.
+	dynamicsWorld->setGravity(btVector3(0, -9.8*2.0, 0));
+	
 	// set callbacks
 	dynamicsWorld->setInternalTickCallback( &lsTickCallback, static_cast<void *>(this) );
-
+	
 	filterCallback = new lsFilterCallback();
 	dynamicsWorld->getPairCache()->setOverlapFilterCallback( filterCallback );
-
 }
 
 

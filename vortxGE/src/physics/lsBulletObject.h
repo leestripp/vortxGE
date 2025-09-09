@@ -1,5 +1,4 @@
-#ifndef LSBULLETOBJECT_H_
-#define LSBULLETOBJECT_H_
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -42,6 +41,8 @@ public:
 	void Set_Gravity(float x, float y, float z);
 	void Set_Velocity(float x, float y, float z);
 
+    btRigidBody* getBody() { return body; }
+
 private:
 	lsObject *object;
 
@@ -59,4 +60,3 @@ public:
 
 };
 
-#endif /* LSBULLETOBJECT_H_ */

@@ -19,7 +19,7 @@
 
 // Assets
 #include <assets/lsAssetManager.h>
-#include <assets/lsAsset.hh>
+#include <assets/lsAsset.h>
 #include <assets/lsAsset_Mesh.h>
 #include <assets/lsAsset_Quad.h>
 #include <assets/lsAsset_MeshGuide_Empty.h>
@@ -70,7 +70,6 @@
 
 // Animation
 #include <animation/lsAnimationManager.h>
-
 
 #include "demoscene.h"
 
@@ -283,7 +282,6 @@ void DemoScene::setupControls()
 	}// if viewer
 }
 
-
 // ************************************
 //  Test Scene
 // ************************************
@@ -464,20 +462,6 @@ void DemoScene::setupObjectEmitter()
 	}
 }
 
-void DemoScene::movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch)
-{
-    if (m_playerRig) {
-        m_playerRig->handleInput(f, b, l, r, jump, sprint, crouch);
-    }
-}
-
-void DemoScene::rotatePlayerView( double delta_x, double delta_y)
-{
-    if (m_playerRig) {
-        m_playerRig->handleMouseLook(delta_x, delta_y);
-    }
-}
-
 void DemoScene::Update( double delta )
 {
 	// cout << "DemoScene::Update" << endl;
@@ -524,5 +508,19 @@ void DemoScene::processEvent( lsEvent* event )
 		}
 		break;
 	}
+}
+
+void DemoScene::movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch)
+{
+    if (m_playerRig) {
+        m_playerRig->handleInput(f, b, l, r, jump, sprint, crouch);
+    }
+}
+
+void DemoScene::rotatePlayerView( double delta_x, double delta_y)
+{
+    if (m_playerRig) {
+        m_playerRig->handleMouseLook(delta_x, delta_y);
+    }
 }
 

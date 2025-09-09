@@ -12,17 +12,11 @@ glviewwindow::glviewwindow()
 {
   demoscene = NULL;
   // keys
-  key_a = false;
-  key_d = false;
-  key_w = false;
-  key_s = false;
+  key_w = key_a = key_s = key_d = false;
+  key_jump = key_sprint = key_crouch = false;
   //move
   delta = 0.1;
-  move_speed = 0.01;
   // Mouse
-  rot_speed = 0.05;
-  rot_x = 0.0;
-  rot_y = 0.0;
   old_x = 0.0;
   old_y = 0.0;
   lmb_down = false;
@@ -51,41 +45,20 @@ glviewwindow::~glviewwindow()
 }
 
 
-bool glviewwindow::on_key_pressed( guint keyval, guint, __attribute__((unused)) Gdk::ModifierType state )
+bool glviewwindow::on_key_pressed( guint keyval, guint, Gdk::ModifierType state )
 {
 	// Modifiers
 	// state : (Gdk::ModifierType::SHIFT_MASK | Gdk::ModifierType::CONTROL_MASK | Gdk::ModifierType::ALT_MASK)
 	
 	switch( keyval )
 	{
-		case GDK_KEY_w:
-		{
-			// cout << "w pressed" << endl;
-			key_w = true;
-			break;
-		}
-		
-		case GDK_KEY_a:
-		{
-			// cout << "a pressed" << endl;
-			key_a = true;
-			break;
-		}
-		
-		case GDK_KEY_s:
-		{
-			// cout << "s pressed" << endl;
-			key_s = true;
-			break;
-		}
-		
-		case GDK_KEY_d:
-		{
-			// cout << "d pressed" << endl;
-			key_d = true;
-			break;
-		}
-		
+		case GDK_KEY_w: key_w = true; break;
+		case GDK_KEY_a: key_a = true; break;
+		case GDK_KEY_s: key_s = true; break;
+		case GDK_KEY_d: key_d = true; break;
+        case GDK_KEY_space: key_jump = true; break;
+        case GDK_KEY_Shift_L: key_sprint = true; break;
+        case GDK_KEY_Control_L: key_crouch = true; break;
 		default: { break; }
 	}
 	
@@ -96,29 +69,13 @@ void glviewwindow::on_key_released(guint keyval, guint, __attribute__((unused)) 
 {
 	switch( keyval )
 	{
-		case GDK_KEY_w:
-		{
-			key_w = false;
-			break;
-		}
-		
-		case GDK_KEY_a:
-		{
-			key_a = false;
-			break;
-		}
-		
-		case GDK_KEY_s:
-		{
-			key_s = false;
-			break;
-		}
-		
-		case GDK_KEY_d:
-		{
-			key_d = false;
-			break;
-		}
+		case GDK_KEY_w: key_w = false; break;
+		case GDK_KEY_a: key_a = false; break;
+		case GDK_KEY_s: key_s = false; break;
+		case GDK_KEY_d: key_d = false; break;
+        case GDK_KEY_space: key_jump = false; break;
+        case GDK_KEY_Shift_L: key_sprint = false; break;
+        case GDK_KEY_Control_L: key_crouch = false; break;
 		
 		case GDK_KEY_F1:
 		{
@@ -144,18 +101,12 @@ void glviewwindow::on_key_released(guint keyval, guint, __attribute__((unused)) 
 
 void glviewwindow::on_mouse_motion( double x, double y )
 {
-  // cout << "Mouse Pos : " << x << " , " << y << endl;
-  if( lmb_down )
+  if( lmb_down && demoscene )
   {
-    rot_x -= ( x - old_x ) *rot_speed;
-    rot_y += ( y - old_y ) *rot_speed;
-    old_x = x;
-    old_y = y;
-  } else
-  {
-    old_x = x;
-    old_y = y;
+    demoscene->rotatePlayerView(x - old_x, y - old_y);
   }
+  old_x = x;
+  old_y = y;
 }
 
 bool glviewwindow::on_my_event( const Glib::RefPtr<const Gdk::Event> &event )
@@ -312,10 +263,9 @@ bool glviewwindow::gla_render( __attribute__((unused)) const Glib::RefPtr<Gdk::G
 
   if( demoscene )
   {
-    // Mouse look
-    demoscene->rotateCamera( rot_x, rot_y, 0.0 );
-    // Move camera here so we can combine all key presses.
-    demoscene->moveCamera( key_w, key_s, key_a, key_d, delta, move_speed );
+    // Pass input to the player rig
+    demoscene->movePlayer(key_w, key_s, key_a, key_d, key_jump, key_sprint, key_crouch);
+    if(key_jump) key_jump = false; // Reset jump state
 
     // Update
     demoscene->Update( delta );
@@ -333,3 +283,4 @@ bool glviewwindow::gla_render( __attribute__((unused)) const Glib::RefPtr<Gdk::G
 
   return true;
 }
+

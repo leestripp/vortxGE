@@ -1,7 +1,6 @@
-
 #pragma once
 
-#include "lsAnimNode.h"
+#include "lsObject.h"
 #include <algorithm> // For std::clamp
 
 // Forward declarations
@@ -9,7 +8,7 @@ class lsCamera;
 class lsBulletObject;
 class lsAsset_BulletShape_Pill;
 
-class lsNode_FirstPersonRig : public lsAnimNode
+class lsNode_FirstPersonRig : public lsObject
 {
 public:
     lsNode_FirstPersonRig(lsNode* parent);
@@ -44,12 +43,12 @@ private:
     bool m_isCrouching = false;
 
     // Movement parameters
-    float m_walkSpeed = 5.0f;
-    float m_sprintSpeed = 8.0f;
+    float m_walkSpeed = 10.0f;
+    float m_sprintSpeed = 20.0f;
     float m_crouchSpeed = 2.5f;
-    float m_jumpForce = 7.0f;
+    float m_jumpForce = 750.0f;
     float m_mouseSensitivity = 0.1f;
-
+	
     // Camera and capsule dimensions
     float m_crouchedCamHeight = 0.4f; // Relative to rig's center
     float m_standingCamHeight = 0.5f; // Relative to rig's center (Total height 2, camera at 1.5 from floor)

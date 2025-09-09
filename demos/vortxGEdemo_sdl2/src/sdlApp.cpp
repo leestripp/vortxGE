@@ -8,16 +8,8 @@ sdlApp::sdlApp()
 	demoscene = NULL;
 
 	// keys
-    key_a = false;
-    key_d = false;
-    key_w = false;
-    key_s = false;
-	move_speed = 0.01;
-
-	// Mouse
-	rot_speed = 0.05;
-	rot_x = 0.0;
-	rot_y = 0.0;
+    key_w = key_a = key_s = key_d = false;
+    key_jump = key_sprint = key_crouch = false;
 }
 
 sdlApp::~sdlApp()
@@ -103,91 +95,57 @@ void sdlApp::on_key( SDL_KeyboardEvent* key )
 {
 	int win_width = 100;
 	int win_height = 100;
+    bool pressed = (key->type == SDL_KEYDOWN);
 
-	switch( key->type )
+	switch( key->keysym.sym )
 	{
-		case SDL_KEYUP:
-			switch( key->keysym.sym )
-			{
-				case SDLK_a:
-					key_a = false;
-					break;
+		case SDLK_a: key_a = pressed; break;
+		case SDLK_d: key_d = pressed; break;
+		case SDLK_w: key_w = pressed; break;
+		case SDLK_s: key_s = pressed; break;
+        case SDLK_SPACE: key_jump = pressed; break;
+        case SDLK_LSHIFT: key_sprint = pressed; break;
+        case SDLK_LCTRL: key_crouch = pressed; break;
 
-				case SDLK_d:
-					key_d = false;
-					break;
+		case SDLK_F1:
+            if (key->type == SDL_KEYUP)
+            {
+                // toggle FULLSCREEN
+                if( SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP )
+                {
+                    // Free mouse
+                    SDL_SetRelativeMouseMode( SDL_FALSE );
+                    SDL_SetWindowFullscreen( window, 0 );
 
-				case SDLK_w:
-					key_w = false;
-					break;
+                    // Make sure our viewport fits the window
+                    SDL_GetWindowSize( window, &win_width, &win_height );
+                    demoscene->Resize( 0, 0, win_width, win_height );
 
-				case SDLK_s:
-					key_s = false;
-					break;
+                } else
+                {
+                    SDL_SetWindowFullscreen( window, SDL_WINDOW_FULLSCREEN_DESKTOP );
+                    // Trap mouse
+                    SDL_SetRelativeMouseMode( SDL_TRUE );
 
-				case SDLK_F1:
-					// toggle FULLSCREEN
-					if( SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN )
-					{
-						// Free mouse
-						SDL_SetRelativeMouseMode( SDL_FALSE );
-						SDL_SetWindowFullscreen( window, 0 );
-
-						// Make sure our viewport fits the window
-						SDL_GetWindowSize( window, &win_width, &win_height );
-						demoscene->Resize( 0, 0, win_width, win_height );
-
-					} else
-					{
-						SDL_SetWindowFullscreen( window, SDL_WINDOW_FULLSCREEN );
-						// Trap mouse
-						SDL_SetRelativeMouseMode( SDL_TRUE );
-
-						// Make sure our viewport fits the window
-						SDL_GetWindowSize( window, &win_width, &win_height );
-						demoscene->Resize( 0, 0, win_width, win_height );
-
-					}
-					break;
-
-				// Quit
-				case SDLK_ESCAPE:
-					running = false;
-					break;
-			}
+                    // Make sure our viewport fits the window
+                    SDL_GetWindowSize( window, &win_width, &win_height );
+                    demoscene->Resize( 0, 0, win_width, win_height );
+                }
+            }
 			break;
 
-		case SDL_KEYDOWN:
-			switch( key->keysym.sym )
-			{
-				case SDLK_a:
-					key_a = true;
-					break;
-
-				case SDLK_d:
-					key_d = true;
-					break;
-
-				case SDLK_w:
-					key_w = true;
-					break;
-
-				case SDLK_s:
-					key_s = true;
-					break;
-			}
+		// Quit
+		case SDLK_ESCAPE:
+			running = false;
 			break;
-	}// switch( key->type )
+	}
 }
 
 void sdlApp::on_mousemove( __attribute__((unused)) int x, __attribute__((unused)) int y, int rx, int ry )
 {
-	if( SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN )
+	if( SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP )
 	{
-		rot_x -= (double)rx*rot_speed;
-		rot_y += (double)ry*rot_speed;
-
-		demoscene->rotateCamera( rot_x, rot_y, 0.0 );
+		demoscene->rotatePlayerView( rx, ry );
 	}
 }
 
@@ -253,8 +211,9 @@ void sdlApp::Run()
 
 		if( demoscene )
 		{
-			// Move camera here so we can combine all key presses.
-			demoscene->moveCamera( key_w, key_s, key_a, key_d, delta, move_speed );
+			// Move player
+			demoscene->movePlayer( key_w, key_s, key_a, key_d, key_jump, key_sprint, key_crouch );
+            if (key_jump) key_jump = false; // Reset jump state after processing
 
 			// Update
 			demoscene->Update( delta );
@@ -285,4 +244,3 @@ void sdlApp::Run()
 	//Quit SDL subsystems
 	SDL_Quit();
 }
-

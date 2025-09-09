@@ -211,7 +211,7 @@ void glfwApp::Run()
             if( m_fullscreen )
             {
                 // Rotate
-                demoscene->rotatePlayerView( (pos_x - old_x), (old_y - pos_y) ); // Invert Y for standard FPS controls
+                demoscene->rotatePlayerView( (pos_x - old_x), (pos_y - old_y) );
                 old_x = pos_x;
                 old_y = pos_y;
 
@@ -261,4 +261,3 @@ int main( /* int argc, const char * argv[] */ )
 
     return 0;
 }
-
