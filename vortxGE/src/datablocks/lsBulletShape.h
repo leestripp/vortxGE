@@ -1,5 +1,4 @@
-#ifndef vortxGE_lsBulletShape_h
-#define vortxGE_lsBulletShape_h
+#pragma once
 
 // opengl
 #include "../opengl/lsOpenGL.h"
@@ -23,6 +22,7 @@ public:
 	void Make_Plane( float x, float y, float z );
 	void Make_Box( float x, float y, float z );
 	void Make_Sphere( float r );
+	void Make_Pill( float radius, float height );
 	// From vbm file via lsBatch_Buller
 	void Make_ConvexHull( const string& filename, lsOpenGL *opengl );
     void Make_TriMesh( const string& filename, float size = 1.0 );
@@ -34,5 +34,3 @@ private:
 
 };
 
-
-#endif

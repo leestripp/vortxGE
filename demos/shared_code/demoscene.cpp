@@ -19,7 +19,7 @@
 
 // Assets
 #include <assets/lsAssetManager.h>
-#include <assets/lsAsset.h>
+#include <assets/lsAsset.hh>
 #include <assets/lsAsset_Mesh.h>
 #include <assets/lsAsset_Quad.h>
 #include <assets/lsAsset_MeshGuide_Empty.h>
@@ -63,6 +63,7 @@
 #include <scene/lsObjectEmitter.h>
 #include <scene/lsCamera.h>
 #include <scene/lsLight_Spot.h>
+#include <scene/lsNode_FirstPersonRig.h> // Include the new rig
 
 // Light manager
 #include <lights/lsLightManager.h>
@@ -100,12 +101,8 @@ void GLAPIENTRY MessageCallback( GLenum source,
 
 DemoScene::DemoScene()
 {
-	camera = NULL;
-	camera_base = NULL;
+	m_playerRig = NULL;
 	spot_light = NULL;
-
-	// Starting pos
-	cam_pos = lsVector3( 0, 1.7, -7.5 );
 }
 
 DemoScene::~DemoScene()
@@ -190,7 +187,7 @@ void DemoScene::setupControls()
 		vortxge->getControlManager()->Add_Control( quad_viewer );
 
 		// Create quad scene
-		lsScene *quad_scene = new lsScene( 100.0, 1 );
+		lsScene *quad_scene = new lsScene( vortxge->getOpenGL(), 100.0, 1 );
 		if( quad_scene )
 		{
 			quad_viewer->getSceneManager()->Add_Scene( quad_scene );
@@ -213,7 +210,7 @@ void DemoScene::setupControls()
 				quad->Set_Rot( 0, 180, 0 ); // Rotate to face camera.
 
 				// Use quad asset
-				asset_quad = quad_viewer->getAssetManager()->CreateAsset_Quad();
+				asset_quad = quad_scene->getAssetManager()->CreateAsset_Quad();
 				asset_quad->AllocAsset();
 				quad->Set_Asset( asset_quad );
 
@@ -248,28 +245,17 @@ void DemoScene::setupControls()
 		// Create viewer scene :
 		// World size 1000 meters
 		// maxProxies - Set this high enough for your physics objects or they wont be added to the sim.
-		viewer_scene = new lsScene( 1000.0, 1000 );
+		viewer_scene = new lsScene( vortxge->getOpenGL(), 1000.0, 1000 );
 		if( viewer_scene )
 		{
 			viewer->getSceneManager()->Add_Scene( viewer_scene );
 
-			// Add Camera rig
-			camera_base = new lsObject( viewer_scene );
-			if( camera_base )
-			{
-				camera_base->setName( "Camera Base" );
-				camera_base->Set_Pos( 0, 2, -8 );
+			// Add Player Rig
+			m_playerRig = new lsNode_FirstPersonRig(viewer_scene);
+			m_playerRig->Set_Pos(0, 5, -8); // Start a bit higher to fall into place
+			viewer_scene->Add_Node(m_playerRig);
 
-				camera = new lsCamera( camera_base );
-				if( camera )
-				{
-					// Camera defaults
-					camera->Set_Perspective( 45.0, 1.0, 1.0, 100.0 );
-
-					camera_base->Add_Node( camera );
-				}
-				viewer_scene->Add_Node( camera_base );
-			}
+			lsCamera* playerCam = m_playerRig->getCamera();
 
 			// create FBO pass
 			lsPass_FBO *pass_fbo = new lsPass_FBO( vortxge->getOpenGL() );
@@ -289,8 +275,8 @@ void DemoScene::setupControls()
 
 				viewer->getPassManager()->Add_Pass( pass_fbo );
 				pass_fbo->setScene( viewer_scene );
-				pass_fbo->setCamera( camera );
-				pass_fbo->setCull_camera( camera );
+				pass_fbo->setCamera( playerCam );
+				pass_fbo->setCull_camera( playerCam );
 
 			}// if pass_fbo
 		}// if viewer_scene
@@ -322,7 +308,7 @@ void DemoScene::setupTestScene()
 		if(debug_empty)
 		{
 			lsAsset_MeshGuide_Empty *asset_empty;
-			asset_empty = viewer->getAssetManager()->CreateAsset_MeshGuide_Empty();
+			asset_empty = viewer_scene->getAssetManager()->CreateAsset_MeshGuide_Empty();
 			asset_empty->AllocAsset();
 			debug_empty->Set_Asset(asset_empty);
 			spot_light->Add_Node(debug_empty);
@@ -365,7 +351,7 @@ void DemoScene::setupTestScene()
 		
 		// Load Mesh asset
 		lsAsset_Mesh *asset_mesh;
-		asset_mesh = viewer->getAssetManager()->CreateAsset_Mesh( "data/meshes/Floor.vbm" );
+		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/Floor.vbm" );
 		asset_mesh->AllocAsset();
 		object->Set_Asset( asset_mesh );
 		
@@ -386,7 +372,7 @@ void DemoScene::setupTestScene()
 
 		// Load Mesh asset
 		lsAsset_Mesh *asset_mesh;
-		asset_mesh = viewer->getAssetManager()->CreateAsset_Mesh( "data/meshes/Monkey.vbm" );
+		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/Monkey.vbm" );
 		asset_mesh->AllocAsset();
 		object->Set_Asset( asset_mesh );
 
@@ -407,7 +393,7 @@ void DemoScene::setupTestScene()
 
 		// Load Mesh asset
 		lsAsset_Mesh *asset_mesh;
-		asset_mesh = viewer->getAssetManager()->CreateAsset_Mesh( "data/meshes/Cube_logo.vbm" );
+		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/Cube_logo.vbm" );
 		asset_mesh->AllocAsset();
 		object->Set_Asset( asset_mesh );
 
@@ -431,7 +417,7 @@ void DemoScene::setupObjectEmitter()
 		object->setName( "Floor Collsion" );
 
 		// Create bullet shape
-		lsAsset_BulletShape_Plane *asset_bsp = viewer->getAssetManager()->CreateAsset_BulletShape_Plane( 0, 1, 0 );
+		lsAsset_BulletShape_Plane *asset_bsp = viewer_scene->getAssetManager()->CreateAsset_BulletShape_Plane( 0, 1, 0 );
 		if( asset_bsp )
 		{
 			asset_bsp->AllocAsset();
@@ -450,14 +436,14 @@ void DemoScene::setupObjectEmitter()
 
 	// Load Mesh asset
 	lsAsset_Mesh *asset_mesh;
-	asset_mesh = viewer->getAssetManager()->CreateAsset_Mesh( "data/meshes/Cube_tex_dns.vbm" );
+	asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/Cube_tex_dns.vbm" );
 	if( asset_mesh )
 	{
 		asset_mesh->AllocAsset();
 	} else return;
 
 	// Create bullet shape
-	lsAsset_BulletShape_Box *asset_bs = viewer->getAssetManager()->CreateAsset_BulletShape_Box( 1.0, 1.0, 1.0 );
+	lsAsset_BulletShape_Box *asset_bs = viewer_scene->getAssetManager()->CreateAsset_BulletShape_Box( 1.0, 1.0, 1.0 );
 	if( asset_bs )
 	{
 		asset_bs->AllocAsset();
@@ -478,62 +464,18 @@ void DemoScene::setupObjectEmitter()
 	}
 }
 
-void DemoScene::moveCamera( bool f, bool b, bool l, bool r, double delta, double factor )
+void DemoScene::movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch)
 {
-	float cx, cy, cz;
-
-	// Strafe
-	if( l ) // left
-	{
-		cx = camera->ModelMatrix.matrix[0];
-		cy = camera->ModelMatrix.matrix[1];
-		cz = camera->ModelMatrix.matrix[2];
-		move_strafe = move_strafe + lsVector3( cx, cy, cz );
-		move_strafe.normalize();
-	}
-	if( r ) // right
-	{
-		cx = camera->ModelMatrix.matrix[0];
-		cy = camera->ModelMatrix.matrix[1];
-		cz = camera->ModelMatrix.matrix[2];
-		move_strafe = move_strafe - lsVector3( cx, cy, cz );
-		move_strafe.normalize();
-	}
-	if( l && r ) move_strafe = lsVector3(0,0,0);;
-	if( !l && !r ) move_strafe = lsVector3(0,0,0);;
-
-	// Walk
-	if( f ) // forward
-	{
-		cx = camera->ModelMatrix.matrix[8];
-		cy = camera->ModelMatrix.matrix[9];
-		cz = camera->ModelMatrix.matrix[10];
-		move_walk = move_walk + lsVector3( cx, cy, cz );
-		move_walk.normalize();
-	}
-	if( b ) // backwards
-	{
-		cx = camera->ModelMatrix.matrix[8];
-		cy = camera->ModelMatrix.matrix[9];
-		cz = camera->ModelMatrix.matrix[10];
-		move_walk = move_walk - lsVector3( cx, cy, cz );
-		move_walk.normalize();
-	}
-	if( f && b ) move_walk = lsVector3(0,0,0);;
-	if( !f && !b ) move_walk = lsVector3(0,0,0);;
-
-	lsVector3 dir = move_walk + move_strafe;
-	cam_pos = cam_pos + dir * (delta*factor);
-
-	camera_base->Set_Pos( cam_pos.x, cam_pos.y, cam_pos.z  );
+    if (m_playerRig) {
+        m_playerRig->handleInput(f, b, l, r, jump, sprint, crouch);
+    }
 }
 
-void DemoScene::rotateCamera( double rot_x, double rot_y, __attribute__((unused)) double rot_z )
+void DemoScene::rotatePlayerView( double delta_x, double delta_y)
 {
-	// X rotates camera base Y
-	camera_base->Set_Rot( 0, rot_x, 0 );
-	// Y rotates camera tilt X
-	camera->Set_Rot( rot_y, 0, 0 );
+    if (m_playerRig) {
+        m_playerRig->handleMouseLook(delta_x, delta_y);
+    }
 }
 
 void DemoScene::Update( double delta )
@@ -583,5 +525,4 @@ void DemoScene::processEvent( lsEvent* event )
 		break;
 	}
 }
-
 

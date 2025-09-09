@@ -3,7 +3,6 @@
 
 ---
 ### 1. The `vortxGE` Core
-
 *   **`vortxGE` Class**: This is the main engine class. It acts as the central hub, responsible for initializing and owning the primary managers (`lsControlManager`, `lsShaderManager`, `lsAssetManager`, `lsOpenGL`, `lsStats`).
 *   **Initialization (`vortxGE::Init`)**: Must be called after an OpenGL context is created. It sets up all core managers and subsystems.
 *   **Main Loop (`vortxGE::Update`, `vortxGE::Render`)**: The application's main loop calls these functions.
@@ -14,9 +13,7 @@
 ---
 
 ### 2. Controls & Viewers
-
 The control system provides a hierarchical structure for managing different parts of an application, such as separate 3D views, UI overlays, or different game states.
-
 *   **`lsControlManager`**: Manages a list of `lsControl` objects. The main `vortxGE` class has a root `lsControlManager`. Controls can also contain their own `lsControlManager` to create a tree-like hierarchy.
 *   **`lsControl`**: The abstract base class for all UI/view components.
 *   **`lsViewer`**: A concrete `lsControl` that represents a 3D viewport. It is a self-contained unit that owns its own `lsSceneManager`, `lsPassManager`, and `lsAssetManager`. This powerful design allows for multiple independent scenes and rendering pipelines within a single application (e.g., a main 3D view and a separate smaller debug view).
@@ -25,9 +22,7 @@ The control system provides a hierarchical structure for managing different part
 ---
 
 ### 3. The Scene and Scene Objects
-
 The engine uses a traditional scene graph hierarchy.
-
 *   **`lsSceneManager`**: Manages a list of `lsScene` objects.
 *   **`lsScene`**: The root of a scene graph. It is a specialized `lsNode` that contains:
     *   A list of child `lsNode`s.
@@ -49,9 +44,7 @@ The engine uses a traditional scene graph hierarchy.
 ---
 
 ### 4. Assets
-
 Assets are shared resources like meshes and textures, managed to prevent redundant loading.
-
 *   **`lsAssetManager`**: Creates, finds, and manages all `lsAsset` objects. It prevents duplicate loading by checking if an asset with the same name (e.g., file path) already exists.
 *   **`lsAsset`**: The base class for all loadable resources. It uses a simple reference count (`users`) to track how many `lsObject`s are using it.
     *   `AllocAsset()`: The virtual function responsible for loading the resource data from disk and creating the corresponding GPU object (e.g., loading a `.vbm` file into VBOs or an image into a texture).
@@ -64,9 +57,7 @@ Assets are shared resources like meshes and textures, managed to prevent redunda
 ---
 
 ### 5. Mesh and Batch Mesh
-
 This system defines how geometry is stored and rendered.
-
 *   **`obj2vbm` Tool**: A command-line utility that converts Wavefront `.obj` files into the engine's custom `.vbm` (vortx Batch Mesh) format. It processes vertices, normals, UVs, calculates tangents, and organizes the data into batches based on materials.
 *   **`lsMesh`**: A data block that represents a complete 3D model. It is a container for one or more `lsBatch` objects. A single mesh can have multiple batches if it uses multiple materials. It also stores a bounding sphere for culling.
 *   **`lsBatch`**: The base class for a chunk of renderable geometry. It's the lowest-level drawable unit.
@@ -77,9 +68,7 @@ This system defines how geometry is stored and rendered.
 ---
 
 ### 6. Passes and FBOs (The Rendering Pipeline)
-
 The engine uses a flexible, multi-pass rendering system.
-
 *   **`lsPassManager`**: Manages a list of `lsPass` objects. It executes each pass in sequence during the `Render` phase. The order of pass addition is important; new passes are added to the front of the list, so the last pass added is the first to execute.
 *   **`lsPass`**: The abstract base class for a single rendering step. It defines a scene, a camera for viewing, and a camera for culling.
 *   **`lsPass_DR` (Direct Render)**: A simple pass that renders a scene directly to the default framebuffer (i.e., the window).
@@ -96,7 +85,6 @@ The engine uses a flexible, multi-pass rendering system.
 ---
 
 ### 7. Shaders and OpenGL
-
 *   **`lsOpenGL`**: A wrapper class that holds OpenGL state and information. It provides utility functions like `CheckGLErrors` and manages the default FBO binding. It also holds pointers to the global `lsShaderManager` and `lsStats`.
 *   **`lsShaderManager`**: Loads, caches, and provides access to `lsShader` programs. It pre-loads default shaders like `debug`, `quad`, and `shadowmap`.
 *   **`lsShader`**: Encapsulates a compiled and linked GLSL shader program. It handles:
@@ -108,8 +96,12 @@ The engine uses a flexible, multi-pass rendering system.
     *   **Vertex Shaders**: Transform vertices using Model, View, and Projection matrices (`mMatrix`, `mvMatrix`, `pMatrix`). They also calculate and pass attributes like normals and texture coordinates to the fragment shader. For shadow mapping, they calculate the vertex position in light space (`osShadowCoord`).
     *   **Fragment Shaders**: Perform per-pixel lighting calculations. They support diffuse, normal, and specular mapping. The `light_tex_*.frag` shaders iterate through active lights, calculate diffuse and specular contributions, and apply shadows by sampling the shadow map texture. The shadow calculation compares the fragment's depth from the light's perspective with the value stored in the shadow map.
 
-Camera and Lights:
-I've identified the issue. The convention for the "forward" direction of cameras and lights was inconsistent with the scene's expectations. I've corrected this by establishing a clear and consistent `+Z` forward convention throughout the engine. This will fix the black screen issue and make the engine's behavior more predictable. You may need to adjust the light's rotation in your scene file to match this new, consistent convention, but the engine itself will now be correct.
+Scene, Camera and Lights:
+The convention for the "forward" direction of cameras and lights was inconsistent with the scene's expectations. I've corrected this by establishing a clear and consistent `+Z` forward convention throughout the engine. This will fix the black screen issue and make the engine's behavior more predictable.
+Shadow Maps are now working correctly.
+
+Use the Asset Manager on the lsScene class for assets in a scene.
+First Person Rig scene node is done.
 
 Next Steps:
 

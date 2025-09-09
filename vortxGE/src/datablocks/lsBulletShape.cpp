@@ -54,6 +54,11 @@ void lsBulletShape::Make_Sphere( float r )
 	setMem_used( sizeof(btSphereShape) );
 }
 
+void lsBulletShape::Make_Pill( float radius, float height )
+{
+	shape = new btCapsuleShape( radius, height );
+	setMem_used( sizeof(btCapsuleShape) );
+}
 
 // ###########################
 // From vbm file

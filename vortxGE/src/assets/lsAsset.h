@@ -1,5 +1,4 @@
-#ifndef LSASSET_H_
-#define LSASSET_H_
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -144,10 +143,6 @@ private:
     // Data
     int asset_type;
     string asset_name;
-    unsigned int    users;
+    unsigned int users;
     lsData *data;
-
 };
-
-#endif
-

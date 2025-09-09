@@ -18,6 +18,7 @@
 // bullet
 #include "lsAsset_BulletShape_Plane.h"
 #include "lsAsset_BulletShape_Box.h"
+#include "lsAsset_BulletShape_Pill.h"
 // guides
 #include "lsAsset_MeshGuide_Empty.h"
 #include "lsAsset_MeshGuide_Grid.h"
@@ -180,6 +181,20 @@ lsAsset_BulletShape_Box* lsAssetManager::CreateAsset_BulletShape_Box( float x, f
     return asset;
 }
 
+lsAsset_BulletShape_Pill* lsAssetManager::CreateAsset_BulletShape_Pill( float radius, float height )
+{
+    lsAsset_BulletShape_Pill *asset;
+
+    asset = new lsAsset_BulletShape_Pill( radius, height );
+    if( asset )
+    {
+        asset->setAssetManager( this );
+        Add_Asset( asset );
+    }
+
+    return asset;
+}
+
 // *****************
 // Guides
 
@@ -212,4 +227,3 @@ lsAsset_MeshGuide_Grid* lsAssetManager::CreateAsset_MeshGuide_Grid()
 
     return asset;
 }
-

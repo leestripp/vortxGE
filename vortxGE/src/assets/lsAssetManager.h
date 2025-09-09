@@ -1,5 +1,4 @@
-#ifndef LSASSETMANAGER_H_
-#define LSASSETMANAGER_H_
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -44,6 +43,7 @@ public:
     // Bullet Shapes
     lsAsset_BulletShape_Plane* CreateAsset_BulletShape_Plane( float vectorX, float vectorY, float vectorZ );
     lsAsset_BulletShape_Box* CreateAsset_BulletShape_Box( float x, float y, float z );
+    lsAsset_BulletShape_Pill* CreateAsset_BulletShape_Pill( float radius, float height );
     // Debug Guides
     lsAsset_MeshGuide_Empty* CreateAsset_MeshGuide_Empty();
     lsAsset_MeshGuide_Grid* CreateAsset_MeshGuide_Grid();
@@ -80,5 +80,3 @@ private:
     lsOpenGL *ogl;
 
 };
-
-#endif /* LSASSETMANAGER_H_ */

@@ -1,5 +1,4 @@
-#ifndef DEMOSCENE_H
-#define DEMOSCENE_H
+#pragma once
 
 // math
 #include <math/lsVector3.h>
@@ -12,6 +11,7 @@ class lsObject;
 class lsCamera;
 class lsEvent;
 class lsLight_Spot;
+class lsNode_FirstPersonRig; // Forward declare our new class
 
 using namespace std;
 
@@ -24,8 +24,8 @@ public:
     bool Init();
     void Resize( int x, int y, int w, int h );
     // Camera movement
-    void moveCamera( bool f, bool b, bool l, bool r, double delta, double factor );
-    void rotateCamera( double rot_x, double rot_y, double rot_z );
+    void movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch);
+    void rotatePlayerView( double rot_x, double rot_y );
     // vortxGE - Scene events and Camera
     void Update( double delta );
     void Render();
@@ -45,13 +45,7 @@ private:
     lsViewer *viewer;
     // lights
     lsLight_Spot *spot_light;
-    // Camera
-    lsCamera *camera;
-    lsObject *camera_base;
-    // movement
-    lsVector3 cam_pos;
-    lsVector3 move_walk;
-    lsVector3 move_strafe;
-};
 
-#endif // DEMOSCENE_H
+    // Player Rig
+    lsNode_FirstPersonRig* m_playerRig;
+};

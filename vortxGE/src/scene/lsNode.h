@@ -1,5 +1,4 @@
-#ifndef vortxGE_lsNode_h
-#define vortxGE_lsNode_h
+#pragma once
 
 #include <string>
 #include <thread>
@@ -20,7 +19,7 @@ const int LSNT_CAMERA           =	4;
 const int LSNT_SCENE            =	5;
 const int LSNT_MOTION           =	6;
 const int LSNT_VEHICLE          =	7;
-const int LSNT_FirstPerson      =	8;
+const int LSNT_FIRSTPERSONRIG   =	8;
 const int LSNT_ZONE         	=  	9;
 const int LSNT_DEBUG        	=   10;
 const int LSNT_ACTOR        	=   11;
@@ -42,7 +41,6 @@ class lsLight;
 class lsPass;
 class lsOpenGL;
 class lsEventManager;
-
 
 using namespace std;
 
@@ -176,4 +174,3 @@ private:
 
 };
 
-#endif

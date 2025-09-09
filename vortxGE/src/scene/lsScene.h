@@ -1,5 +1,4 @@
-#ifndef vortxGE_lsScene_h
-#define vortxGE_lsScene_h
+#pragma once
 
 #include <thread>
 #include <mutex>
@@ -9,6 +8,7 @@
 class lsBulletWorld;
 class lsEvent;
 class lsObject;
+class lsAssetManager; // Forward declaration
 
 using namespace std;
 
@@ -25,7 +25,7 @@ using namespace std;
 class lsScene : public lsNode
 {
 public:
-    lsScene( float world_size, int maxProxies );
+    lsScene( lsOpenGL* ogl, float world_size, int maxProxies );
     virtual ~lsScene();
 	
     // from lsNode
@@ -76,6 +76,11 @@ public:
         bulletworld = val;
     }
 
+    lsAssetManager* getAssetManager() const
+    {
+        return m_assetManager;
+    }
+
 private:
     lsObject* draw_list;
 
@@ -83,13 +88,12 @@ private:
     lsEventManager *root_eventmanager;
     // physics
     lsBulletWorld   *bulletworld;
+    // Assets
+    lsAssetManager* m_assetManager;
     // Found node
     lsNode* found_node;
 
     // Threads
     mutex m_mutex;
-
 };
 
-
-#endif

@@ -16,82 +16,35 @@ glfwApp glfw_app;
 
 static void key_callback(GLFWwindow* window, int key, __attribute__((unused)) int scancode, int action, int mods)
 {
-	if( mods != 0 ) return;
-	
-    switch( action )
-    {
-        case GLFW_PRESS:
-            switch( key )
-            {
-                case GLFW_KEY_W:
-                    glfw_app.setKey_w( true );
-                    break;
+	bool pressed = (action == GLFW_PRESS || action == GLFW_REPEAT);
 
-                case GLFW_KEY_A:
-                    glfw_app.setKey_a( true );
-                    break;
+    if (action == GLFW_RELEASE) {
+        switch (key) {
+            case GLFW_KEY_ESCAPE:
+                glfwSetWindowShouldClose(window, GLFW_TRUE);
+                break;
+            case GLFW_KEY_F1:
+                glfw_app.setFullscreen(!glfw_app.getFullscreen());
+                glfw_app.CheckFullScreen();
+                break;
+        }
+    }
 
-                case GLFW_KEY_S:
-                    glfw_app.setKey_s( true );
-                    break;
-
-                case GLFW_KEY_D:
-                    glfw_app.setKey_d( true );
-                    break;
-
-                default:
-                    break;
-            } // switch( key )
-            break;
-
-		case GLFW_RELEASE:
-            switch( key )
-            {
-                case GLFW_KEY_W:
-                    glfw_app.setKey_w( false );
-                    break;
-
-                case GLFW_KEY_A:
-                    glfw_app.setKey_a( false );
-                    break;
-
-                case GLFW_KEY_S:
-                    glfw_app.setKey_s( false );
-                    break;
-
-                case GLFW_KEY_D:
-                    glfw_app.setKey_d( false );
-                    break;
-
-                case GLFW_KEY_ESCAPE:
-                    glfwSetWindowShouldClose(window, GLFW_TRUE);
-                    break;
-
-                case GLFW_KEY_F1:
-                    if( glfw_app.getFullscreen() )
-                    {
-                        glfw_app.setFullscreen( false );
-                    } else
-                    {
-                        glfw_app.setFullscreen( true );
-                    }
-                    glfw_app.CheckFullScreen();
-                    break;
-
-                default:
-                    break;
-            } // switch( key )
-            break;
-
-        default:
-            break;
-    } // switch( action )
+    // Handle movement keys
+	switch (key)
+	{
+		case GLFW_KEY_W: glfw_app.setKey_w(pressed); break;
+		case GLFW_KEY_A: glfw_app.setKey_a(pressed); break;
+		case GLFW_KEY_S: glfw_app.setKey_s(pressed); break;
+		case GLFW_KEY_D: glfw_app.setKey_d(pressed); break;
+		case GLFW_KEY_SPACE: glfw_app.setKey_jump(action == GLFW_PRESS); break; // Jump on press only
+		case GLFW_KEY_LEFT_SHIFT: glfw_app.setKey_sprint(pressed); break;
+		case GLFW_KEY_LEFT_CONTROL: glfw_app.setKey_crouch(pressed); break;
+	}
 }
 
 static void cursor_position_callback( __attribute__((unused)) GLFWwindow* window, double xpos, double ypos )
 {
-    // cout << "Cursor Pos : " <<  xpos << " x " << ypos << endl;
-	
     glfw_app.setPos_x( xpos );
     glfw_app.setPos_y( ypos );
 }
@@ -116,14 +69,10 @@ glfwApp::glfwApp()
     demoscene = NULL;
 
 	// keys
-    key_a = false;
-    key_d = false;
-    key_w = false;
-    key_s = false;
-	move_speed = 0.01;
+    key_w = key_a = key_s = key_d = false;
+    key_jump = key_sprint = key_crouch = false;
 
     // Mouse - top left is 0x0
-    rot_speed = 0.05;
     old_x = 0;
     old_y = 0;
     pos_x = 0;
@@ -243,8 +192,6 @@ void glfwApp::Run()
 	double delta = 0.1;
 	lsTimer timer;
 	timer.start_Timer();
-    // Mouse
-    double rot_x=0.0, rot_y=0.0;
 	
     // match window size
     glfwGetWindowSize( window, &m_win_width, &m_win_height );
@@ -264,13 +211,13 @@ void glfwApp::Run()
             if( m_fullscreen )
             {
                 // Rotate
-                rot_x -= (pos_x - old_x) *rot_speed;
-                rot_y += (pos_y - old_y) *rot_speed;
-                demoscene->rotateCamera( rot_x, rot_y, 0.0 );
+                demoscene->rotatePlayerView( (pos_x - old_x), (old_y - pos_y) ); // Invert Y for standard FPS controls
                 old_x = pos_x;
                 old_y = pos_y;
-                // Move camera here so we can combine all key presses.
-                demoscene->moveCamera( key_w, key_s, key_a, key_d, delta, move_speed );
+
+                // Move player
+                demoscene->movePlayer( key_w, key_s, key_a, key_d, key_jump, key_sprint, key_crouch );
+                if (key_jump) setKey_jump(false); // Reset jump state after processing
             }
 
 			// Update
@@ -302,9 +249,6 @@ void glfwApp::Run()
     glfwTerminate();
 }
 
-
-
-
 // ************************
 // MAIN
 
@@ -317,3 +261,4 @@ int main( /* int argc, const char * argv[] */ )
 
     return 0;
 }
+
