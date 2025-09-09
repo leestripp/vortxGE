@@ -77,6 +77,7 @@ glfwApp::glfwApp()
     old_y = 0;
     pos_x = 0;
     pos_y = 0;
+    m_mouse_look_active = false;
 
     m_fullscreen = false;
     m_win_width_old = 1920;
@@ -189,7 +190,7 @@ bool glfwApp::Init()
 void glfwApp::Run()
 {
 	// Delta
-	double delta = 0.1;
+	double delta = 1000.0 / 60.0; // Sensible default for first frame (approx 16.67ms)
 	lsTimer timer;
 	timer.start_Timer();
 	
@@ -210,6 +211,15 @@ void glfwApp::Run()
             // Only update camera in fullscreen mode
             if( m_fullscreen )
             {
+                if (!m_mouse_look_active)
+                {
+                    // First frame in mouse look mode, sync positions to prevent jump
+                    glfwGetCursorPos(window, &old_x, &old_y);
+                    pos_x = old_x;
+                    pos_y = old_y;
+                    m_mouse_look_active = true;
+                }
+
                 // Rotate
                 demoscene->rotatePlayerView( (pos_x - old_x), (pos_y - old_y) );
                 old_x = pos_x;
@@ -218,6 +228,11 @@ void glfwApp::Run()
                 // Move player
                 demoscene->movePlayer( key_w, key_s, key_a, key_d, key_jump, key_sprint, key_crouch );
                 if (key_jump) setKey_jump(false); // Reset jump state after processing
+            }
+            else
+            {
+                // Not in fullscreen, so mouse look is inactive
+                m_mouse_look_active = false;
             }
 
 			// Update
@@ -249,6 +264,7 @@ void glfwApp::Run()
     glfwTerminate();
 }
 
+
 // ************************
 // MAIN
 
@@ -261,3 +277,4 @@ int main( /* int argc, const char * argv[] */ )
 
     return 0;
 }
+

@@ -60,4 +60,5 @@ private:
     // Mouse
     double old_x, old_y;
     double pos_x, pos_y;
+    bool m_mouse_look_active;
 };

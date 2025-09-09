@@ -101,10 +101,10 @@ The convention for the "forward" direction of cameras and lights was inconsisten
 Shadow Maps are now working correctly.
 
 Use the Asset Manager on the lsScene class for assets in a scene.
-First Person Rig scene node is working.
+First Person Rig scene node is working correctly.
 
 
 Next Steps:
-
+the glfw3 demo isn't passing the mouse motion correctly.
 
 

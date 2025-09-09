@@ -7,9 +7,9 @@ lsLight_Spot::lsLight_Spot(lsNode* parent) : lsLight(parent)
     setName("Spot Light");
 
     // Default spot light has a 45 degree cone and a 1:1 aspect ratio
-    Set_Perspective(45.0, 1.0, 1.0, 100.0);
-    spot_cutoff = 20.0f;
-    spot_outer_cutoff = 25.0f;
+    Set_Perspective(60.0, 1.0, 1.0, 100.0);
+    spot_cutoff = 30.0f;
+    spot_outer_cutoff = 35.0f;
 }
 
 lsLight_Spot::~lsLight_Spot()

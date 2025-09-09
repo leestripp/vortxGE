@@ -43,10 +43,10 @@ private:
     bool m_isCrouching = false;
 
     // Movement parameters
-    float m_walkSpeed = 10.0f;
-    float m_sprintSpeed = 20.0f;
+    float m_walkSpeed = 5.0f;
+    float m_sprintSpeed = 8.0f;
     float m_crouchSpeed = 2.5f;
-    float m_jumpForce = 750.0f;
+    float m_jumpSpeed = 14.0f;
     float m_mouseSensitivity = 0.1f;
 	
     // Camera and capsule dimensions

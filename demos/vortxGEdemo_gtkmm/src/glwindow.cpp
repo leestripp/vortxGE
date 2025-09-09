@@ -15,7 +15,7 @@ glviewwindow::glviewwindow()
   key_w = key_a = key_s = key_d = false;
   key_jump = key_sprint = key_crouch = false;
   //move
-  delta = 0.1;
+  delta = 1000.0 / 60.0; // Sensible default for first frame (approx 16.67ms)
   // Mouse
   old_x = 0.0;
   old_y = 0.0;
