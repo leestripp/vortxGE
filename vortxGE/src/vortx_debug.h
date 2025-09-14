@@ -1,48 +1,36 @@
-#ifndef VORTX_DEBUG_H_
-#define VORTX_DEBUG_H_
+#pragma once
 
-/* Rendering
-#define VORTX_DEBUG_OCCLUSION
-#define VORTX_DEBUG_PASSES
-#define VORTX_DEBUG_RENDER
-#define VORTX_DEVUG_CONTROL
-*/
+// Rendering
+// #define VORTX_DEBUG_OCCLUSION
+// #define VORTX_DEBUG_PASSES
+// #define VORTX_DEBUG_RENDER
+// #define VORTX_DEVUG_CONTROL
 
-/* Shaders
-#define VORTX_DEBUG_SHADERS
-*/
 
-/* Assets
-#define VORTX_DEBUG_ASSETS
-*/
+// Shaders
+// #define VORTX_DEBUG_SHADERS
 
-/* Animation *
-#define VORTX_DEBUG_ANIMATION
-*/
+// Assets
+// #define VORTX_DEBUG_ASSETS
 
-/* Events
-#define VORTX_DEBUG_COREEVENTS
-#define VORTX_DEBUG_GAMEEVENT
-*/
+// Animation
+// #define VORTX_DEBUG_ANIMATION
 
-/* Physics *
-#define VORTX_DEBUG_PHYSICS
-*/
+// Events
+// #define VORTX_DEBUG_COREEVENTS
+// #define VORTX_DEBUG_GAMEEVENT
 
-/* Scene *
-#define VORTX_DEBUG_LOADSCENE
-#define VORTX_DEBUG_LIGHTS
-#define VORTX_DEBUG_NODES
-#define VORTX_DEBUG_NODETHREADS
-*/
+// Physics
+// #define VORTX_DEBUG_PHYSICS
 
-/* WAV
-#define VORTX_DEBUG_WAV
-*/
+// Scene
+// #define VORTX_DEBUG_LOADSCENE
+// #define VORTX_DEBUG_LIGHTS
+// #define VORTX_DEBUG_NODES
+// #define VORTX_DEBUG_NODETHREADS
 
-/* TGA
-#define VORTX_DEBUG_TGA
-*/
+// WAV
+// #define VORTX_DEBUG_WAV
 
-#endif /* VORTX_DEBUG_H_  */
-
+// TGA
+// #define VORTX_DEBUG_TGA

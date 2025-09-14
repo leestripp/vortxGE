@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.29)
 project(vortxGE_all LANGUAGES CXX)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE Debug)
+#  set(CMAKE_BUILD_TYPE Release)
 endif()
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
@@ -21,7 +22,6 @@ find_package(OpenGL REQUIRED)
 # GLEW used by vortxGE
 find_package(GLEW REQUIRED)
 
-
 add_subdirectory(vortxGE)
 add_subdirectory(tests)
 add_subdirectory(tools/obj2vbm)
@@ -30,4 +30,3 @@ add_subdirectory(demos/vortxGEdemo_glfw3)
 
 ADD_CUSTOM_TARGET(symlink_gtkmm ALL COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_BINARY_DIR}/../demos/data" "${CMAKE_BINARY_DIR}/demos/vortxGEdemo_gtkmm/data")
 ADD_CUSTOM_TARGET(symlink_glfw3 ALL COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_BINARY_DIR}/../demos/data" "${CMAKE_BINARY_DIR}/demos/vortxGEdemo_glfw3/data")
-ADD_CUSTOM_TARGET(symlink_sdl2 ALL COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_BINARY_DIR}/../demos/data" "${CMAKE_BINARY_DIR}/demos/vortxGEdemo_sdl2/data")

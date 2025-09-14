@@ -1,5 +1,4 @@
-#ifndef LSVECTOR4_H_
-#define LSVECTOR4_H_
+#pragma once
 
 #include <iostream>
 #include <sstream>
@@ -9,28 +8,21 @@
 // array types
 typedef float	Vector4f[4];
 
-
 using namespace std;
 
-//! Position, Vectors
-/*!
- * 3D vector class with functions.
- * \n
- * x, y, z, w
- */
 class lsVector4
 {
 public:
 	lsVector4();
 	lsVector4( float XX, float YY, float ZZ, float WW );
 	
-	lsVector4 operator+(float s);
-	lsVector4 operator+(const lsVector4 &v);
-	lsVector4 operator-(const lsVector4 &v);
+	lsVector4 operator+(float s) const;
+	lsVector4 operator+(const lsVector4 &v) const;
+	lsVector4 operator-(const lsVector4 &v) const;
 	lsVector4 operator*(const lsVector4 &v);
 	lsVector4 operator*(float t);
 	lsVector4 operator/(float t);
-	lsVector4 operator-();
+	lsVector4 operator-() const;
 	
 	float length();
 	void normalize();
@@ -90,5 +82,3 @@ public:
 private:
     string output;
 };
-
-#endif /* LSVECTOR3_H_ */

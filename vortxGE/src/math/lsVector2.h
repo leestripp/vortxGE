@@ -1,5 +1,4 @@
-#ifndef LSVECTOR2_H_
-#define LSVECTOR2_H_
+#pragma once
 
 #include <sstream>
 #include <string>
@@ -20,8 +19,8 @@ public:
 	lsVector2();
 	lsVector2( float v1, float v2 );
 	
-	lsVector2 operator+(const lsVector2 &v);
-	lsVector2 operator-(const lsVector2 &v);
+	lsVector2 operator+(const lsVector2 &v) const;
+	lsVector2 operator-(const lsVector2 &v) const;
 	lsVector2 operator*(const lsVector2 &v);
 	lsVector2 operator*(float t);
 	lsVector2 operator/(float t);
@@ -34,5 +33,3 @@ public:
 private:
     string output;
 };
-
-#endif /* LSVECTOR2_H_ */

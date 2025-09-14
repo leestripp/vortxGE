@@ -14,7 +14,7 @@ glfwApp glfw_app;
 // *************************************
 // GLFW Callbacks
 
-static void key_callback(GLFWwindow* window, int key, __attribute__((unused)) int scancode, int action, int mods)
+static void key_callback(GLFWwindow* window, int key, __attribute__((unused)) int scancode, int action, int /* mods */)
 {
 	bool pressed = (action == GLFW_PRESS || action == GLFW_REPEAT);
 

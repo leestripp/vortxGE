@@ -1,5 +1,4 @@
-#ifndef LSVECTOR3_H_
-#define LSVECTOR3_H_
+#pragma once
 
 #include <iostream>
 #include <cmath>
@@ -21,10 +20,10 @@ public:
     lsVector3();
 	lsVector3( float XX, float YY, float ZZ );
 	
-    lsVector3 operator+(float s);
-    lsVector3 operator+(const lsVector3 &v);
-    lsVector3 operator-(float s);
-    lsVector3 operator-(const lsVector3 &v);
+    lsVector3 operator+(float s) const;
+    lsVector3 operator+(const lsVector3 &v) const;
+    lsVector3 operator-(float s) const;
+    lsVector3 operator-(const lsVector3 &v) const;
     lsVector3 operator*(float t);
     lsVector3 operator*(const lsVector3 &v);
     lsVector3 operator/(float t);
@@ -87,5 +86,3 @@ private:
     string output;
 
 };
-
-#endif /* LSVECTOR3_H_ */

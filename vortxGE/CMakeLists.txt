@@ -13,4 +13,8 @@ add_library(vortxGE STATIC
 	${MySources}
 )
 
-target_include_directories(vortxGE PUBLIC .)
+target_include_directories(vortxGE
+	PUBLIC
+	src/
+	src/datablocks/tinygltf/
+)

@@ -1,6 +1,5 @@
 #include "lsVector4.h"
 
-
 lsVector4::lsVector4()
 {
 	x = 0;
@@ -18,12 +17,11 @@ lsVector4::lsVector4( float XX, float YY, float ZZ, float WW )
 
 }
 
-
 // ***************
 // ***** Methods
 // ***************
 
-lsVector4 lsVector4::operator+(float s)
+lsVector4 lsVector4::operator+(float s) const
 {
     lsVector4 res;
 	
@@ -35,7 +33,7 @@ lsVector4 lsVector4::operator+(float s)
     return res;
 }
 
-lsVector4 lsVector4::operator+(const lsVector4 &v)
+lsVector4 lsVector4::operator+(const lsVector4 &v) const
 {
 	lsVector4 res;
 	
@@ -47,7 +45,7 @@ lsVector4 lsVector4::operator+(const lsVector4 &v)
 	return res;
 }
 
-lsVector4 lsVector4::operator-(const lsVector4 &v)
+lsVector4 lsVector4::operator-(const lsVector4 &v) const
 {
 	lsVector4 res;
 
@@ -59,7 +57,7 @@ lsVector4 lsVector4::operator-(const lsVector4 &v)
 	return res;
 }
 
-lsVector4 lsVector4::operator-(void)
+lsVector4 lsVector4::operator-() const
 {
 	lsVector4 res;
 
@@ -193,5 +191,3 @@ void lsVector4::debug( const string& msg )
 	cout << msg;
 	cout << " Vector4(" << x << "," << y << "," << z << "," << w << ") " << endl;
 }
-
-

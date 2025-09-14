@@ -1,5 +1,4 @@
-#ifndef vortxGE_lsMesh_h
-#define vortxGE_lsMesh_h
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -17,7 +16,6 @@ class lsOpenGL;
 class lsAssetManager;
 class lsShaderManager;
 
-
 using namespace std;
 
 /*!
@@ -30,37 +28,35 @@ using namespace std;
 class lsMesh : public lsData
 {
 public:
-    lsMesh( lsOpenGL *opengl );
-    virtual ~lsMesh();
+	lsMesh( lsOpenGL *opengl );
+	virtual ~lsMesh();
 
-    void Draw( lsCamera *cam, lsPass *pass, lsObject *object );
-    void Update_Animation();
+	void Draw( lsCamera *cam, lsPass *pass, lsObject *object );
+	void Update_Animation();
 
-    void LoadVBM( const string& filename, lsAssetManager *am, lsShaderManager *sm );
-    void Add_Batch( lsBatch* batch );
+	void LoadVBM( const string& filename, lsAssetManager *am, lsShaderManager *sm );
+	void LoadGLTF( const string& filename, lsAssetManager *am, lsShaderManager *sm );
+	void Add_Batch( lsBatch* batch );
 
-    const lsBoundingSphere& getBSphere()
-    {
-        return bSphere;
-    }
+	const lsBoundingSphere& getBSphere()
+	{
+		return bSphere;
+	}
 
-    lsBatch* getBatch_list() const
-    {
-        return batch_list;
-    }
+	lsBatch* getBatch_list() const
+	{
+		return batch_list;
+	}
 
-    lsOpenGL *getOgl() const;
-    void setOgl(lsOpenGL *value);
+	lsOpenGL *getOgl() const;
+	void setOgl(lsOpenGL *value);
 
 private:
-    lsBatch* batch_list;
+	lsBatch* batch_list;
 
-    // Overall around all batches : Needs implementing
-    lsBoundingSphere bSphere;
-    // opengl
-    lsOpenGL *ogl;
+	// Overall around all batches : Needs implementing
+	lsBoundingSphere bSphere;
+	// opengl
+	lsOpenGL *ogl;
 
 };
-
-
-#endif

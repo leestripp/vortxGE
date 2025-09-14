@@ -12,18 +12,26 @@ lsVector2::lsVector2( float v1, float v2 )
 	y = v2;
 }
 
-
-
 // ***************
 // ***** Methods
 // ***************
 
-lsVector2 lsVector2::operator+(const lsVector2 &v)
+lsVector2 lsVector2::operator+(const lsVector2 &v) const
 {
 	lsVector2 r;
 
 	r.x = x + v.x;
 	r.y = y + v.y;
+
+	return r;
+}
+
+lsVector2 lsVector2::operator-(const lsVector2 &v) const
+{
+	lsVector2 r;
+
+	r.x = x - v.x;
+	r.y = y - v.y;
 
 	return r;
 }
@@ -58,7 +66,6 @@ lsVector2 lsVector2::operator/( float t )
 	return res;
 }
 
-
 const string& lsVector2::toString()
 {
 	stringstream ss;
@@ -72,4 +79,3 @@ const string& lsVector2::toString()
 	
 	return output;
 }
-

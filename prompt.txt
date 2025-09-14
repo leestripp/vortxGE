@@ -49,7 +49,7 @@ Assets are shared resources like meshes and textures, managed to prevent redunda
 *   **`lsAsset`**: The base class for all loadable resources. It uses a simple reference count (`users`) to track how many `lsObject`s are using it.
     *   `AllocAsset()`: The virtual function responsible for loading the resource data from disk and creating the corresponding GPU object (e.g., loading a `.vbm` file into VBOs or an image into a texture).
     *   `FreeAsset()`: Deallocates the resource and frees GPU memory.
-*   **`lsAsset_Mesh`**: Represents a 3D model loaded from a custom `.vbm` file.
+*   **`lsAsset_Mesh`**: Represents a 3D model loaded from a custom `.vbm` or a gltf '.glb' file.
 *   **`lsAsset_Texture`**: Represents a texture loaded from an image file (e.g., TGA).
 *   **`lsAsset_Quad`**: A procedural asset that creates a simple two-triangle quad, useful for fullscreen effects and rendering FBO textures.
 *   **`lsAsset_BulletShape_*`**: A family of assets that define collision shapes for the Bullet physics engine (e.g., `_Box`, `_Plane`).
@@ -102,9 +102,14 @@ Shadow Maps are now working correctly.
 
 Use the Asset Manager on the lsScene class for assets in a scene.
 First Person Rig scene node is working correctly.
+lsAsset_Mest and lsMesh:
+* Lets add tinyglTF loading support, so we can load .gltf and .glb files into a mesh asset.
+I've included in the datablocks folder the tiny gltf header library.
+We will need to calculate the meshes bounding sphere for culling.
 
 
 Next Steps:
-the glfw3 demo isn't passing the mouse motion correctly.
+
+
 
 

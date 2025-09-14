@@ -1,5 +1,4 @@
-#ifndef vortxGE_lsAsset_Mesh_h
-#define vortxGE_lsAsset_Mesh_h
+#pragma once
 
 #include "lsAsset.h"
 
@@ -33,8 +32,4 @@ public:
 private:
     // Data needed to alloc asset
     string filename;
-
 };
-
-
-#endif

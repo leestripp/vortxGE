@@ -1,3 +1,4 @@
+
 #include <sstream>
 
 #include "lsVector3.h"
@@ -17,12 +18,11 @@ lsVector3::lsVector3( float XX, float YY, float ZZ )
 	z = ZZ;
 }
 
-
 // ***************
 // ***** Methods
 // ***************
 
-lsVector3 lsVector3::operator+(float s)
+lsVector3 lsVector3::operator+(float s) const
 {
 	lsVector3 result;
 
@@ -33,7 +33,7 @@ lsVector3 lsVector3::operator+(float s)
 	return result;
 }
 
-lsVector3 lsVector3::operator+(const lsVector3 &v)
+lsVector3 lsVector3::operator+(const lsVector3 &v) const
 {
 	lsVector3 result;
 
@@ -44,7 +44,7 @@ lsVector3 lsVector3::operator+(const lsVector3 &v)
 	return result;
 }
 
-lsVector3 lsVector3::operator-(float s)
+lsVector3 lsVector3::operator-(float s) const
 {
 	lsVector3 result;
 
@@ -55,7 +55,7 @@ lsVector3 lsVector3::operator-(float s)
 	return result;
 }
 
-lsVector3 lsVector3::operator-(const lsVector3 &v)
+lsVector3 lsVector3::operator-(const lsVector3 &v) const
 {
 	lsVector3 result;
 
@@ -160,12 +160,6 @@ lsVector3& lsVector3::RotateAboutAxis(float angle, const lsVector3& axis)
 	return *this;
 }
 
-
-
-
-
-
-
 float lsVector3::length()
 {
     float l;
@@ -250,7 +244,6 @@ const string& lsVector3::toString()
 	return output;
 }
 
-
 // ***************
 // ***** Debug
 // ***************
@@ -260,5 +253,3 @@ void lsVector3::debug(const string& msg)
     cout << msg;
 	cout << "Vector3" << toString() << endl;
 }
-
-

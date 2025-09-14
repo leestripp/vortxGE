@@ -45,7 +45,7 @@ glviewwindow::~glviewwindow()
 }
 
 
-bool glviewwindow::on_key_pressed( guint keyval, guint, Gdk::ModifierType state )
+bool glviewwindow::on_key_pressed( guint keyval, guint, Gdk::ModifierType /* state */ )
 {
 	// Modifiers
 	// state : (Gdk::ModifierType::SHIFT_MASK | Gdk::ModifierType::CONTROL_MASK | Gdk::ModifierType::ALT_MASK)
