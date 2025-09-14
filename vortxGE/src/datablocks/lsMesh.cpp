@@ -904,245 +904,254 @@ void lsMesh::LoadVBM(const string& filename, lsAssetManager *am, lsShaderManager
 
 void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManager *sm)
 {
-    tinygltf::Model model;
-    tinygltf::TinyGLTF loader;
-    std::string err;
-    std::string warn;
+	tinygltf::Model model;
+	tinygltf::TinyGLTF loader;
+	std::string err;
+	std::string warn;
 
-    std::string ext;
-    size_t pos = filename.find_last_of(".");
-    if (pos != std::string::npos) {
-        ext = filename.substr(pos + 1);
-    }
+	// Get executable path.
+	lsDir dir;
+	string basepath = dir.getexepath();
+	
+	std::string ext;
+	size_t pos = filename.find_last_of(".");
+	if (pos != std::string::npos) {
+		ext = filename.substr(pos + 1);
+	}
+	
+	bool ret = (ext == "glb") ? loader.LoadBinaryFromFile(&model, &err, &warn, basepath + filename)
+							  : loader.LoadASCIIFromFile(&model, &err, &warn, basepath + filename);
 
-    bool ret = (ext == "glb") ? loader.LoadBinaryFromFile(&model, &err, &warn, filename)
-                              : loader.LoadASCIIFromFile(&model, &err, &warn, filename);
+	if (!warn.empty()) { std::cout << "glTF WARN: " << warn << std::endl; }
+	if (!err.empty()) { std::cerr << "glTF ERR: " << err << std::endl; }
+	if (!ret) { std::cerr << "Failed to load glTF: " << filename << std::endl; return; }
 
-    if (!warn.empty()) { std::cout << "glTF WARN: " << warn << std::endl; }
-    if (!err.empty()) { std::cerr << "glTF ERR: " << err << std::endl; }
-    if (!ret) { std::cerr << "Failed to load glTF: " << filename << std::endl; return; }
+	lsVector3 min_v(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+	lsVector3 max_v(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest());
+	std::vector<lsVector3> all_vertices;
 
-    lsVector3 min_v(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-    lsVector3 max_v(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest());
-    std::vector<lsVector3> all_vertices;
+	for (const auto& mesh : model.meshes) {
+		for (const auto& primitive : mesh.primitives) {
+			lsBatch_Mesh* batch = new lsBatch_Mesh(getOgl());
+			if (!batch) continue;
 
-    for (const auto& mesh : model.meshes) {
-        for (const auto& primitive : mesh.primitives) {
-            lsBatch_Mesh* batch = new lsBatch_Mesh(getOgl());
-            if (!batch) continue;
+			// Attributes
+			std::vector<lsListItem_vertexdata> vertexData;
+			size_t vertexCount = 0;
 
-            // --- Attributes ---
-            std::vector<lsListItem_vertexdata> vertexData;
-            size_t vertexCount = 0;
+			if (primitive.attributes.find("POSITION") == primitive.attributes.end()) {
+				delete batch;
+				continue;
+			}
+			
+			const tinygltf::Accessor& posAccessor = model.accessors[primitive.attributes.at("POSITION")];
+			vertexCount = posAccessor.count;
+			vertexData.resize(vertexCount);
+			
+			{ // Position
+				const tinygltf::BufferView& bufferView = model.bufferViews[posAccessor.bufferView];
+				const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+				const unsigned char* data_ptr = &buffer.data[bufferView.byteOffset + posAccessor.byteOffset];
+				int stride = posAccessor.ByteStride(bufferView);
+				if (stride == 0) stride = 3 * sizeof(float);
 
-            if (primitive.attributes.find("POSITION") == primitive.attributes.end()) {
-                delete batch;
-                continue;
-            }
-            
-            const tinygltf::Accessor& posAccessor = model.accessors[primitive.attributes.at("POSITION")];
-            vertexCount = posAccessor.count;
-            vertexData.resize(vertexCount);
-            
-            { // Position
-                const tinygltf::BufferView& bufferView = model.bufferViews[posAccessor.bufferView];
-                const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
-                const unsigned char* data_ptr = &buffer.data[bufferView.byteOffset + posAccessor.byteOffset];
-                int stride = posAccessor.ByteStride(bufferView);
-                if (stride == 0) stride = 3 * sizeof(float);
+				for (size_t i = 0; i < vertexCount; ++i) {
+					const float* p = reinterpret_cast<const float*>(data_ptr + i * stride);
+					vertexData[i].vertex[0] = p[0];
+					vertexData[i].vertex[1] = p[1];
+					vertexData[i].vertex[2] = p[2];
 
-                for (size_t i = 0; i < vertexCount; ++i) {
-                    const float* p = reinterpret_cast<const float*>(data_ptr + i * stride);
-                    vertexData[i].vertex[0] = p[0];
-                    vertexData[i].vertex[1] = p[1];
-                    vertexData[i].vertex[2] = p[2];
+					min_v.x = std::min(min_v.x, p[0]);
+					min_v.y = std::min(min_v.y, p[1]);
+					min_v.z = std::min(min_v.z, p[2]);
+					max_v.x = std::max(max_v.x, p[0]);
+					max_v.y = std::max(max_v.y, p[1]);
+					max_v.z = std::max(max_v.z, p[2]);
+					all_vertices.emplace_back(p[0], p[1], p[2]);
+				}
+			}
+			
+			if (primitive.attributes.count("NORMAL")) {
+				const auto& accessor = model.accessors[primitive.attributes.at("NORMAL")];
+				const auto& bufferView = model.bufferViews[accessor.bufferView];
+				const auto& buffer = model.buffers[bufferView.buffer];
+				const unsigned char* data_ptr = &buffer.data[bufferView.byteOffset + accessor.byteOffset];
+				int stride = accessor.ByteStride(bufferView);
+				if (stride == 0) stride = 3 * sizeof(float);
+				for (size_t i = 0; i < vertexCount; ++i) {
+					const float* p = reinterpret_cast<const float*>(data_ptr + i * stride);
+					vertexData[i].normal[0] = p[0];
+					vertexData[i].normal[1] = p[1];
+					vertexData[i].normal[2] = p[2];
+				}
+			}
+			
+			if (primitive.attributes.count("TEXCOORD_0")) {
+				const auto& accessor = model.accessors[primitive.attributes.at("TEXCOORD_0")];
+				const auto& bufferView = model.bufferViews[accessor.bufferView];
+				const auto& buffer = model.buffers[bufferView.buffer];
+				const unsigned char* data_ptr = &buffer.data[bufferView.byteOffset + accessor.byteOffset];
+				int stride = accessor.ByteStride(bufferView);
+				if (stride == 0) stride = 2 * sizeof(float);
+				for (size_t i = 0; i < vertexCount; ++i) {
+					const float* p = reinterpret_cast<const float*>(data_ptr + i * stride);
+					vertexData[i].uv[0] = p[0];
+					vertexData[i].uv[1] = p[1];
+				}
+			}
 
-                    min_v.x = std::min(min_v.x, p[0]);
-                    min_v.y = std::min(min_v.y, p[1]);
-                    min_v.z = std::min(min_v.z, p[2]);
-                    max_v.x = std::max(max_v.x, p[0]);
-                    max_v.y = std::max(max_v.y, p[1]);
-                    max_v.z = std::max(max_v.z, p[2]);
-                    all_vertices.emplace_back(p[0], p[1], p[2]);
-                }
-            }
-            
-            if (primitive.attributes.count("NORMAL")) {
-                const auto& accessor = model.accessors[primitive.attributes.at("NORMAL")];
-                const auto& bufferView = model.bufferViews[accessor.bufferView];
-                const auto& buffer = model.buffers[bufferView.buffer];
-                const unsigned char* data_ptr = &buffer.data[bufferView.byteOffset + accessor.byteOffset];
-                int stride = accessor.ByteStride(bufferView);
-                if (stride == 0) stride = 3 * sizeof(float);
-                for (size_t i = 0; i < vertexCount; ++i) {
-                    const float* p = reinterpret_cast<const float*>(data_ptr + i * stride);
-                    vertexData[i].normal[0] = p[0];
-                    vertexData[i].normal[1] = p[1];
-                    vertexData[i].normal[2] = p[2];
-                }
-            }
-            
-            if (primitive.attributes.count("TEXCOORD_0")) {
-                const auto& accessor = model.accessors[primitive.attributes.at("TEXCOORD_0")];
-                const auto& bufferView = model.bufferViews[accessor.bufferView];
-                const auto& buffer = model.buffers[bufferView.buffer];
-                const unsigned char* data_ptr = &buffer.data[bufferView.byteOffset + accessor.byteOffset];
-                int stride = accessor.ByteStride(bufferView);
-                if (stride == 0) stride = 2 * sizeof(float);
-                for (size_t i = 0; i < vertexCount; ++i) {
-                    const float* p = reinterpret_cast<const float*>(data_ptr + i * stride);
-                    vertexData[i].uv[0] = p[0];
-                    vertexData[i].uv[1] = p[1];
-                }
-            }
+			if (primitive.attributes.count("TANGENT")) {
+				const auto& accessor = model.accessors[primitive.attributes.at("TANGENT")];
+				const auto& bufferView = model.bufferViews[accessor.bufferView];
+				const auto& buffer = model.buffers[bufferView.buffer];
+				const unsigned char* data_ptr = &buffer.data[bufferView.byteOffset + accessor.byteOffset];
+				int stride = accessor.ByteStride(bufferView);
+				if (stride == 0) stride = 4 * sizeof(float);
+				for (size_t i = 0; i < vertexCount; ++i) {
+					const float* p = reinterpret_cast<const float*>(data_ptr + i * stride);
+					vertexData[i].tangent[0] = p[0];
+					vertexData[i].tangent[1] = p[1];
+					vertexData[i].tangent[2] = p[2];
+				}
+			}
 
-            if (primitive.attributes.count("TANGENT")) {
-                const auto& accessor = model.accessors[primitive.attributes.at("TANGENT")];
-                const auto& bufferView = model.bufferViews[accessor.bufferView];
-                const auto& buffer = model.buffers[bufferView.buffer];
-                const unsigned char* data_ptr = &buffer.data[bufferView.byteOffset + accessor.byteOffset];
-                int stride = accessor.ByteStride(bufferView);
-                if (stride == 0) stride = 4 * sizeof(float);
-                for (size_t i = 0; i < vertexCount; ++i) {
-                    const float* p = reinterpret_cast<const float*>(data_ptr + i * stride);
-                    vertexData[i].tangent[0] = p[0];
-                    vertexData[i].tangent[1] = p[1];
-                    vertexData[i].tangent[2] = p[2];
-                }
-            }
+			// Indices
+			const tinygltf::Accessor& indexAccessor = model.accessors[primitive.indices];
+			const tinygltf::BufferView& indexBufferView = model.bufferViews[indexAccessor.bufferView];
+			const tinygltf::Buffer& indexBuffer = model.buffers[indexBufferView.buffer];
+			const unsigned char* indexData = &indexBuffer.data[indexBufferView.byteOffset + indexAccessor.byteOffset];
+			
+			batch->Init_data(vertexCount, indexAccessor.count);
+			for(const auto& vd : vertexData) {
+				lsListItem_vertexdata temp_vd = vd;
+				batch->Add_VertexData(&temp_vd);
+			}
+			
+			if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+				const uint32_t* p = reinterpret_cast<const uint32_t*>(indexData);
+				for (size_t i = 0; i < indexAccessor.count; ++i) batch->Add_Index(p[i] + 1);
+			} else if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+				const uint16_t* p = reinterpret_cast<const uint16_t*>(indexData);
+				for (size_t i = 0; i < indexAccessor.count; ++i) batch->Add_Index(p[i] + 1);
+			} else if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+				const uint8_t* p = reinterpret_cast<const uint8_t*>(indexData);
+				for (size_t i = 0; i < indexAccessor.count; ++i) batch->Add_Index(p[i] + 1);
+			}
 
-            // --- Indices ---
-            const tinygltf::Accessor& indexAccessor = model.accessors[primitive.indices];
-            const tinygltf::BufferView& indexBufferView = model.bufferViews[indexAccessor.bufferView];
-            const tinygltf::Buffer& indexBuffer = model.buffers[indexBufferView.buffer];
-            const unsigned char* indexData = &indexBuffer.data[indexBufferView.byteOffset + indexAccessor.byteOffset];
-            
-            batch->Init_data(vertexCount, indexAccessor.count);
-            for(const auto& vd : vertexData) {
-                lsListItem_vertexdata temp_vd = vd;
-                batch->Add_VertexData(&temp_vd);
-            }
-            
-            if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
-                const uint32_t* p = reinterpret_cast<const uint32_t*>(indexData);
-                for (size_t i = 0; i < indexAccessor.count; ++i) batch->Add_Index(p[i] + 1);
-            } else if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-                const uint16_t* p = reinterpret_cast<const uint16_t*>(indexData);
-                for (size_t i = 0; i < indexAccessor.count; ++i) batch->Add_Index(p[i] + 1);
-            } else if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
-                const uint8_t* p = reinterpret_cast<const uint8_t*>(indexData);
-                for (size_t i = 0; i < indexAccessor.count; ++i) batch->Add_Index(p[i] + 1);
-            }
+			batch->Copy_GLdata();
+			addMem_used(batch->getMem_used());
 
-            batch->Copy_GLdata();
-            addMem_used(batch->getMem_used());
+			if (primitive.material >= 0) {
+				const tinygltf::Material& mat = model.materials[primitive.material];
+				
+				const auto& pbr = mat.pbrMetallicRoughness;
+				batch->diffuse = lsVector4(pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], pbr.baseColorFactor[3]);
+				
+				float metallic = pbr.metallicFactor;
+				float roughness = pbr.roughnessFactor;
+				batch->specular = lsVector4(0.04f + metallic * 0.96f, 0.04f + metallic * 0.96f, 0.04f + metallic * 0.96f, 1.0f);
+				batch->shininess = (1.0f - roughness) * 256.0f;
+				batch->ambiant = lsVector4(0.1f, 0.1f, 0.1f, 1.0f);
 
-            if (primitive.material >= 0) {
-                const tinygltf::Material& mat = model.materials[primitive.material];
-                
-                const auto& pbr = mat.pbrMetallicRoughness;
-                batch->diffuse = lsVector4(pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], pbr.baseColorFactor[3]);
-                
-                float metallic = pbr.metallicFactor;
-                float roughness = pbr.roughnessFactor;
-                batch->specular = lsVector4(0.04f + metallic * 0.96f, 0.04f + metallic * 0.96f, 0.04f + metallic * 0.96f, 1.0f);
-                batch->shininess = (1.0f - roughness) * 256.0f;
-                batch->ambiant = lsVector4(0.1f, 0.1f, 0.1f, 1.0f);
+				std::string shader_name_suffix = "";
 
-                std::string shader_name_suffix = "";
+				auto get_texture_id = [&](int tex_idx) -> GLuint {
+					if (tex_idx < 0 || static_cast<size_t>(tex_idx) >= model.textures.size()) return 0;
+					const auto& tex = model.textures[tex_idx];
+					if (tex.source < 0 || static_cast<size_t>(tex.source) >= model.images.size()) return 0;
+					const auto& img = model.images[tex.source];
+					
+					if (!img.uri.empty() && !tinygltf::IsDataURI(img.uri)) {
+						std::string base_dir = filename.substr(0, filename.find_last_of("/\\"));
+						std::string tex_path = base_dir + "/" + urldecode(img.uri);
 
-                auto get_texture_id = [&](int tex_idx) -> GLuint {
-                    if (tex_idx < 0 || static_cast<size_t>(tex_idx) >= model.textures.size()) return 0;
-                    const auto& tex = model.textures[tex_idx];
-                    if (tex.source < 0 || static_cast<size_t>(tex.source) >= model.images.size()) return 0;
-                    const auto& img = model.images[tex.source];
-                    
-                    if (!img.uri.empty() && !tinygltf::IsDataURI(img.uri)) {
-                        std::string base_dir = filename.substr(0, filename.find_last_of("/\\"));
-                        std::string tex_path = base_dir + "/" + urldecode(img.uri);
+						lsAsset_Texture *image_asset = (lsAsset_Texture *)am->Find_Asset(tex_path);
+						if (!image_asset) {
+							image_asset = am->CreateAsset_Texture(tex_path);
+							image_asset->AllocAsset();
+						}
+						if (image_asset && image_asset->getData()) {
+							return static_cast<lsTexture*>(image_asset->getData())->getTexture();
+						}
+					} else if (!img.image.empty()) {
+						GLuint tex_id = 0;
+						glGenTextures(1, &tex_id);
+						glBindTexture(GL_TEXTURE_2D, tex_id);
+						GLenum format = (img.component == 4) ? GL_RGBA : GL_RGB;
+						
+						if (img.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+							GLenum internal_format = (img.component == 4) ? GL_RGBA16 : GL_RGB16;
+							glTexImage2D(GL_TEXTURE_2D, 0, internal_format, img.width, img.height, 0, format, GL_UNSIGNED_SHORT, img.image.data());
+						} else {
+							GLenum internal_format = (img.component == 4) ? GL_SRGB8_ALPHA8 : GL_SRGB8;
+							glTexImage2D(GL_TEXTURE_2D, 0, internal_format, img.width, img.height, 0, format, GL_UNSIGNED_BYTE, img.image.data());
+						}
+						
+						glGenerateMipmap(GL_TEXTURE_2D);
+						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+						glBindTexture(GL_TEXTURE_2D, 0);
+						return tex_id;
+					}
+					return 0;
+				};
 
-                        lsAsset_Texture *image_asset = (lsAsset_Texture *)am->Find_Asset(tex_path);
-                        if (!image_asset) {
-                            image_asset = am->CreateAsset_Texture(tex_path);
-                            image_asset->AllocAsset();
-                        }
-                        if (image_asset && image_asset->getData()) {
-                            return static_cast<lsTexture*>(image_asset->getData())->getTexture();
-                        }
-                    } else if (!img.image.empty()) {
-                        GLuint tex_id = 0;
-                        glGenTextures(1, &tex_id);
-                        glBindTexture(GL_TEXTURE_2D, tex_id);
-                        GLenum format = (img.component == 4) ? GL_RGBA : GL_RGB;
-                        
-                        if (img.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-                            GLenum internal_format = (img.component == 4) ? GL_RGBA16 : GL_RGB16;
-                            glTexImage2D(GL_TEXTURE_2D, 0, internal_format, img.width, img.height, 0, format, GL_UNSIGNED_SHORT, img.image.data());
-                        } else {
-                            GLenum internal_format = (img.component == 4) ? GL_SRGB8_ALPHA8 : GL_SRGB8;
-                            glTexImage2D(GL_TEXTURE_2D, 0, internal_format, img.width, img.height, 0, format, GL_UNSIGNED_BYTE, img.image.data());
-                        }
-                        
-                        glGenerateMipmap(GL_TEXTURE_2D);
-                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                        glBindTexture(GL_TEXTURE_2D, 0);
-                        return tex_id;
-                    }
-                    return 0;
-                };
+				if (pbr.baseColorTexture.index > -1) {
+					batch->tex_diffuse = get_texture_id(pbr.baseColorTexture.index);
+					if (batch->tex_diffuse != 0) shader_name_suffix += "d";
+				}
+				if (mat.normalTexture.index > -1) {
+					batch->tex_normal = get_texture_id(mat.normalTexture.index);
+					if (batch->tex_normal != 0) shader_name_suffix += "n";
+				}
+				
+				std::string shader_name = "light_tex_";
+				if (shader_name_suffix.empty()) {
+					shader_name += "none";
+				} else {
+					shader_name += shader_name_suffix;
+				}
+				
+				lsShader* shader = sm->Find_Shader(shader_name);
+				if (!shader) {
+					shader = new lsShader(getOgl());
+					shader->Load_Shader(shader_name);
+					if (shader->getShader_type() != LSST_NONE) {
+						sm->Add_Shader(shader);
+					} else {
+						delete shader;
+						shader = sm->Find_Shader("light_tex_none");
+					}
+				}
+				batch->setShader(shader);
+			} else {
+				 lsShader* shader = sm->Find_Shader("light_tex_none");
+				 batch->setShader(shader);
+			}
 
-                if (pbr.baseColorTexture.index > -1) {
-                    batch->tex_diffuse = get_texture_id(pbr.baseColorTexture.index);
-                    if (batch->tex_diffuse != 0) shader_name_suffix += "d";
-                }
-                if (mat.normalTexture.index > -1) {
-                    batch->tex_normal = get_texture_id(mat.normalTexture.index);
-                    if (batch->tex_normal != 0) shader_name_suffix += "n";
-                }
-                
-                std::string shader_name = "light_tex_";
-                if (shader_name_suffix.empty()) {
-                    shader_name += "none";
-                } else {
-                    shader_name += shader_name_suffix;
-                }
-                
-                lsShader* shader = sm->Find_Shader(shader_name);
-                if (!shader) {
-                    shader = new lsShader(getOgl());
-                    shader->Load_Shader(shader_name);
-                    if (shader->getShader_type() != LSST_NONE) {
-                        sm->Add_Shader(shader);
-                    } else {
-                        delete shader;
-                        shader = sm->Find_Shader("light_tex_none");
-                    }
-                }
-                batch->setShader(shader);
-            } else {
-                 lsShader* shader = sm->Find_Shader("light_tex_none");
-                 batch->setShader(shader);
-            }
+			Add_Batch(batch);
+		}
+	}
 
-            Add_Batch(batch);
-        }
-    }
-
-    if (!all_vertices.empty()) {
-        bSphere.center = (min_v + max_v) * 0.5f;
-        bSphere.radius = 0.0f;
-        for(const auto& vert : all_vertices) {
-            float dist = (vert - bSphere.center).length();
-            if (dist > bSphere.radius) {
-                bSphere.radius = dist;
-            }
-        }
-    } else {
-        bSphere.center = lsVector3(0,0,0);
-        bSphere.radius = 0.0f;
-    }
+	// Set bounding sphere.
+	if (! all_vertices.empty())
+	{
+		bSphere.center = (min_v + max_v) * 0.5f;
+		bSphere.radius = 0.0f;
+		for(const auto& vert : all_vertices)
+		{
+			float dist = (vert - bSphere.center).length();
+			if(dist > bSphere.radius)
+			{
+				bSphere.radius = dist;
+			}
+		}
+	} else
+	{
+		bSphere.center = lsVector3(0,0,0);
+		bSphere.radius = 0.0f;
+	}
 }
 

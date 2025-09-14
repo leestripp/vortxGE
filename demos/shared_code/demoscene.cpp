@@ -379,11 +379,12 @@ void DemoScene::setupTestScene()
 		viewer_scene->Add_Node( object );
 	}
 	
-	// Cube 1
+	// Test a GLTF object.
+	// Cube
 	object = new lsObject( viewer_scene );
 	if( object )
 	{
-		object->setName( "Cube1" );
+		object->setName( "GLTF_Cube" );
 		object->Set_Pos( 2.5, 1, 2 );
 		object->Set_Scale( 1.0, 1.0, 1.0 );
 		object->setCasts_shadows(true);
@@ -391,7 +392,7 @@ void DemoScene::setupTestScene()
 
 		// Load Mesh asset
 		lsAsset_Mesh *asset_mesh;
-		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/Cube_logo.vbm" );
+		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/cube.glb" );
 		asset_mesh->AllocAsset();
 		object->Set_Asset( asset_mesh );
 
@@ -510,15 +511,15 @@ void DemoScene::processEvent( lsEvent* event )
 
 void DemoScene::movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch)
 {
-    if (m_playerRig) {
-        m_playerRig->handleInput(f, b, l, r, jump, sprint, crouch);
-    }
+	if (m_playerRig) {
+		m_playerRig->handleInput(f, b, l, r, jump, sprint, crouch);
+	}
 }
 
 void DemoScene::rotatePlayerView( double delta_x, double delta_y)
 {
-    if (m_playerRig) {
-        m_playerRig->handleMouseLook(delta_x, delta_y);
-    }
+	if (m_playerRig) {
+		m_playerRig->handleMouseLook(delta_x, delta_y);
+	}
 }
 

@@ -103,12 +103,15 @@ Shadow Maps are now working correctly.
 Use the Asset Manager on the lsScene class for assets in a scene.
 First Person Rig scene node is working correctly.
 lsAsset_Mest and lsMesh:
-* Lets add tinyglTF loading support, so we can load .gltf and .glb files into a mesh asset.
-I've included in the datablocks folder the tiny gltf header library.
-We will need to calculate the meshes bounding sphere for culling.
+* now with tinyglTF loading support, so we can load .gltf and .glb files into a mesh asset.
+* I've included in the datablocks folder the tiny gltf header library.
+* Then calculate the meshes bounding sphere for culling.
 
 
 Next Steps:
+Shaders:
+Lets rewrite the glsl shaders for PBR support.
+Only need to rewrite the light_tex* shaders.
 
 
 
