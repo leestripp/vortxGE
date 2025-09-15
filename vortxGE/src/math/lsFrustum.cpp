@@ -56,19 +56,10 @@ void lsFrustum::Set_Orthographic( float xMin, float xMax, float yMin, float yMax
 	far_width = 2 * xMax;
 }
 
-//! Culling
-/*!
- * Must be called every time a camera moves, bull planes follow the camera in World space
- *
- * */
 void lsFrustum::Build_CullPlanes( const lsVector3& p, const lsVector3& l, const lsVector3& u )
 {
-	lsVector3 dir, nc, fc, X, Y, Z;
-	lsVector3 np, nl, nu;
-
-	np = p;
-	nl = l;
-	nu = u;
+	lsVector3 nc, fc, X, Y, Z;
+    float nh, nw, fh, fw;
 
 	// Store
 	camerapos = p;
@@ -76,32 +67,37 @@ void lsFrustum::Build_CullPlanes( const lsVector3& p, const lsVector3& l, const 
 	// compute the Z axis of camera
 	// this axis points in the opposite direction from
 	// the looking direction
-	Z = np - nl;
+	Z = p - l;
 	Z.normalize();
 
-	// the real "up" vector is the cross product of Z and X
-	Y = u;
-	Y.normalize();
-
-	// X axis
-	X = Y * Z;
+	// X axis of camera
+	X = u * Z;
 	X.normalize();
+    
+	// the real "up" vector is the cross product of Z and X
+	Y = Z * X;
+
+    // half heights and widths
+    nh = near_height * 0.5f;
+    nw = near_width * 0.5f;
+    fh = far_height * 0.5f;
+    fw = far_width * 0.5f;
 
 	// compute the centers of the near and far planes
-	nc = np - Z * nearplane;
-	fc = np - Z * farplane;
+	nc = p - Z * nearplane;
+	fc = p - Z * farplane;
 
 	// compute the 4 corners of the frustum on the near plane
-	ntl = nc + Y * near_height - X * near_width;
-	ntr = nc + Y * near_height + X * near_width;
-	nbl = nc - Y * near_height - X * near_width;
-	nbr = nc - Y * near_height + X * near_width;
+	ntl = nc + Y * nh - X * nw;
+	ntr = nc + Y * nh + X * nw;
+	nbl = nc - Y * nh - X * nw;
+	nbr = nc - Y * nh + X * nw;
 
 	// compute the 4 corners of the frustum on the far plane
-	ftl = fc + Y * far_height - X * far_width;
-	ftr = fc + Y * far_height + X * far_width;
-	fbl = fc - Y * far_height - X * far_width;
-	fbr = fc - Y * far_height + X * far_width;
+	ftl = fc + Y * fh - X * fw;
+	ftr = fc + Y * fh + X * fw;
+	fbl = fc - Y * fh - X * fw;
+	fbr = fc - Y * fh + X * fw;
 
 	// compute the six planes
 	// the function set3Points assumes that the points
@@ -112,9 +108,7 @@ void lsFrustum::Build_CullPlanes( const lsVector3& p, const lsVector3& l, const 
 	pl[ RIGHT ].set3Points( nbr,ntr,fbr );
 	pl[ NEARP ].set3Points( ntl,ntr,nbr );
 	pl[ FARP ].set3Points( ftr,ftl,fbl );
-
 }
-
 
 float lsFrustum::distance( const lsVector3& V1 )
 {

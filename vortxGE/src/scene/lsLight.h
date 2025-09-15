@@ -1,5 +1,4 @@
-#ifndef VORTXGE_LSLIGHT_H
-#define VORTXGE_LSLIGHT_H
+#pragma once
 
 // OpenGL
 #include "../opengl/lsOpenGL.h"
@@ -16,9 +15,6 @@ const int LSLT_SPOT     = 2;
 const int LSLT_SUN      = 3;
 
 
-/*!
- Base light class, dont use directly. Use one of the subclasses.
- */
 class lsLight : public lsCamera
 {
 public:
@@ -43,6 +39,17 @@ public:
     {
         return light_type;
     }
+
+    float getIntensity() const
+    {
+        return intensity;
+    }
+
+    void setIntensity(float val)
+    {
+        intensity = val;
+    }
+
 
     // Shadowmap
     GLuint getTex_shadowmap() const
@@ -105,6 +112,7 @@ public:
     lsVector4 ambient;
     lsVector4 diffuse;
     lsVector4 specular;
+    float intensity;
     float spot_cutoff;		// angle of light cutoff
     float spot_outer_cutoff;
 
@@ -119,4 +127,3 @@ private:
 
 };
 
-#endif // VORTXGE_LSLIGHT_H

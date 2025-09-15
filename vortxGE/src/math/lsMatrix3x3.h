@@ -1,5 +1,4 @@
-#ifndef LSMATRIX3X3_H
-#define LSMATRIX3X3_H
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -46,5 +45,3 @@ public:
 private:
     float moe; // margin of error
 };
-
-#endif // LSMATRIX3X3_H

@@ -211,17 +211,17 @@ void lsMatrix4x4::ScaleMatrix(float x, float y, float z)
 
 void lsMatrix4x4::PerspectiveProjection(float fovy, float aspect_ratio, float near_plane, float far_plane)
 {
-    matrix[15] = 0;
+    memset(matrix, 0, sizeof(float) * 16);
 
-    float y_scale = Cotangent((fovy*ANG2RAD) / 2 );
+    float y_scale = Cotangent((fovy * ANG2RAD) / 2.0f);
     float x_scale = y_scale / aspect_ratio;
     float frustum_length = far_plane - near_plane;
 
-    matrix[ 0] = x_scale;
-    matrix[ 5] = y_scale;
+    matrix[0] = x_scale;
+    matrix[5] = y_scale;
     matrix[10] = -((far_plane + near_plane) / frustum_length);
-    matrix[11] = -1;
-    matrix[14] = -((2 * near_plane * far_plane) / frustum_length );
+    matrix[11] = -1.0f;
+    matrix[14] = -((2.0f * far_plane * near_plane) / frustum_length);
 }
 
 void lsMatrix4x4::OrthographicProjection( float xMin, float xMax, float yMin, float yMax, float zMin, float zMax )
@@ -246,44 +246,46 @@ float lsMatrix4x4::Cotangent(float angle)
 void lsMatrix4x4::LookAt( const lsVector3& eyePosition, const lsVector3& lookAt, const lsVector3& upVector )
 {
     lsMath math;
-    lsVector3 e, l, u;
-    lsVector3 forward, side, up;
-    lsMatrix4x4 rotmat, transmat;
 
-    e = eyePosition;
-    l = lookAt;
-    u = upVector;
-
-    // make sure up is normalized
-    up = upVector;
-    up.normalize();
-    // up.debug( "up: " );
-
-    // forward vector
-    forward = l - e;
+    // The "forward" vector is the direction from the eye to the target.
+    // In a right-handed system, the camera looks down its -Z axis, so the
+    // view's Z-axis is the opposite of the forward vector.
+    lsVector3 forward = lookAt - eyePosition;
     forward.normalize();
-    // forward.debug( "forward: " );
 
-    // side vector
-    side = math.Cross( forward, up );
+    // The "side" vector is the cross product of the forward vector and the world's up vector.
+    // This gives us the view's X-axis.
+    lsVector3 side = math.Cross(forward, upVector);
     side.normalize();
-    // side.debug( "side: " );
 
-    rotmat.matrix[0] = side.x;
-    rotmat.matrix[4] = side.y;
-    rotmat.matrix[8] = side.z;
+    // The "up" vector is re-calculated to be orthogonal to the side and forward vectors.
+    // This gives us the view's Y-axis.
+    lsVector3 up = math.Cross(side, forward);
 
-    rotmat.matrix[1] = up.x;
-    rotmat.matrix[5] = up.y;
-    rotmat.matrix[9] = up.z;
+    // The view matrix is the inverse of the camera's world transformation.
+    // For a rotation/translation matrix, Inverse(T*R) = Inverse(R) * Inverse(T).
+    // Inverse(R) is its transpose. Inverse(T) is a translation by -eyePosition.
+    // The resulting matrix transforms world coordinates to view coordinates.
+    
+    LoadIdentity();
 
-    rotmat.matrix[2] = -forward.x;
-    rotmat.matrix[6] = -forward.y;
-    rotmat.matrix[10] = -forward.z;
+    // Set the rotation part (column-major)
+    matrix[0] = side.x;
+    matrix[4] = side.y;
+    matrix[8] = side.z;
 
-    transmat.TranslateMatrix( -e.x, -e.y, -e.z );
+    matrix[1] = up.x;
+    matrix[5] = up.y;
+    matrix[9] = up.z;
 
-    *this = *this * rotmat * transmat;
+    matrix[2] = -forward.x;
+    matrix[6] = -forward.y;
+    matrix[10] = -forward.z;
+
+    // Set the translation part
+    matrix[12] = -math.Dot(side, eyePosition);
+    matrix[13] = -math.Dot(up, eyePosition);
+    matrix[14] = math.Dot(forward, eyePosition);
 }
 
 lsMatrix4x4& lsMatrix4x4::transpose( const lsMatrix4x4& m )

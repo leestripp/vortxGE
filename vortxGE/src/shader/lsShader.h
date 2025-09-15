@@ -1,5 +1,4 @@
-#ifndef vortxGE_lsShader_h
-#define vortxGE_lsShader_h
+#pragma once
 
 #include <iostream>
 
@@ -144,6 +143,7 @@ private:
     GLint iLightOuterCutoff1;
     GLint iLightDiffuse1;
     GLint iLightSpecular1;
+    GLint iLightIntensity1;
     // light 2
     GLint iLightType2;
     GLint iLightPos2;
@@ -152,6 +152,7 @@ private:
     GLint iLightOuterCutoff2;
     GLint iLightDiffuse2;
     GLint iLightSpecular2;
+    GLint iLightIntensity2;
     // light 3
     GLint iLightType3;
     GLint iLightPos3;
@@ -160,6 +161,7 @@ private:
     GLint iLightOuterCutoff3;
     GLint iLightDiffuse3;
     GLint iLightSpecular3;
+    GLint iLightIntensity3;
 
     // Materail
     GLuint iMatAmbiant;
@@ -169,5 +171,3 @@ private:
     GLuint iMatGlow;
 
 };
-
-#endif

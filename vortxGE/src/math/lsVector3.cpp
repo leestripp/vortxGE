@@ -33,6 +33,17 @@ lsVector3 lsVector3::operator+(float s) const
 	return result;
 }
 
+lsVector3 lsVector3::operator-() const
+{
+	lsVector3 result;
+
+	result.x = -x;
+	result.y = -y;
+	result.z = -z;
+
+	return result;
+}
+
 lsVector3 lsVector3::operator+(const lsVector3 &v) const
 {
 	lsVector3 result;
@@ -66,7 +77,7 @@ lsVector3 lsVector3::operator-(const lsVector3 &v) const
 	return result;
 }
 
-lsVector3 lsVector3::operator*(float t)
+lsVector3 lsVector3::operator*(float t) const
 {
 	lsVector3 result;
 
@@ -77,7 +88,7 @@ lsVector3 lsVector3::operator*(float t)
 	return result;
 }
 
-lsVector3 lsVector3::operator*(const lsVector3 &v)
+lsVector3 lsVector3::operator*(const lsVector3 &v) const
 {
 	lsVector3 result;
 
@@ -88,7 +99,7 @@ lsVector3 lsVector3::operator*(const lsVector3 &v)
 	return result;
 }
 
-lsVector3 lsVector3::operator/(float t)
+lsVector3 lsVector3::operator/(float t) const
 {
 	lsVector3 result;
 

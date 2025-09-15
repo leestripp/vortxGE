@@ -1,5 +1,4 @@
-#ifndef LSMATH_H
-#define LSMATH_H
+#pragma once
 
 #define lsPI 3.14159265358979323846
 #define ANG2RAD 3.14159265358979323846/180.0
@@ -25,14 +24,11 @@ class lsVector4;
 class lsMath
 {
 public:
-    lsMath();
-    virtual ~lsMath();
-
-    bool approxEqual( float a, float b, float epsilon );
-
-    lsVector3 Cross( const lsVector3& Vec1, const lsVector3& Vec2 );
-    float Dot( const lsVector3& Vec1, const lsVector3& Vec2 );
-
+	lsMath();
+	virtual ~lsMath();
+	
+	bool approxEqual( float a, float b, float epsilon );
+	
+	lsVector3 Cross( const lsVector3& Vec1, const lsVector3& Vec2 );
+	float Dot( const lsVector3& Vec1, const lsVector3& Vec2 );
 };
-
-#endif // LSMATH_H

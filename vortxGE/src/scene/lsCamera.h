@@ -1,5 +1,4 @@
-#ifndef vortxGE_lsCamera_h
-#define vortxGE_lsCamera_h
+#pragma once
 
 // math
 #include "../math/lsFrustum.h"
@@ -60,5 +59,3 @@ private:
     int update_counter;
 
 };
-
-#endif

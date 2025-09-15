@@ -174,12 +174,12 @@ void lsCamera::Update_Camera()
     lsVector3 eye, lookat, vup;
 
     eye = lsVector3( ModelMatrix.matrix[12], ModelMatrix.matrix[13], ModelMatrix.matrix[14] );
-    // The camera/light's forward direction is its local +Z axis.
+    // The camera/light's forward direction is its local -Z axis.
     // The 3rd column of the model matrix (indices 8,9,10) is the transformed +Z axis.
-    // We add this to the eye position to get the look-at point.
-    lookat = lsVector3( ModelMatrix.matrix[12] + ModelMatrix.matrix[8], 
-                        ModelMatrix.matrix[13] + ModelMatrix.matrix[9], 
-                        ModelMatrix.matrix[14] + ModelMatrix.matrix[10] );
+    // We subtract this from the eye position to get the look-at point.
+    lookat = lsVector3( ModelMatrix.matrix[12] - ModelMatrix.matrix[8], 
+                        ModelMatrix.matrix[13] - ModelMatrix.matrix[9], 
+                        ModelMatrix.matrix[14] - ModelMatrix.matrix[10] );
     vup = lsVector3( ModelMatrix.matrix[4], ModelMatrix.matrix[5], ModelMatrix.matrix[6] );
 
     ViewMatrix.LoadIdentity();

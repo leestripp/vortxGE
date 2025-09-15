@@ -24,9 +24,10 @@ public:
     lsVector3 operator+(const lsVector3 &v) const;
     lsVector3 operator-(float s) const;
     lsVector3 operator-(const lsVector3 &v) const;
-    lsVector3 operator*(float t);
-    lsVector3 operator*(const lsVector3 &v);
-    lsVector3 operator/(float t);
+    lsVector3 operator*(float t) const;
+    lsVector3 operator*(const lsVector3 &v) const;
+    lsVector3 operator/(float t) const;
+    lsVector3 operator-() const;
 
     lsVector3& RotateAboutX(float angle);
     lsVector3& RotateAboutY(float angle);

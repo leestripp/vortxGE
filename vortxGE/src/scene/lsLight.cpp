@@ -24,8 +24,9 @@ lsLight::lsLight( lsNode* parent ) : lsCamera(parent)
     ambient = lsVector4( 0, 0, 0, 1.0 );
     diffuse = lsVector4( 1.0, 1.0, 1.0, 1.0 );
     specular = lsVector4( 1.0, 1.0, 1.0, 1.0 );
-    spot_cutoff = 180.0;
-    spot_outer_cutoff = 180.0;
+    intensity = 1.0f;
+    spot_cutoff = 25.0;
+    spot_outer_cutoff = 35.0;
 
     // shadow map
     tex_shadowmap = 0;
@@ -53,7 +54,6 @@ lsLight::lsLight( lsNode* parent ) : lsCamera(parent)
     pv4->setProp_id( LSPROPID_SPECULAR );
     Add_Property( pv4 );
 }
-
 
 lsLight::~lsLight()
 {

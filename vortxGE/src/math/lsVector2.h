@@ -8,11 +8,7 @@ typedef float	Vector2f[2];
 
 using namespace std;
 
-//! 2D Point
-/*!
- * Storage and math functions
- *
- */
+
 class lsVector2
 {
 public:
@@ -21,9 +17,9 @@ public:
 	
 	lsVector2 operator+(const lsVector2 &v) const;
 	lsVector2 operator-(const lsVector2 &v) const;
-	lsVector2 operator*(const lsVector2 &v);
-	lsVector2 operator*(float t);
-	lsVector2 operator/(float t);
+	lsVector2 operator*(const lsVector2 &v) const;
+	lsVector2 operator*(float t) const;
+	lsVector2 operator/(float t) const;
 	
     const string& toString();
 	

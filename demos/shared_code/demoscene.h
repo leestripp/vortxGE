@@ -11,7 +11,7 @@ class lsObject;
 class lsCamera;
 class lsEvent;
 class lsLight_Spot;
-class lsNode_FirstPersonRig; // Forward declare our new class
+class lsNode_FirstPersonRig;
 
 using namespace std;
 

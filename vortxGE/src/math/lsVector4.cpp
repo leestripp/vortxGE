@@ -70,7 +70,7 @@ lsVector4 lsVector4::operator-() const
 }
 
 
-lsVector4 lsVector4::operator*(const lsVector4 &v)
+lsVector4 lsVector4::operator*(const lsVector4 &v) const
 {
 	lsVector4 res;
 
@@ -82,7 +82,7 @@ lsVector4 lsVector4::operator*(const lsVector4 &v)
 	return res;
 }
 
-lsVector4 lsVector4::operator*(float t)
+lsVector4 lsVector4::operator*(float t) const
 {
 	lsVector4 res;
 
@@ -95,7 +95,7 @@ lsVector4 lsVector4::operator*(float t)
 }
 
 
-lsVector4 lsVector4::operator/(float t)
+lsVector4 lsVector4::operator/(float t) const
 {
 	lsVector4 res;
 

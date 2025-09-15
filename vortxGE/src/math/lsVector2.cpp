@@ -36,7 +36,7 @@ lsVector2 lsVector2::operator-(const lsVector2 &v) const
 	return r;
 }
 
-lsVector2 lsVector2::operator*(const lsVector2 &v)
+lsVector2 lsVector2::operator*(const lsVector2 &v) const
 {
 	lsVector2 r;
 
@@ -46,7 +46,7 @@ lsVector2 lsVector2::operator*(const lsVector2 &v)
 	return r;
 }
 
-lsVector2 lsVector2::operator*(float t)
+lsVector2 lsVector2::operator*(float t) const
 {
 	lsVector2 r;
 	
@@ -56,7 +56,7 @@ lsVector2 lsVector2::operator*(float t)
 	return r;
 }
 
-lsVector2 lsVector2::operator/( float t )
+lsVector2 lsVector2::operator/( float t ) const
 {
 	lsVector2 res;
 	

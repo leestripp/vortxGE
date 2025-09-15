@@ -93,6 +93,7 @@ void lsShader::setShader_type( int val )
         iLightOuterCutoff1 = glGetUniformLocation( shader, "vxLightOuterCutoff[0]" );
         iLightDiffuse1 = glGetUniformLocation( shader, "vxLightDiffuse[0]" );
         iLightSpecular1 = glGetUniformLocation( shader, "vxLightSpecular[0]" );
+        iLightIntensity1 = glGetUniformLocation( shader, "vxLightIntensity[0]" );
         // Light 2
         iLightType2 = glGetUniformLocation( shader, "vxLightType[1]" );
         iLightPos2 = glGetUniformLocation( shader, "vxLightPos[1]" );
@@ -101,6 +102,7 @@ void lsShader::setShader_type( int val )
         iLightOuterCutoff2 = glGetUniformLocation( shader, "vxLightOuterCutoff[1]" );
         iLightDiffuse2 = glGetUniformLocation( shader, "vxLightDiffuse[1]" );
         iLightSpecular2 = glGetUniformLocation( shader, "vxLightSpecular[1]" );
+        iLightIntensity2 = glGetUniformLocation( shader, "vxLightIntensity[1]" );
         // Light 3
         iLightType3 = glGetUniformLocation( shader, "vxLightType[2]" );
         iLightPos3 = glGetUniformLocation( shader, "vxLightPos[2]" );
@@ -109,6 +111,7 @@ void lsShader::setShader_type( int val )
         iLightOuterCutoff3 = glGetUniformLocation( shader, "vxLightOuterCutoff[2]" );
         iLightDiffuse3 = glGetUniformLocation( shader, "vxLightDiffuse[2]" );
         iLightSpecular3 = glGetUniformLocation( shader, "vxLightSpecular[2]" );
+        iLightIntensity3 = glGetUniformLocation( shader, "vxLightIntensity[2]" );
 		
         // Material
         iMatAmbiant = glGetUniformLocation( shader, "vxMatAmbiant" );
@@ -492,9 +495,8 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
     lsVector3 lightDir_view_space;
     if(light->getLight_type() == LSLT_SPOT)
     {
-        // The light's direction is its local +Z axis, to be consistent
-        // with the engine's camera convention (looking down +Z).
-        lsVector3 lightDir_local(0.0f, 0.0f, 1.0f);
+        // The light's direction is its local -Z axis.
+        lsVector3 lightDir_local(0.0f, 0.0f, -1.0f);
 
         // Transform it to world space using the light's model matrix (rotation only)
         lsVector3 lightDir_world = light->ModelMatrix.Rotate(lightDir_local);
@@ -511,6 +513,7 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 			glUniform1i( iLightType1, light->getLight_type() );
 			glUniform4f( iLightDiffuse1, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
 			glUniform4f( iLightSpecular1, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+			glUniform1f( iLightIntensity1, light->getIntensity() );
             if (light->getLight_type() == LSLT_SPOT)
             {
                 glUniform3f( iLightDir1, lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
@@ -524,6 +527,7 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 			glUniform1i( iLightType2, light->getLight_type() );
 			glUniform4f( iLightDiffuse2, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
 			glUniform4f( iLightSpecular2, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+			glUniform1f( iLightIntensity2, light->getIntensity() );
             if (light->getLight_type() == LSLT_SPOT) {
                 glUniform3f( iLightDir2, lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
                 glUniform1f( iLightCutoff2, cos(light->spot_cutoff * ANG2RAD) );
@@ -536,6 +540,7 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 			glUniform1i( iLightType3, light->getLight_type() );
 			glUniform4f( iLightDiffuse3, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
 			glUniform4f( iLightSpecular3, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+			glUniform1f( iLightIntensity3, light->getIntensity() );
             if (light->getLight_type() == LSLT_SPOT) {
                 glUniform3f( iLightDir3, lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
                 glUniform1f( iLightCutoff3, cos(light->spot_cutoff * ANG2RAD) );
@@ -549,4 +554,5 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 			break;
 	}
 }
+
 

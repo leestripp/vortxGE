@@ -19,9 +19,9 @@ public:
 	lsVector4 operator+(float s) const;
 	lsVector4 operator+(const lsVector4 &v) const;
 	lsVector4 operator-(const lsVector4 &v) const;
-	lsVector4 operator*(const lsVector4 &v);
-	lsVector4 operator*(float t);
-	lsVector4 operator/(float t);
+	lsVector4 operator*(const lsVector4 &v) const;
+	lsVector4 operator*(float t) const;
+	lsVector4 operator/(float t) const;
 	lsVector4 operator-() const;
 	
 	float length();

@@ -65,10 +65,10 @@ void lsNode_FirstPersonRig::handleInput(bool forward, bool backward, bool left, 
 
 void lsNode_FirstPersonRig::handleMouseLook(float deltaYaw, float deltaPitch)
 {
-    m_yaw -= deltaYaw * m_mouseSensitivity;
-    m_pitch += deltaPitch * m_mouseSensitivity; // Invert for standard controls
+    m_yaw += deltaYaw * m_mouseSensitivity;
+    m_pitch -= deltaPitch * m_mouseSensitivity;
 	
-    // Clamp pitch to avoid flipping
+    // Clamp pitch to avoid flipping over
     m_pitch = std::clamp(m_pitch, -89.0f, 89.0f);
 }
 
@@ -96,28 +96,28 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
     btRigidBody* body = m_bulletObject->getBody();
 
     // 1. Update Rotation from Mouse Input
-    // We directly set the transform's rotation to give us precise control over yaw.
+    // We apply yaw rotation directly to the rigid body's transform.
     btTransform trans = body->getWorldTransform();
-    btQuaternion yawQuat;
-    yawQuat.setEuler(m_yaw * ANG2RAD, 0, 0); // Yaw is around the Y-axis in Bullet
+    btQuaternion yawQuat(btVector3(0, 1, 0), m_yaw * ANG2RAD);
     trans.setRotation(yawQuat);
     body->setWorldTransform(trans);
 
     // 2. Update Velocity from Keyboard Input
-    // We set linear velocity directly instead of applying forces for more responsive, arcade-like movement.
+    // We set linear velocity directly for responsive, arcade-like movement.
     btVector3 currentVelocity = body->getLinearVelocity();
-    btVector3 desiredVelocity(0, currentVelocity.y(), 0); // Preserve gravity's effect on Y-axis
+    btVector3 desiredVelocity(0, currentVelocity.y(), 0); // Preserve Y velocity for gravity/jumping
 
     // Calculate forward and side vectors based on the current yaw.
-    // This ensures movement is always relative to where the player is looking.
-    btVector3 forwardDir(sin(m_yaw * ANG2RAD), 0, cos(m_yaw * ANG2RAD));
-    btVector3 sideDir(forwardDir.z(), 0, -forwardDir.x()); // 90-degree rotation for strafing
+    // This ensures movement is always relative to the player's view direction.
+    // Our convention: yaw is a CCW angle around the Y-axis.
+    btVector3 forwardDir(-sin(m_yaw * ANG2RAD), 0, -cos(m_yaw * ANG2RAD));
+    btVector3 sideDir(-cos(m_yaw * ANG2RAD), 0, sin(m_yaw * ANG2RAD)); // Left vector
 
     btVector3 moveDirection(0, 0, 0);
     if (m_moveForward)  moveDirection += forwardDir;
     if (m_moveBackward) moveDirection -= forwardDir;
-    if (m_strafeLeft)   moveDirection += sideDir;
-    if (m_strafeRight)  moveDirection -= sideDir;
+    if (m_strafeLeft)   moveDirection -= sideDir;
+    if (m_strafeRight)  moveDirection += sideDir;
 
     float currentSpeed = m_isCrouching ? m_crouchSpeed : (m_isSprinting ? m_sprintSpeed : m_walkSpeed);
     bool is_on_ground = onGround();
@@ -134,7 +134,7 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
     }
 
     if (m_wantsToJump && is_on_ground) {
-        desiredVelocity.setY(m_jumpSpeed); // Set vertical velocity for jump
+        desiredVelocity.setY(m_jumpSpeed); // Apply jump velocity
     }
 
     body->setLinearVelocity(desiredVelocity);
@@ -155,7 +155,7 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
 void lsNode_FirstPersonRig::Optimize(lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl)
 {
     // This node is not directly rendered, so it doesn't need to be added to the draw list.
-    // We still pass the call down to children (like the camera).
+    // We still pass the call down to its children (like the camera).
     if (getNode_list()) {
         getNode_list()->Optimize(cam, pass, scn, opengl);
     }

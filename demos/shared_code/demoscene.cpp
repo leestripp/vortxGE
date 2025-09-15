@@ -114,9 +114,9 @@ DemoScene::~DemoScene()
 }
 
 
-/* ********************
- * Setup
- * */
+// ************************************
+//  Setup
+// ************************************
 
 bool DemoScene::Init()
 {
@@ -206,7 +206,7 @@ void DemoScene::setupControls()
 			if( quad )
 			{
 				quad->setName( "Quad" );
-				quad->Set_Rot( 0, 180, 0 ); // Rotate to face camera.
+				quad->Set_Rot( 0, 180.0, 0 );
 
 				// Use quad asset
 				asset_quad = quad_scene->getAssetManager()->CreateAsset_Quad();
@@ -251,11 +251,12 @@ void DemoScene::setupControls()
 
 			// Add Player Rig
 			m_playerRig = new lsNode_FirstPersonRig(viewer_scene);
-			m_playerRig->Set_Pos(0, 5, -8); // Start a bit higher to fall into place
+			m_playerRig->Set_Pos(0, 5, 8); // Position camera to look at the scene from +Z
 			viewer_scene->Add_Node(m_playerRig);
 
 			lsCamera* playerCam = m_playerRig->getCamera();
-
+			playerCam->Set_Perspective(45.0, 1820.0 / 1080.0, 0.1, 1000.0);
+			
 			// create FBO pass
 			lsPass_FBO *pass_fbo = new lsPass_FBO( vortxge->getOpenGL() );
 			if( pass_fbo )
@@ -282,6 +283,7 @@ void DemoScene::setupControls()
 	}// if viewer
 }
 
+
 // ************************************
 //  Test Scene
 // ************************************
@@ -296,9 +298,14 @@ void DemoScene::setupTestScene()
 	spot_light = new lsLight_Spot(viewer_scene);
 	if(spot_light)
 	{
+		// void Set_Perspective( float view_angle, float width_ratio, float nplane, float fplane );
+		spot_light->Set_Perspective(45.0, 1.0, 0.1, 1000.0);
+		
 		spot_light->setName("Shadow Spot Light");
-		spot_light->Set_Pos(0, 15, -10);
-		spot_light->Set_Rot(45, 0, 0); // Pointing downwards at an angle
+		spot_light->Set_Pos(0, 15, 10); // Position light high and behind camera to cast shadows forward
+		spot_light->Set_Rot(-45, 0, 0); // Pointing downwards at an angle
+		spot_light->setIntensity(500.0f);
+		
 		viewer_scene->Add_Node(spot_light);
 		
 		// Add a debug empty to visualize the light's position and orientation
@@ -349,7 +356,7 @@ void DemoScene::setupTestScene()
 		
 		// Load Mesh asset
 		lsAsset_Mesh *asset_mesh;
-		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/Floor.vbm" );
+		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/floor.glb" );
 		asset_mesh->AllocAsset();
 		object->Set_Asset( asset_mesh );
 		
@@ -364,13 +371,14 @@ void DemoScene::setupTestScene()
 	{
 		object->setName( "Monkey" );
 		object->Set_Pos( -2.5, 1, 2 );
+		object->Set_Rot( 0, 180.0, 0 ); // Rotated to face the camera
 		object->Set_Scale( 1.0, 1.0, 1.0 );
 		object->setCasts_shadows(true);
 		object->setReceives_shadows(true);
 
 		// Load Mesh asset
 		lsAsset_Mesh *asset_mesh;
-		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/Monkey.vbm" );
+		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/monkey.glb" );
 		asset_mesh->AllocAsset();
 		object->Set_Asset( asset_mesh );
 
@@ -435,7 +443,7 @@ void DemoScene::setupObjectEmitter()
 
 	// Load Mesh asset
 	lsAsset_Mesh *asset_mesh;
-	asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/Cube_tex_dns.vbm" );
+	asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/cube.glb" );
 	if( asset_mesh )
 	{
 		asset_mesh->AllocAsset();
@@ -453,7 +461,7 @@ void DemoScene::setupObjectEmitter()
 	if( oe )
 	{
 		oe->setName( "Object Emitter" );
-		oe->Set_Pos( 0, 20, 20 );
+		oe->Set_Pos( 0, 20, -10 ); // Position emitter to drop objects in front of the camera
 		
 		oe->setEmit_life( 20 * 1000 ); // in ms
 		oe->setEmittime( 500 );	// in ms

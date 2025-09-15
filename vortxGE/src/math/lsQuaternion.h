@@ -1,5 +1,4 @@
-#ifndef LSQUATERNION_H
-#define LSQUATERNION_H
+#pragma once
 
 #include "lsMatrix4x4.h"
 
@@ -34,7 +33,4 @@ public:
 
 	// Data
 	float w, x, y, z;
-
 };
-
-#endif // LSQUATERNION_H

@@ -1,6 +1,4 @@
-
-#ifndef LSPASS_SHADOWMAP_H
-#define LSPASS_SHADOWMAP_H
+#pragma once
 
 #include "lsPass.h"
 
@@ -26,5 +24,3 @@ public:
 private:
     lsFBO_Depth *fbo;
 };
-
-#endif // LSPASS_SHADOWMAP_H

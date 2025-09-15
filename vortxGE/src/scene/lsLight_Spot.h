@@ -1,11 +1,8 @@
-#ifndef LSLIGHT_SPOT_H
-#define LSLIGHT_SPOT_H
+#pragma once
 
 #include "lsLight.h"
 
-/**
- A spot light scene object
- */
+
 class lsLight_Spot : public lsLight
 {
 public:
@@ -18,5 +15,3 @@ public:
 private:
 
 };
-
-#endif // LSLIGHT_SPOT_H

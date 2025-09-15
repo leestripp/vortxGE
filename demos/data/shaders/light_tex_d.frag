@@ -1,17 +1,14 @@
 #version 430
-#pragma debug(on)
-#pragma optimize(off)
 
 // textures
-uniform sampler2D tex_diffuse;
+uniform sampler2D tex_diffuse; // Albedo
 uniform sampler2D tex_shadowmap;
 uniform int use_shadowmap;
 
 // Lighting
-uniform mat3 nMatrix;
 uniform vec3 vxLightPos[3];
 uniform vec4 vxLightDiffuse[3];
-uniform vec4 vxLightSpecular[3];
+uniform float vxLightIntensity[3];
 uniform int vxLightType[3];
 uniform vec3 vxLightDir[3];
 uniform float vxLightCutoff[3];
@@ -19,15 +16,11 @@ uniform float vxLightOuterCutoff[3];
 uniform int vxLightCount;
 
 // Material
-uniform vec4 vxMatAmbiant;
-uniform vec4 vxMatDiffuse;
-uniform vec4 vxMatSpecular;
-uniform float vxMatShininess;
-uniform float vxMatGlow;
+uniform vec4 vxMatSpecular;    // .r = metallic
+uniform float vxMatShininess;  // mapped to roughness
 
 // from vertex shader
 in vec3 osVertex;
-in vec4 osColour;
 in vec3 osNormal;
 in vec3 osTangent;
 in vec2 osTexCoord;
@@ -36,68 +29,120 @@ in vec4 osShadowCoord;
 // output to frame buffer
 out vec4 fragColour;
 
-float calculateShadow(vec4 shadowCoord)
-{
+const float PI = 3.14159265359;
+
+// PBR Functions /////////////////////////////////////////////////////////////
+
+float DistributionGGX(vec3 N, vec3 H, float roughness) {
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+    float num = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
+    return num / max(denom, 0.000001);
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness) {
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0;
+    float num = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+    return num / denom;
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+    return ggx1 * ggx2;
+}
+
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+float calculateShadow(vec4 shadowCoord) {
     vec3 projCoords = shadowCoord.xyz / shadowCoord.w;
-    
-    // Don't shadow fragments outside of the light's frustum
-    if (projCoords.z > 1.0) {
-        return 1.0;
+
+    if (any(lessThan(projCoords.xyz, vec3(0.0))) || any(greaterThan(projCoords.xyz, vec3(1.0)))) {
+        return 1.0; // Not shadowed
     }
 
-    float closestDepth = texture(tex_shadowmap, projCoords.xy).r; 
+    float closestDepth = texture(tex_shadowmap, projCoords.xy).r;
     float currentDepth = projCoords.z;
-    
-    // With glPolygonOffset handling most of the work, we can use a much smaller bias.
-    float bias = 0.0005; 
-    
-    float shadow = currentDepth - bias > closestDepth  ? 0.3 : 1.0;
+    float bias = 0.0005;
+    float shadow = currentDepth - bias > closestDepth ? 0.3 : 1.0;
     
     return shadow;
 }
 
-void main(void)
-{
-    vec3 normal = normalize( osNormal );
-    vec3 viewVec = normalize( -osVertex );
+void main(void) {
+    // PBR properties
+    vec3 albedo = texture(tex_diffuse, osTexCoord).rgb;
+    float metallic = vxMatSpecular.r;
+    float roughness = clamp(1.0 - (vxMatShininess / 256.0), 0.05, 1.0);
+    float ao = 1.0;
 
-    // Lighting - lights are in camera space
-    vec3 lightVec;
-    vec3 reflectVec;
-    float spec;
-    vec3 ambientContrib = vxMatAmbiant.rgb;
-    vec3 specContrib = vec3(0.0);
-    vec3 diffContrib = vec3(0.0);
-    vec4 texColour = texture( tex_diffuse, osTexCoord );
+    // Vectors
+    vec3 N = normalize(osNormal);
+    vec3 V = normalize(-osVertex);
 
+    // Reflectivity at normal incidence (F0)
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo, metallic);
+
+    // Radiance accumulator
+    vec3 Lo = vec3(0.0);
+
+    // Shadow calculation
     float shadow = 1.0;
     if (use_shadowmap == 1) {
         shadow = calculateShadow(osShadowCoord);
     }
 
-    int i;
-    for( i=0; i<vxLightCount; i++ )
-    {
-        lightVec = normalize( vxLightPos[i] - osVertex );
-        reflectVec = reflect( -lightVec, normal );
-
-        float attenuation = 1.0;
-        if (vxLightType[i] == 2) // 2 is LSLT_SPOT
-        {
-            vec3 lightDirection = normalize(vxLightDir[i]);
-            float theta = dot(-lightVec, lightDirection);
-            attenuation = smoothstep(vxLightOuterCutoff[i], vxLightCutoff[i], theta);
+    // Loop over lights
+    for (int i = 0; i < vxLightCount; ++i) {
+        vec3 L = normalize(vxLightPos[i] - osVertex);
+        vec3 H = normalize(V + L);
+        float distance = length(vxLightPos[i] - osVertex);
+        
+        // Attenuation
+        float attenuation = 1.0 / (distance * distance);
+        
+        if (vxLightType[i] == 2) { // LSLT_SPOT
+            vec3 lightDir = normalize(vxLightDir[i]);
+            float theta = dot(-L, lightDir);
+            float spotEffect = smoothstep(vxLightOuterCutoff[i], vxLightCutoff[i], theta);
+            attenuation *= spotEffect;
         }
 
-        // Spec factor
-        spec = max( dot( reflectVec, viewVec ), 0.0 );
-        spec = pow( spec, vxMatShininess );
-        // Contribs
-        specContrib += vxMatSpecular.rgb * vxLightSpecular[i].rgb * spec * attenuation;
-        diffContrib += vxMatDiffuse.rgb * vxLightDiffuse[i].rgb * max( dot( lightVec, normal ), 0.0 ) * attenuation;
+        vec3 radiance = vxLightDiffuse[i].rgb * vxLightIntensity[i] * attenuation;
+
+        // Cook-Torrance BRDF
+        float NDF = DistributionGGX(N, H, roughness);
+        float G = GeometrySmith(N, V, L, roughness);
+        vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 numerator = NDF * G * F;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
+        vec3 specular = numerator / denominator;
+
+        vec3 kS = F;
+        vec3 kD = vec3(1.0) - kS;
+        kD *= 1.0 - metallic;
+
+        float NdotL = max(dot(N, L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
-    vec3 lightContrib = ambientContrib + (diffContrib + specContrib) * shadow;
+    // Ambient lighting
+    vec3 ambient = vec3(0.03) * albedo * ao;
+    vec3 color = ambient + (Lo * shadow);
 
-    fragColour = vec4( texColour.rgb * lightContrib, 1.0 );
+    fragColour = vec4(color, 1.0);
 }

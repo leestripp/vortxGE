@@ -6,10 +6,11 @@ lsLight_Spot::lsLight_Spot(lsNode* parent) : lsLight(parent)
     setLight_type(LSLT_SPOT);
     setName("Spot Light");
 
-    // Default spot light has a 45 degree cone and a 1:1 aspect ratio
-    Set_Perspective(60.0, 1.0, 1.0, 100.0);
-    spot_cutoff = 30.0f;
-    spot_outer_cutoff = 35.0f;
+    // Set more sensible defaults. The perspective FOV should match the outer cone angle.
+    // The demo scene will override the perspective settings anyway.
+    spot_cutoff = 20.0f;
+    spot_outer_cutoff = 22.5f;
+    Set_Perspective(spot_outer_cutoff * 2.0, 1.0, 0.1, 100.0);
 }
 
 lsLight_Spot::~lsLight_Spot()
