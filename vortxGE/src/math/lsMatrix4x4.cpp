@@ -237,7 +237,6 @@ void lsMatrix4x4::OrthographicProjection( float xMin, float xMax, float yMin, fl
     matrix[15] = 1.0;
 }
 
-
 float lsMatrix4x4::Cotangent(float angle)
 {
     return (float)(1.0 / tan(angle));
@@ -248,13 +247,12 @@ void lsMatrix4x4::LookAt( const lsVector3& eyePosition, const lsVector3& lookAt,
     lsMath math;
 
     // The "forward" vector is the direction from the eye to the target.
-    // In a right-handed system, the camera looks down its -Z axis, so the
-    // view's Z-axis is the opposite of the forward vector.
+    // In a right-handed system, the camera looks down its -Z axis.
     lsVector3 forward = lookAt - eyePosition;
     forward.normalize();
 
     // The "side" vector is the cross product of the forward vector and the world's up vector.
-    // This gives us the view's X-axis.
+    // This gives us the view's X-axis (right vector).
     lsVector3 side = math.Cross(forward, upVector);
     side.normalize();
 
@@ -262,14 +260,14 @@ void lsMatrix4x4::LookAt( const lsVector3& eyePosition, const lsVector3& lookAt,
     // This gives us the view's Y-axis.
     lsVector3 up = math.Cross(side, forward);
 
-    // The view matrix is the inverse of the camera's world transformation.
-    // For a rotation/translation matrix, Inverse(T*R) = Inverse(R) * Inverse(T).
-    // Inverse(R) is its transpose. Inverse(T) is a translation by -eyePosition.
-    // The resulting matrix transforms world coordinates to view coordinates.
+    // The view matrix transforms world coordinates to view (camera) coordinates.
+    // It's the inverse of the camera's world transformation matrix.
+    // For an orthonormal rotation matrix R and translation T, Inverse(T*R) = R^T * T^-1
     
     LoadIdentity();
 
-    // Set the rotation part (column-major)
+    // Set the rotation part (R^T), which is column-major.
+    // The rows of R^T are the basis vectors of the camera.
     matrix[0] = side.x;
     matrix[4] = side.y;
     matrix[8] = side.z;
@@ -282,10 +280,11 @@ void lsMatrix4x4::LookAt( const lsVector3& eyePosition, const lsVector3& lookAt,
     matrix[6] = -forward.y;
     matrix[10] = -forward.z;
 
-    // Set the translation part
+    // Set the translation part (-R^T * eyePosition)
     matrix[12] = -math.Dot(side, eyePosition);
     matrix[13] = -math.Dot(up, eyePosition);
-    matrix[14] = math.Dot(forward, eyePosition);
+    matrix[14] = math.Dot(forward, eyePosition); // This is -dot(-forward, eyePosition)
+    matrix[15] = 1.0f;
 }
 
 lsMatrix4x4& lsMatrix4x4::transpose( const lsMatrix4x4& m )

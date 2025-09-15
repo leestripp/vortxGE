@@ -24,9 +24,9 @@ lsLight::lsLight( lsNode* parent ) : lsCamera(parent)
     ambient = lsVector4( 0, 0, 0, 1.0 );
     diffuse = lsVector4( 1.0, 1.0, 1.0, 1.0 );
     specular = lsVector4( 1.0, 1.0, 1.0, 1.0 );
-    intensity = 1.0f;
+    intensity = 100.0f;
     spot_cutoff = 25.0;
-    spot_outer_cutoff = 35.0;
+    spot_outer_cutoff = 30.0;
 
     // shadow map
     tex_shadowmap = 0;

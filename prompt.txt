@@ -110,11 +110,5 @@ I'll FIX these! DO NOT change the controls. You keep messing them up.
 
 ---
 
-
-Objects and Light are now rendering again. All fixed.
-Shadows looking correct now.
-
 Next Steps, ONLY FOCUS on the following steps:
-
-
 

@@ -370,9 +370,6 @@ void DemoScene::setupTestScene()
 	if( object )
 	{
 		object->setName( "Monkey" );
-		object->Set_Pos( -2.5, 1, 2 );
-		object->Set_Rot( 0, 180.0, 0 ); // Rotated to face the camera
-		object->Set_Scale( 1.0, 1.0, 1.0 );
 		object->setCasts_shadows(true);
 		object->setReceives_shadows(true);
 
@@ -387,17 +384,16 @@ void DemoScene::setupTestScene()
 		viewer_scene->Add_Node( object );
 	}
 	
-	// Test a GLTF object.
 	// Cube
 	object = new lsObject( viewer_scene );
 	if( object )
 	{
 		object->setName( "GLTF_Cube" );
-		object->Set_Pos( 2.5, 1, 2 );
-		object->Set_Scale( 1.0, 1.0, 1.0 );
+		object->Set_Pos(-1.5, 1.0, 0);
+		// Shadows
 		object->setCasts_shadows(true);
 		object->setReceives_shadows(true);
-
+		
 		// Load Mesh asset
 		lsAsset_Mesh *asset_mesh;
 		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/cube.glb" );
@@ -500,9 +496,7 @@ void DemoScene::Render()
 	// cout << "DemoScene::Render END" << endl;
 }
 
-/*
- * Event Manager flags the event for deletion and deletes the event for us later.
- */
+
 void DemoScene::processEvent( lsEvent* event )
 {
 	switch( event->getEvent_type() )

@@ -17,11 +17,6 @@ const int LSBOT_KINEMATIC	=	2;
 
 class lsObject;
 
-//! Bullet Physics
-/*!
- * Creates a bullet shape to attach to a lsNode.
- *
- * */
 class lsBulletObject
 {
 public:
@@ -57,6 +52,4 @@ public:
 	btScalar 	mass;
 	btVector3 	position;
 	int			m_maxProxies;
-
 };
-

@@ -53,7 +53,7 @@ void lsPass_ShadowMap::Render()
         // Use polygon offset to combat shadow acne. This is more robust
         // than just shader-side bias or front-face culling.
         glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(4.0f, 4.0f);
+        glPolygonOffset(2.0f, 2.0f);
         
         fbo->ClearBuffers();
         

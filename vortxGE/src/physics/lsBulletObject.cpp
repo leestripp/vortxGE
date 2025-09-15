@@ -128,14 +128,21 @@ void lsBulletObject::AddToSim()
 void lsBulletObject::Apply_Physics( lsObject* obj )
 {
 	btScalar bm[16];
-
+	lsMatrix4x4 scaleMatrix;
+	lsMatrix4x4 bulletMatrix;
+	
 	btTransform trans;
 	body->getMotionState()->getWorldTransform(trans);
 	trans.getOpenGLMatrix( bm );
-
-	// New Matrix
-	obj->ModelMatrix.LoadIdentity();
-	obj->ModelMatrix = obj->ModelMatrix * bm;
+	
+	// Create a matrix from the bullet transform
+	bulletMatrix = bm;
+	
+	// Create a scale matrix from the object's scale property
+	scaleMatrix.ScaleMatrix(obj->scale.x, obj->scale.y, obj->scale.z);
+	
+	// Combine them: T * R * S
+	obj->ModelMatrix = bulletMatrix * scaleMatrix;
 }
 
 /*! Reset physics

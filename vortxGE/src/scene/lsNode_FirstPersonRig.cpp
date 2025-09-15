@@ -31,7 +31,8 @@ lsNode_FirstPersonRig::lsNode_FirstPersonRig(lsNode* parent) : lsObject(parent)
 	
     // 3. Configure the rigid body
     btRigidBody* body = m_bulletObject->getBody();
-    if (body) {
+    if(body)
+    {
         body->setAngularFactor(btVector3(0, 1, 0)); // Only allow rotation around Y (yaw)
         body->setSleepingThresholds(0.0, 0.0);      // Prevent player from sleeping
         body->setFriction(0.7f);
@@ -65,7 +66,7 @@ void lsNode_FirstPersonRig::handleInput(bool forward, bool backward, bool left, 
 
 void lsNode_FirstPersonRig::handleMouseLook(float deltaYaw, float deltaPitch)
 {
-    m_yaw += deltaYaw * m_mouseSensitivity;
+    m_yaw -= deltaYaw * m_mouseSensitivity;
     m_pitch -= deltaPitch * m_mouseSensitivity;
 	
     // Clamp pitch to avoid flipping over
@@ -116,8 +117,8 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
     btVector3 moveDirection(0, 0, 0);
     if (m_moveForward)  moveDirection += forwardDir;
     if (m_moveBackward) moveDirection -= forwardDir;
-    if (m_strafeLeft)   moveDirection -= sideDir;
-    if (m_strafeRight)  moveDirection += sideDir;
+    if (m_strafeLeft)   moveDirection += sideDir;
+    if (m_strafeRight)  moveDirection -= sideDir;
 
     float currentSpeed = m_isCrouching ? m_crouchSpeed : (m_isSprinting ? m_sprintSpeed : m_walkSpeed);
     bool is_on_ground = onGround();
