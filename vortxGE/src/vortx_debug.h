@@ -1,5 +1,8 @@
 #pragma once
 
+// Stats
+#define VORTX_DEBUG_STATS
+
 // Rendering
 // #define VORTX_DEBUG_OCCLUSION
 // #define VORTX_DEBUG_PASSES

@@ -16,6 +16,7 @@ License : Mit
 * Frustum culling.
 * Occlusion culling via passes and bounding mesh.
 * Object emitter with physics
+* Load GLTF or VBM Meshes.
 
 ## Simple examples showing how to use vortxGE with other libraries.
 * vortxGEdemo_gtkmm - gtkmm v4 example

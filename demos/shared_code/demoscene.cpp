@@ -304,7 +304,8 @@ void DemoScene::setupTestScene()
 		spot_light->setName("Shadow Spot Light");
 		spot_light->Set_Pos(0, 15, 10); // Position light high and behind camera to cast shadows forward
 		spot_light->Set_Rot(-45, 0, 0); // Pointing downwards at an angle
-		spot_light->setIntensity(500.0f);
+		// Watts.
+		spot_light->setIntensity(800.0f);
 		
 		viewer_scene->Add_Node(spot_light);
 		
