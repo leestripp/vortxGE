@@ -105,7 +105,7 @@ void lsObjectEmitter::EmitObject( lsScene *scn, lsOpenGL *opengl )
             bulletobject = new lsBulletObject( object, bulletshape->getShape(), scn->getBulletworld()->getMax_proxies() );
             if( bulletobject )
             {
-                bulletobject->Init( 1.0 ); // Mass 0 = static
+                bulletobject->Init( m_mass ); // Mass 0 = static
                 bulletobject->Set_Gravity( 0, -10, 0 );
                 // match position
                 bulletobject->Set_Position( ox, oy, oz );
@@ -204,6 +204,11 @@ lsAsset *lsObjectEmitter::getEmit_bulletshape() const
 void lsObjectEmitter::setEmit_bulletshape(lsAsset *value)
 {
     emit_bulletshape = value;
+}
+
+void lsObjectEmitter::setMass(double mass)
+{
+	m_mass = mass;
 }
 
 double lsObjectEmitter::getEmit_life() const

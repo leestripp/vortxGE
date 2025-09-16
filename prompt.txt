@@ -111,5 +111,8 @@ I'll FIX these! DO NOT change the controls. You keep messing them up.
 ---
 
 Next Steps, ONLY FOCUS on the following steps:
-In the demo's we once had them output the Stats from lsOpenGL. Where did they go?
+Lets adjust the Crouch on the Player Rig. Its far to small a movement. It only ducks about 0.1 usnits.
+
+
+
 

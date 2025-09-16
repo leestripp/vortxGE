@@ -38,14 +38,18 @@ protected:
     void processEvent( lsEvent* event );
 
 private:
-    vortxGE     *vortxge;
-
-    // Globals
-    lsScene *viewer_scene;
-    lsViewer *viewer;
+    vortxGE     *m_vortxge;
+	
+	// Quad controls.
+    lsScene *m_quad_scene;
+    lsViewer *m_quad_viewer;
+	
+    // Main Scene controls
+    lsScene *m_viewer_scene;
+    lsViewer *m_viewer;
     // lights
-    lsLight_Spot *spot_light;
-
+    lsLight_Spot *m_spot_light;
+	
     // Player Rig
     lsNode_FirstPersonRig* m_playerRig;
 };

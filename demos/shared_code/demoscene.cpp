@@ -2,7 +2,7 @@
 
 // GLEW
 #include <GL/glew.h>
-// vortxGE
+// m_vortxge
 #include <vortxGE.h>
 
 // Events
@@ -100,16 +100,22 @@ void GLAPIENTRY MessageCallback( GLenum source,
 
 DemoScene::DemoScene()
 {
-	m_playerRig = NULL;
-	spot_light = NULL;
+	m_quad_viewer = nullptr;
+	m_quad_scene = nullptr;
+	
+	m_viewer = nullptr;
+	m_viewer_scene = nullptr;
+	
+	m_playerRig = nullptr;
+	m_spot_light = nullptr;
 }
 
 DemoScene::~DemoScene()
 {
-	if (vortxge)
+	if(m_vortxge)
 	{
-		vortxge->Cleanup();
-		delete vortxge;
+		m_vortxge->Cleanup();
+		delete m_vortxge;
 	}
 }
 
@@ -122,9 +128,9 @@ bool DemoScene::Init()
 {
 	cout << "DemoScene::Init() called" << endl;
 
-	// create vortxge - must have an active GL context
-	vortxge = new vortxGE();
-	if( vortxge )
+	// create m_vortxge - must have an active GL context
+	m_vortxge = new vortxGE();
+	if( m_vortxge )
 	{
 		// start GLEW extension handler
 		glewExperimental = GL_TRUE;
@@ -134,7 +140,7 @@ bool DemoScene::Init()
 		glEnable( GL_DEBUG_OUTPUT );
 		glDebugMessageCallback( MessageCallback, 0 );
 
-		vortxge->Init();
+		m_vortxge->Init();
 
 		// Set some openGL defaults
 		glFrontFace( GL_CCW );
@@ -146,22 +152,22 @@ bool DemoScene::Init()
 
 	} else
 	{
-		cout << "ERROR: DemoScene::Init() : Can't create vortxGE instance." << endl;
+		cout << "ERROR: DemoScene::Init() : Can't create m_vortxge instance." << endl;
 		return false;
 	}
 
 	// Check GL errors
-	vortxge->getOpenGL()->CheckGLErrors( "DemoScene::Init() END" );
-
+	m_vortxge->getOpenGL()->CheckGLErrors( "DemoScene::Init() END" );
+	
 	return true;
 }
 
 void DemoScene::Resize( int x, int y, int w, int h )
 {
 	// cout << "DemoScene::Resize" << endl;
-
-	if(! vortxge ) return;
-	vortxge->Resize( x, y, w, h );
+	
+	if(! m_vortxge ) return;
+	m_vortxge->Resize( x, y, w, h );
 }
 
 // ************************************
@@ -174,95 +180,97 @@ void DemoScene::setupControls()
 
 	// pass_fbo needs to pass its texture to this.
 	lsAsset_Quad *asset_quad = NULL;
-
+	
 	// Add quad viewer control
-	lsViewer *quad_viewer = new lsViewer( vortxge->getOpenGL(), NULL );
-	if( quad_viewer )
+	m_quad_viewer = new lsViewer( m_vortxge->getOpenGL(), NULL );
+	if( m_quad_viewer )
 	{
-		quad_viewer->setName( "Quad Viewer" );
-
+		m_quad_viewer->setName( "Quad Viewer" );
+		
 		// Init
-		quad_viewer->Init();
-		vortxge->getControlManager()->Add_Control( quad_viewer );
-
+		m_quad_viewer->Init();
+		m_vortxge->getControlManager()->Add_Control( m_quad_viewer );
+		
 		// Create quad scene
-		lsScene *quad_scene = new lsScene( vortxge->getOpenGL(), 100.0, 1 );
-		if( quad_scene )
+		m_quad_scene = new lsScene( m_vortxge->getOpenGL(), 100.0, 1 );
+		if( m_quad_scene )
 		{
-			quad_viewer->getSceneManager()->Add_Scene( quad_scene );
-
+			m_quad_viewer->getSceneManager()->Add_Scene( m_quad_scene );
+			
 			// Add Camera
-			lsCamera *quad_camera = new lsCamera( quad_scene );
+			lsCamera *quad_camera = new lsCamera( m_quad_scene );
 			if( quad_camera )
 			{
 				// Orthographic camera defaults
 				quad_camera->Set_Orthographic( 1.0 );
 
-				quad_scene->Add_Node( quad_camera );
+				m_quad_scene->Add_Node( quad_camera );
 			}
 
 			// Create Quad
-			lsObject *quad = new lsObject( quad_scene );
+			lsObject *quad = new lsObject( m_quad_scene );
 			if( quad )
 			{
 				quad->setName( "Quad" );
 				quad->Set_Rot( 0, 180.0, 0 );
-
+				
 				// Use quad asset
-				asset_quad = quad_scene->getAssetManager()->CreateAsset_Quad();
+				asset_quad = m_quad_scene->getAssetManager()->CreateAsset_Quad();
 				asset_quad->AllocAsset();
 				quad->Set_Asset( asset_quad );
 
-				quad_scene->Add_Node( quad );
+				m_quad_scene->Add_Node( quad );
 			}
 
 			// Create Direct render Pass
-			lsPass_DR *pass_dr = new lsPass_DR( vortxge->getOpenGL() );
+			lsPass_DR *pass_dr = new lsPass_DR( m_vortxge->getOpenGL() );
 			if( pass_dr )
 			{
-				pass_dr->setBackground_colour( lsVector4( 0, 0, 0.5, 1.0 ) );
-
-				quad_viewer->getPassManager()->Add_Pass( pass_dr );
-				pass_dr->setScene( quad_scene );
+				// If the user see's this colour, Quad could be backwards, not rendering.
+				pass_dr->setBackground_colour( lsVector4( 0.5, 0, 0, 1.0 ) );
+				
+				m_quad_viewer->getPassManager()->Add_Pass( pass_dr );
+				pass_dr->setScene( m_quad_scene );
 				pass_dr->setCamera( quad_camera );
 				pass_dr->setCull_camera( quad_camera );
 			}
-		}// if( quad_scene )
-	}// if quad_viewer
-
-
+		}// if( m_quad_scene )
+	}// if m_quad_viewer
+	
+	
 	// Add demoscene viewer control
-	viewer = new lsViewer( vortxge->getOpenGL(), NULL );
-	if( viewer )
+	m_viewer = new lsViewer( m_vortxge->getOpenGL(), NULL );
+	if( m_viewer )
 	{
-		viewer->setName( "Demo Scene Viewer" );
+		m_viewer->setName( "Demo Scene Viewer" );
 
 		// Init
-		viewer->Init();
-		vortxge->getControlManager()->Add_Control( viewer );
+		m_viewer->Init();
+		m_vortxge->getControlManager()->Add_Control( m_viewer );
 
-		// Create viewer scene :
+		// Create viewer scene
 		// World size 1000 meters
 		// maxProxies - Set this high enough for your physics objects or they wont be added to the sim.
-		viewer_scene = new lsScene( vortxge->getOpenGL(), 1000.0, 1000 );
-		if( viewer_scene )
+		m_viewer_scene = new lsScene( m_vortxge->getOpenGL(), 1000.0, 1000 );
+		if( m_viewer_scene )
 		{
-			viewer->getSceneManager()->Add_Scene( viewer_scene );
+			m_viewer->getSceneManager()->Add_Scene( m_viewer_scene );
 
 			// Add Player Rig
-			m_playerRig = new lsNode_FirstPersonRig(viewer_scene);
+			m_playerRig = new lsNode_FirstPersonRig(m_viewer_scene);
 			m_playerRig->Set_Pos(0, 5, 8); // Position camera to look at the scene from +Z
-			viewer_scene->Add_Node(m_playerRig);
-
+			m_viewer_scene->Add_Node(m_playerRig);
+			
 			lsCamera* playerCam = m_playerRig->getCamera();
 			playerCam->Set_Perspective(45.0, 1820.0 / 1080.0, 0.1, 1000.0);
 			
-			// create FBO pass
-			lsPass_FBO *pass_fbo = new lsPass_FBO( vortxge->getOpenGL() );
+			// create FBO pass to render main scene too.
+			// This gets applied to the Quad.
+			lsPass_FBO *pass_fbo = new lsPass_FBO( m_vortxge->getOpenGL() );
 			if( pass_fbo )
 			{
 				// Create FBO textures at FHD 1920x1080 8bpp
-				lsFBO_ColourDepth_8 *lsfbo = new lsFBO_ColourDepth_8( 1920, 1080, vortxge->getOpenGL() );
+				lsFBO_ColourDepth_8 *lsfbo = new lsFBO_ColourDepth_8( 1920, 1080, m_vortxge->getOpenGL() );
 				if( lsfbo )
 				{
 					pass_fbo->setFBO( lsfbo );
@@ -270,14 +278,13 @@ void DemoScene::setupControls()
 					// Connect the Quad
 					asset_quad->Set_texture( lsfbo->getTexture() );
 				}
-
+				// Black background for our main scene.
 				pass_fbo->setBackground_colour( lsVector4( 0, 0, 0, 1.0 ) );
 
-				viewer->getPassManager()->Add_Pass( pass_fbo );
-				pass_fbo->setScene( viewer_scene );
+				m_viewer->getPassManager()->Add_Pass( pass_fbo );
+				pass_fbo->setScene( m_viewer_scene );
 				pass_fbo->setCamera( playerCam );
 				pass_fbo->setCull_camera( playerCam );
-
 			}// if pass_fbo
 		}// if viewer_scene
 	}// if viewer
@@ -295,49 +302,49 @@ void DemoScene::setupTestScene()
 	lsObject *debug_empty;
 	
 	// Create a spot light for shadows
-	spot_light = new lsLight_Spot(viewer_scene);
-	if(spot_light)
+	m_spot_light = new lsLight_Spot(m_viewer_scene);
+	if(m_spot_light)
 	{
 		// void Set_Perspective( float view_angle, float width_ratio, float nplane, float fplane );
-		spot_light->Set_Perspective(45.0, 1.0, 0.1, 1000.0);
+		m_spot_light->Set_Perspective(45.0, 1.0, 0.1, 100.0);
 		
-		spot_light->setName("Shadow Spot Light");
-		spot_light->Set_Pos(0, 15, 10); // Position light high and behind camera to cast shadows forward
-		spot_light->Set_Rot(-45, 0, 0); // Pointing downwards at an angle
+		m_spot_light->setName("Shadow Spot Light");
+		m_spot_light->Set_Pos(0, 15, 10); // Position light high and behind camera to cast shadows forward
+		m_spot_light->Set_Rot(-45, 0, 0); // Pointing downwards at an angle
 		// Watts.
-		spot_light->setIntensity(800.0f);
+		m_spot_light->setIntensity(800.0f);
 		
-		viewer_scene->Add_Node(spot_light);
+		m_viewer_scene->Add_Node(m_spot_light);
 		
 		// Add a debug empty to visualize the light's position and orientation
-		debug_empty = new lsObject(spot_light);
+		debug_empty = new lsObject(m_spot_light);
 		if(debug_empty)
 		{
 			lsAsset_MeshGuide_Empty *asset_empty;
-			asset_empty = viewer_scene->getAssetManager()->CreateAsset_MeshGuide_Empty();
+			asset_empty = m_viewer_scene->getAssetManager()->CreateAsset_MeshGuide_Empty();
 			asset_empty->AllocAsset();
 			debug_empty->Set_Asset(asset_empty);
-			spot_light->Add_Node(debug_empty);
+			m_spot_light->Add_Node(debug_empty);
 		}
 	}
 	
 	// The main render pass needs to be added before the shadow pass, because lsPassManager
 	// adds new passes to the front of the list. This ensures the shadow pass runs first.
 	// The main FBO pass is already added in setupControls(), so we can add the shadow pass here.
-	lsPass_ShadowMap *pass_shadow = new lsPass_ShadowMap(0, 0, 1024, 1024, vortxge->getOpenGL());
+	lsPass_ShadowMap *pass_shadow = new lsPass_ShadowMap(0, 0, 1024, 1024, m_vortxge->getOpenGL());
 	if(pass_shadow)
 	{
-		pass_shadow->setScene(viewer_scene);
-		pass_shadow->setCamera(spot_light); // The light acts as the camera for the depth pass
-		pass_shadow->setCull_camera(spot_light); // Culling is also from the light's perspective
-		pass_shadow->setLight(spot_light);
-		viewer->getPassManager()->Add_Pass(pass_shadow);
+		pass_shadow->setScene(m_viewer_scene);
+		pass_shadow->setCamera(m_spot_light); // The light acts as the camera for the depth pass
+		pass_shadow->setCull_camera(m_spot_light); // Culling is also from the light's perspective
+		pass_shadow->setLight(m_spot_light);
+		m_viewer->getPassManager()->Add_Pass(pass_shadow);
 		
 		// Link the generated depth texture to the light so shaders can access it
-		if(spot_light && pass_shadow->getFBO())
+		if(m_spot_light && pass_shadow->getFBO())
 		{
-			spot_light->setHas_shadowmap(true);
-			spot_light->setTex_shadowmap(pass_shadow->getFBO()->getDepthTexture());
+			m_spot_light->setHas_shadowmap(true);
+			m_spot_light->setTex_shadowmap(pass_shadow->getFBO()->getDepthTexture());
 		} else
 		{
 				cerr << "ERROR: No spot light or depth FBO found for Shadow pass." << endl;
@@ -348,7 +355,7 @@ void DemoScene::setupTestScene()
 	lsObject *object;
 
 	// Floor
-	object = new lsObject( viewer_scene );
+	object = new lsObject( m_viewer_scene );
 	if( object )
 	{
 		object->setName( "Floor" );
@@ -357,17 +364,17 @@ void DemoScene::setupTestScene()
 		
 		// Load Mesh asset
 		lsAsset_Mesh *asset_mesh;
-		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/floor.glb" );
+		asset_mesh = m_viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/floor.glb" );
 		asset_mesh->AllocAsset();
 		object->Set_Asset( asset_mesh );
 		
 		// Assign the shadow-casting light to this object
-		object->getLightManager()->Add_Light( spot_light );
-		viewer_scene->Add_Node( object );
+		object->getLightManager()->Add_Light( m_spot_light );
+		m_viewer_scene->Add_Node( object );
 	}
 
 	// Monkey
-	object = new lsObject( viewer_scene );
+	object = new lsObject( m_viewer_scene );
 	if( object )
 	{
 		object->setName( "Monkey" );
@@ -376,17 +383,17 @@ void DemoScene::setupTestScene()
 
 		// Load Mesh asset
 		lsAsset_Mesh *asset_mesh;
-		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/monkey.glb" );
+		asset_mesh = m_viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/monkey.glb" );
 		asset_mesh->AllocAsset();
 		object->Set_Asset( asset_mesh );
 
 		// Assign the shadow-casting light to this object
-		object->getLightManager()->Add_Light( spot_light );
-		viewer_scene->Add_Node( object );
+		object->getLightManager()->Add_Light( m_spot_light );
+		m_viewer_scene->Add_Node( object );
 	}
 	
 	// Cube
-	object = new lsObject( viewer_scene );
+	object = new lsObject( m_viewer_scene );
 	if( object )
 	{
 		object->setName( "GLTF_Cube" );
@@ -397,13 +404,13 @@ void DemoScene::setupTestScene()
 		
 		// Load Mesh asset
 		lsAsset_Mesh *asset_mesh;
-		asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/cube.glb" );
+		asset_mesh = m_viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/cube.glb" );
 		asset_mesh->AllocAsset();
 		object->Set_Asset( asset_mesh );
 
 		// Assign the shadow-casting light to this object
-		object->getLightManager()->Add_Light( spot_light );
-		viewer_scene->Add_Node( object );
+		object->getLightManager()->Add_Light( m_spot_light );
+		m_viewer_scene->Add_Node( object );
 	}
 	
 	// Object emitter
@@ -413,87 +420,95 @@ void DemoScene::setupTestScene()
 void DemoScene::setupObjectEmitter()
 {
 	lsObject *object;
-
+	
 	// Floor Collision
-	object = new lsObject( viewer_scene );
+	object = new lsObject( m_viewer_scene );
 	if( object )
 	{
 		object->setName( "Floor Collsion" );
 
 		// Create bullet shape
-		lsAsset_BulletShape_Plane *asset_bsp = viewer_scene->getAssetManager()->CreateAsset_BulletShape_Plane( 0, 1, 0 );
+		lsAsset_BulletShape_Plane *asset_bsp = m_viewer_scene->getAssetManager()->CreateAsset_BulletShape_Plane( 0, 1, 0 );
 		if( asset_bsp )
 		{
 			asset_bsp->AllocAsset();
-
+			
 			lsBulletShape *bulletshape;
 			bulletshape = (lsBulletShape *)asset_bsp->getData();
-
+			
 			// create a bullet object
-			lsBulletObject *bo = new lsBulletObject( object, bulletshape->getShape(), viewer_scene->getBulletworld()->getMax_proxies() );
-
+			lsBulletObject *bo = new lsBulletObject( object, bulletshape->getShape(), m_viewer_scene->getBulletworld()->getMax_proxies() );
+			
 			// Connects it all up and checks btcollisonWorld before adding ridged body.
 			bo->Init( 0.0 ); // 0 = static
 		}
-		viewer_scene->Add_Node( object );
+		m_viewer_scene->Add_Node( object );
 	}
 
 	// Load Mesh asset
 	lsAsset_Mesh *asset_mesh;
-	asset_mesh = viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/cube.glb" );
+	asset_mesh = m_viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/cube.glb" );
 	if( asset_mesh )
 	{
 		asset_mesh->AllocAsset();
 	} else return;
-
+	
 	// Create bullet shape
-	lsAsset_BulletShape_Box *asset_bs = viewer_scene->getAssetManager()->CreateAsset_BulletShape_Box( 1.0, 1.0, 1.0 );
+	lsAsset_BulletShape_Box *asset_bs = m_viewer_scene->getAssetManager()->CreateAsset_BulletShape_Box( 1.0, 1.0, 1.0 );
 	if( asset_bs )
 	{
 		asset_bs->AllocAsset();
 	} else return;
-
+	
 	// Add emitter to scene
-	lsObjectEmitter *oe = new lsObjectEmitter( asset_mesh, asset_bs, viewer_scene );
+	lsObjectEmitter *oe = new lsObjectEmitter( asset_mesh, asset_bs, m_viewer_scene );
 	if( oe )
 	{
 		oe->setName( "Object Emitter" );
-		oe->Set_Pos( 0, 20, -10 ); // Position emitter to drop objects in front of the camera
-		
+		oe->Set_Pos( 0, 20, -15 ); // Position emitter to drop objects in front of the camera
+		oe->setMass(50.0); // Set mass of emitted objects.
 		oe->setEmit_life( 20 * 1000 ); // in ms
 		oe->setEmittime( 500 );	// in ms
-		oe->setEmit_light( spot_light );
 		
-		viewer_scene->Add_Node( oe );
+		oe->setEmit_light( m_spot_light );
+		
+		m_viewer_scene->Add_Node( oe );
 	}
 }
 
 void DemoScene::Update( double delta )
 {
-	// process scene events
 	lsEvent *e;
-	while( (e = viewer_scene->Poll_Event()) )
+	
+	// quad scene events.
+	while( (e = m_quad_scene->Poll_Event()) )
+	{
+		// Discard.
+	}
+	
+	// process scene events
+	while( (e = m_viewer_scene->Poll_Event()) )
 	{
 		processEvent( e );
 	}
 	
-	// vortxGE update
-	if( vortxge )
+	// m_vortxge update
+	if( m_vortxge )
 	{
-		vortxge->Update( delta );
+		m_vortxge->Update( delta );
 	}
 }
 
 void DemoScene::Render()
 {
 	// cout << "DemoScene::Render START" << endl;
-
-	// vortxGE Render
-	if( vortxge )
+	
+	// Render
+	if( m_vortxge )
 	{
-		vortxge->Render();
+		m_vortxge->Render();
 	}
-
+	
 	// cout << "DemoScene::Render END" << endl;
 }
 
