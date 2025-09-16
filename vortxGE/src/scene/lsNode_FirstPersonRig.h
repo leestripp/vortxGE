@@ -25,10 +25,12 @@ public:
 
 private:
     bool onGround();
+    void updateCapsuleShape();
 
     lsCamera* m_camera;
     lsBulletObject* m_bulletObject;
-    lsAsset_BulletShape_Pill* m_shapeAsset;
+    lsAsset_BulletShape_Pill* m_standShapeAsset;
+    lsAsset_BulletShape_Pill* m_crouchShapeAsset;
 
     float m_yaw = 0.0f;
     float m_pitch = 0.0f;
@@ -41,16 +43,19 @@ private:
     bool m_wantsToJump = false;
     bool m_isSprinting = false;
     bool m_isCrouching = false;
+    bool m_wasCrouching = false; // To detect state changes
 
     // Movement parameters
-    float m_walkSpeed = 5.0f;
-    float m_sprintSpeed = 8.0f;
-    float m_crouchSpeed = 2.5f;
-    float m_jumpSpeed = 14.0f;
-    float m_mouseSensitivity = 0.1f;
+    const float m_walkSpeed = 5.0f;
+    const float m_sprintSpeed = 8.0f;
+    const float m_crouchSpeed = 2.5f;
+    const float m_jumpSpeed = 14.0f;
+    const float m_mouseSensitivity = 0.1f;
 	
     // Camera and capsule dimensions
-    float m_crouchedCamHeight = 0.4f; // Relative to rig's center
-    float m_standingCamHeight = 0.5f; // Relative to rig's center (Total height 2, camera at 1.5 from floor)
-    float m_capsuleHeight = 1.0f;     // The cylindrical part of the capsule
+    const float m_capsuleRadius = 0.5f;
+    const float m_standingCapsuleHeight = 1.0f;
+    const float m_crouchingCapsuleHeight = 0.2f;
+    const float m_standingCamHeight = 0.5f;   // Relative to rig's center
+    const float m_crouchedCamHeight = 0.0f;   // Relative to rig's center
 };

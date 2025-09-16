@@ -1,4 +1,5 @@
 #include "lsNode_FirstPersonRig.h"
+
 #include "lsScene.h"
 #include "lsCamera.h"
 #include "../physics/lsBulletObject.h"
@@ -9,7 +10,8 @@
 #include "../math/lsMath.h"
 #include <cmath> // For sin, cos
 
-lsNode_FirstPersonRig::lsNode_FirstPersonRig(lsNode* parent) : lsObject(parent)
+lsNode_FirstPersonRig::lsNode_FirstPersonRig(lsNode* parent) 
+    : lsObject(parent), m_wasCrouching(false)
 {
     setNode_type(LSNT_FIRSTPERSONRIG);
     setName("FirstPersonRig");
@@ -20,12 +22,14 @@ lsNode_FirstPersonRig::lsNode_FirstPersonRig(lsNode* parent) : lsObject(parent)
         return;
     }
 	
-    // 1. Create the physics shape asset (Radius 0.5, Height 1.0 -> Total height 2.0)
-    m_shapeAsset = scene->getAssetManager()->CreateAsset_BulletShape_Pill(0.5f, m_capsuleHeight);
-    m_shapeAsset->AllocAsset();
+    // 1. Create the physics shape assets for standing and crouching
+    m_standShapeAsset = scene->getAssetManager()->CreateAsset_BulletShape_Pill(m_capsuleRadius, m_standingCapsuleHeight);
+    m_standShapeAsset->AllocAsset();
+    m_crouchShapeAsset = scene->getAssetManager()->CreateAsset_BulletShape_Pill(m_capsuleRadius, m_crouchingCapsuleHeight);
+    m_crouchShapeAsset->AllocAsset();
 
-    // 2. Create the bullet object
-    lsBulletShape* bulletShape = static_cast<lsBulletShape*>(m_shapeAsset->getData());
+    // 2. Create the bullet object with the standing shape
+    lsBulletShape* bulletShape = static_cast<lsBulletShape*>(m_standShapeAsset->getData());
     m_bulletObject = new lsBulletObject(this, bulletShape->getShape(), scene->getBulletworld()->getMax_proxies());
     m_bulletObject->Init(80.0f); // Mass of 80kg
 	
@@ -50,8 +54,9 @@ lsNode_FirstPersonRig::lsNode_FirstPersonRig(lsNode* parent) : lsObject(parent)
 lsNode_FirstPersonRig::~lsNode_FirstPersonRig()
 {
     // lsBulletObject is deleted by lsObject's destructor
-    // m_shapeAsset is managed by the AssetManager
+    // m_standShapeAsset and m_crouchShapeAsset are managed by the AssetManager
 }
+
 
 void lsNode_FirstPersonRig::handleInput(bool forward, bool backward, bool left, bool right, bool jump, bool sprint, bool crouch)
 {
@@ -73,13 +78,40 @@ void lsNode_FirstPersonRig::handleMouseLook(float deltaYaw, float deltaPitch)
     m_pitch = std::clamp(m_pitch, -89.0f, 89.0f);
 }
 
+void lsNode_FirstPersonRig::updateCapsuleShape()
+{
+    if (!m_bulletObject || !m_bulletObject->getBody()) return;
+
+    btRigidBody* body = m_bulletObject->getBody();
+    btCollisionShape* newShape = nullptr;
+
+    if (m_isCrouching) {
+        newShape = static_cast<lsBulletShape*>(m_crouchShapeAsset->getData())->getShape();
+    } else {
+        newShape = static_cast<lsBulletShape*>(m_standShapeAsset->getData())->getShape();
+    }
+
+    if (body->getCollisionShape() != newShape) {
+        body->setCollisionShape(newShape);
+        
+        // When changing shape, the physics world needs to be updated about the object's AABB
+        lsScene* scene = Get_Scene();
+        if (scene && scene->getBulletworld() && scene->getBulletworld()->getDynamicsWorld()) {
+            btDynamicsWorld* world = scene->getBulletworld()->getDynamicsWorld();
+            world->removeRigidBody(body);
+            world->addRigidBody(body);
+        }
+    }
+}
+
 bool lsNode_FirstPersonRig::onGround()
 {
     if (!m_bulletObject || !m_bulletObject->getBody()) return false;
 	
     btVector3 start = m_bulletObject->getBody()->getWorldTransform().getOrigin();
+    float currentCapsuleHeight = m_isCrouching ? m_crouchingCapsuleHeight : m_standingCapsuleHeight;
     // Ray starts from the center and goes down just past the bottom of the capsule
-    btVector3 end = start - btVector3(0, m_capsuleHeight * 0.5f + 0.6f, 0);
+    btVector3 end = start - btVector3(0, currentCapsuleHeight * 0.5f + m_capsuleRadius + 0.1f, 0);
 	
     btCollisionWorld::ClosestRayResultCallback rayCallback(start, end);
     Get_Scene()->getBulletworld()->getDynamicsWorld()->rayTest(start, end, rayCallback);
@@ -92,6 +124,12 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
     if (!m_bulletObject || !m_bulletObject->getBody()) {
         lsObject::Move(scn, opengl, delta); // Fallback to base behavior if no physics
         return;
+    }
+
+    // Check for crouch state change and update physics shape
+    if (m_isCrouching != m_wasCrouching) {
+        updateCapsuleShape();
+        m_wasCrouching = m_isCrouching;
     }
 
     btRigidBody* body = m_bulletObject->getBody();
@@ -109,8 +147,6 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
     btVector3 desiredVelocity(0, currentVelocity.y(), 0); // Preserve Y velocity for gravity/jumping
 
     // Calculate forward and side vectors based on the current yaw.
-    // This ensures movement is always relative to the player's view direction.
-    // Our convention: yaw is a CCW angle around the Y-axis.
     btVector3 forwardDir(-sin(m_yaw * ANG2RAD), 0, -cos(m_yaw * ANG2RAD));
     btVector3 sideDir(-cos(m_yaw * ANG2RAD), 0, sin(m_yaw * ANG2RAD)); // Left vector
 
@@ -134,7 +170,7 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
         desiredVelocity.setZ(0);
     }
 
-    if (m_wantsToJump && is_on_ground) {
+    if (m_wantsToJump && is_on_ground && !m_isCrouching) {
         desiredVelocity.setY(m_jumpSpeed); // Apply jump velocity
     }
 
@@ -144,8 +180,8 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
     // --- 3. Update Camera ---
     // Adjust camera height for crouching
     float targetCamHeight = m_isCrouching ? m_crouchedCamHeight : m_standingCamHeight;
-    m_camera->position.y = targetCamHeight; // This is a local position relative to the rig
-    // Apply pitch (up/down look) as a local rotation to the camera
+    // Simple lerp for smooth transition
+    m_camera->position.y = m_camera->position.y * 0.9f + targetCamHeight * 0.1f;
     m_camera->Set_Rot(m_pitch, 0, 0);
 
     // --- 4. Update Node Transform ---

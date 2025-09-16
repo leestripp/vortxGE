@@ -111,7 +111,6 @@ I'll FIX these! DO NOT change the controls. You keep messing them up.
 ---
 
 Next Steps, ONLY FOCUS on the following steps:
-Lets adjust the Crouch on the Player Rig. Its far to small a movement. It only ducks about 0.1 usnits.
 
 
 
