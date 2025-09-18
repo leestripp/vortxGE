@@ -114,6 +114,6 @@ Convex Hull and TriMesh bullet shapes creates.
 Test of new bullet shapes in demo scene done and working.
 
 Next Steps, ONLY FOCUS on the following steps:
-
+lsNode_FirstPersonRig: Lets fix the issue where when Jumping, the movement speed slows down a lot. If I'm sprinting it should carry that momentum in the air. same with walk.
 
 

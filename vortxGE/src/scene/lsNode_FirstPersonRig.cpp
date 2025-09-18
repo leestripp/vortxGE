@@ -10,11 +10,14 @@
 #include "../math/lsMath.h"
 #include <cmath> // For sin, cos
 
+
 lsNode_FirstPersonRig::lsNode_FirstPersonRig(lsNode* parent) 
-    : lsObject(parent), m_wasCrouching(false)
+    : lsObject(parent), m_wasCrouching(false), m_wasOnGround(true)
 {
     setNode_type(LSNT_FIRSTPERSONRIG);
     setName("FirstPersonRig");
+
+    m_airborneHorizontalVelocity.setZero(); // Initialize momentum
 
     lsScene* scene = Get_Scene();
     if (!scene) {
@@ -141,15 +144,15 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
     trans.setRotation(yawQuat);
     body->setWorldTransform(trans);
 
-    // 2. Update Velocity from Keyboard Input
-    // We set linear velocity directly for responsive, arcade-like movement.
+    // 2. Update Velocity
     btVector3 currentVelocity = body->getLinearVelocity();
-    btVector3 desiredVelocity(0, currentVelocity.y(), 0); // Preserve Y velocity for gravity/jumping
+    btVector3 desiredVelocity(0, currentVelocity.y(), 0); // Start with Y velocity preserved for gravity
 
-    // Calculate forward and side vectors based on the current yaw.
+    bool is_on_ground = onGround();
+
+    // Calculate desired horizontal velocity from input
     btVector3 forwardDir(-sin(m_yaw * ANG2RAD), 0, -cos(m_yaw * ANG2RAD));
-    btVector3 sideDir(-cos(m_yaw * ANG2RAD), 0, sin(m_yaw * ANG2RAD)); // Left vector
-
+    btVector3 sideDir(-cos(m_yaw * ANG2RAD), 0, sin(m_yaw * ANG2RAD));
     btVector3 moveDirection(0, 0, 0);
     if (m_moveForward)  moveDirection += forwardDir;
     if (m_moveBackward) moveDirection -= forwardDir;
@@ -157,22 +160,38 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
     if (m_strafeRight)  moveDirection -= sideDir;
 
     float currentSpeed = m_isCrouching ? m_crouchSpeed : (m_isSprinting ? m_sprintSpeed : m_walkSpeed);
-    bool is_on_ground = onGround();
-
+    
+    btVector3 inputHorizontalVelocity(0,0,0);
     if (moveDirection.length2() > 0.0f) {
         moveDirection.normalize();
-        desiredVelocity.setX(moveDirection.x() * currentSpeed);
-        desiredVelocity.setZ(moveDirection.z() * currentSpeed);
-    } else {
-        // If there's no input, we want to stop horizontal movement.
-        // The high linear damping on the rigid body will handle this smoothly.
-        desiredVelocity.setX(0);
-        desiredVelocity.setZ(0);
+        inputHorizontalVelocity = moveDirection * currentSpeed;
     }
 
-    if (m_wantsToJump && is_on_ground && !m_isCrouching) {
-        desiredVelocity.setY(m_jumpSpeed); // Apply jump velocity
+    if (is_on_ground)
+    {
+        // On ground, velocity is directly controlled by input
+        desiredVelocity.setX(inputHorizontalVelocity.getX());
+        desiredVelocity.setZ(inputHorizontalVelocity.getZ());
+        
+        if (m_wantsToJump && !m_isCrouching) {
+            desiredVelocity.setY(m_jumpSpeed);
+            // Store the horizontal velocity at the moment of jumping to preserve it in the air
+            m_airborneHorizontalVelocity = inputHorizontalVelocity;
+        }
     }
+    else // In air
+    {
+        // Check if we just left the ground (e.g., walked off a ledge)
+        if (m_wasOnGround) {
+            m_airborneHorizontalVelocity.setX(currentVelocity.getX());
+            m_airborneHorizontalVelocity.setZ(currentVelocity.getZ());
+        }
+        // Maintain the horizontal velocity we had when we left the ground
+        desiredVelocity.setX(m_airborneHorizontalVelocity.getX());
+        desiredVelocity.setZ(m_airborneHorizontalVelocity.getZ());
+    }
+
+    m_wasOnGround = is_on_ground;
 
     body->setLinearVelocity(desiredVelocity);
     body->activate(true); // Ensure the body doesn't go to sleep

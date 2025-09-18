@@ -2,6 +2,7 @@
 
 #include "lsObject.h"
 #include <algorithm> // For std::clamp
+#include <LinearMath/btVector3.h> // For btVector3
 
 // Forward declarations
 class lsCamera;
@@ -44,6 +45,8 @@ private:
     bool m_isSprinting = false;
     bool m_isCrouching = false;
     bool m_wasCrouching = false; // To detect state changes
+    bool m_wasOnGround = true;   // To detect leaving/landing on ground
+    btVector3 m_airborneHorizontalVelocity; // To preserve momentum while airborne
 
     // Movement parameters
     const float m_walkSpeed = 5.0f;
