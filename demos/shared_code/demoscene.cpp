@@ -27,6 +27,8 @@
 // bullet
 #include <assets/lsAsset_BulletShape_Box.h>
 #include <assets/lsAsset_BulletShape_Plane.h>
+#include <assets/lsAsset_BulletShape_ConvexHull.h>
+#include <assets/lsAsset_BulletShape_TriMesh.h>
 
 // Physics
 #include <physics/lsBulletObject.h>
@@ -378,6 +380,7 @@ void DemoScene::setupTestScene()
 	if( object )
 	{
 		object->setName( "Monkey" );
+		object->Set_Pos(-1.5, 5.0, 0);
 		object->setCasts_shadows(true);
 		object->setReceives_shadows(true);
 
@@ -386,6 +389,16 @@ void DemoScene::setupTestScene()
 		asset_mesh = m_viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/monkey.glb" );
 		asset_mesh->AllocAsset();
 		object->Set_Asset( asset_mesh );
+
+		// Add Convex Hull physics
+		lsAsset_BulletShape_ConvexHull* asset_bsh = m_viewer_scene->getAssetManager()->CreateAsset_BulletShape_ConvexHull(asset_mesh);
+		if (asset_bsh)
+		{
+			asset_bsh->AllocAsset();
+			lsBulletShape* bulletshape = static_cast<lsBulletShape*>(asset_bsh->getData());
+			lsBulletObject* bo = new lsBulletObject(object, bulletshape->getShape(), m_viewer_scene->getBulletworld()->getMax_proxies());
+			bo->Init(10.0f); // 10kg mass, dynamic
+		}
 
 		// Assign the shadow-casting light to this object
 		object->getLightManager()->Add_Light( m_spot_light );
@@ -407,6 +420,16 @@ void DemoScene::setupTestScene()
 		asset_mesh = m_viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/cube.glb" );
 		asset_mesh->AllocAsset();
 		object->Set_Asset( asset_mesh );
+
+		// Add TriMesh physics
+		lsAsset_BulletShape_TriMesh* asset_bst = m_viewer_scene->getAssetManager()->CreateAsset_BulletShape_TriMesh(asset_mesh);
+		if (asset_bst)
+		{
+			asset_bst->AllocAsset();
+			lsBulletShape* bulletshape = static_cast<lsBulletShape*>(asset_bst->getData());
+			lsBulletObject* bo = new lsBulletObject(object, bulletshape->getShape(), m_viewer_scene->getBulletworld()->getMax_proxies());
+			bo->Init(0.0f); // 0 mass, static
+		}
 
 		// Assign the shadow-casting light to this object
 		object->getLightManager()->Add_Light( m_spot_light );
