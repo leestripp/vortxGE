@@ -111,11 +111,9 @@ I'll FIX these! DO NOT change the controls. You keep messing them up.
 ---
 
 Convex Hull and TriMesh bullet shapes creates.
+Test of new bullet shapes in demo scene done and working.
 
 Next Steps, ONLY FOCUS on the following steps:
-Lets test the new bullet shapes out.
-Add the convex Hull bullet shape on the monkey.glb object.
-Add the TriMesh bullet shape on the single Cube object.
 
 
 

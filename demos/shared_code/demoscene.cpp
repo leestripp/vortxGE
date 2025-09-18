@@ -374,13 +374,14 @@ void DemoScene::setupTestScene()
 		object->getLightManager()->Add_Light( m_spot_light );
 		m_viewer_scene->Add_Node( object );
 	}
-
+	
 	// Monkey
 	object = new lsObject( m_viewer_scene );
 	if( object )
 	{
 		object->setName( "Monkey" );
-		object->Set_Pos(-1.5, 5.0, 0);
+		object->Set_Pos(1.5, 2.0, 0);
+		object->Set_Rot(-45, 0, 0);
 		object->setCasts_shadows(true);
 		object->setReceives_shadows(true);
 
@@ -398,8 +399,11 @@ void DemoScene::setupTestScene()
 			lsBulletShape* bulletshape = static_cast<lsBulletShape*>(asset_bsh->getData());
 			lsBulletObject* bo = new lsBulletObject(object, bulletshape->getShape(), m_viewer_scene->getBulletworld()->getMax_proxies());
 			bo->Init(10.0f); // 10kg mass, dynamic
+			
+			// Line up shape with object.
+			bo->Reset_Physics(object);
 		}
-
+		
 		// Assign the shadow-casting light to this object
 		object->getLightManager()->Add_Light( m_spot_light );
 		m_viewer_scene->Add_Node( object );
@@ -429,8 +433,11 @@ void DemoScene::setupTestScene()
 			lsBulletShape* bulletshape = static_cast<lsBulletShape*>(asset_bst->getData());
 			lsBulletObject* bo = new lsBulletObject(object, bulletshape->getShape(), m_viewer_scene->getBulletworld()->getMax_proxies());
 			bo->Init(0.0f); // 0 mass, static
+			
+			// Line up shape with object.
+			bo->Reset_Physics(object);
 		}
-
+		
 		// Assign the shadow-casting light to this object
 		object->getLightManager()->Add_Light( m_spot_light );
 		m_viewer_scene->Add_Node( object );
