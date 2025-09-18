@@ -16,15 +16,10 @@ class lsAsset_BulletShape_Box;
 class lsAsset_BulletShape_Sphere;
 class lsAsset_BulletShape_Pill;
 class lsAsset_BulletShape_ConvexHull;
-class lsAsset_BulletShape_TriangleMesh;
+class lsAsset_BulletShape_TriMesh;
 
 using namespace std;
 
-//! Manage Assets
-/**
- * Create Assets. Auto cleanup.
- *
- * */
 
 class lsAssetManager
 {
@@ -44,6 +39,8 @@ public:
     lsAsset_BulletShape_Plane* CreateAsset_BulletShape_Plane( float vectorX, float vectorY, float vectorZ );
     lsAsset_BulletShape_Box* CreateAsset_BulletShape_Box( float x, float y, float z );
     lsAsset_BulletShape_Pill* CreateAsset_BulletShape_Pill( float radius, float height );
+    lsAsset_BulletShape_ConvexHull* CreateAsset_BulletShape_ConvexHull(lsAsset_Mesh* meshAsset);
+    lsAsset_BulletShape_TriMesh* CreateAsset_BulletShape_TriMesh(lsAsset_Mesh* meshAsset);
     // Debug Guides
     lsAsset_MeshGuide_Empty* CreateAsset_MeshGuide_Empty();
     lsAsset_MeshGuide_Grid* CreateAsset_MeshGuide_Grid();

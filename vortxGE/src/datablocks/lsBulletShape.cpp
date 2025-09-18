@@ -10,6 +10,8 @@
 // datablocks
 #include "lsString.h"
 #include "lsBatch_Bullet.h"
+#include "lsMesh.h"
+#include "lsBatch_Mesh.h"
 
 #include "lsBulletShape.h"
 
@@ -61,7 +63,7 @@ void lsBulletShape::Make_Pill( float radius, float height )
 }
 
 // ###########################
-// From vbm file
+// From file
 
 void lsBulletShape::Make_ConvexHull( const string& filename, lsOpenGL *opengl )
 {
@@ -201,6 +203,97 @@ void lsBulletShape::Make_TriMesh( const string& filename, float size )
 	if( batch ) delete batch;
 }
 
+void lsBulletShape::Make_ConvexHull_FromMesh( lsMesh* mesh )
+{
+    if (!mesh) return;
+
+    lsBatch_Bullet* batch = new lsBatch_Bullet(ogl);
+    if (!batch) return;
+
+    // Estimate total vertices to pre-allocate
+    int totalVerts = 0;
+    lsBatch* currentBatch = mesh->getBatch_list();
+    while (currentBatch) {
+        if (currentBatch->getBatch_type() == LSBT_MESH) {
+            totalVerts += static_cast<lsBatch_Mesh*>(currentBatch)->getVertCount();
+        }
+        currentBatch = currentBatch->getNext_batch();
+    }
+    batch->Begin(totalVerts);
+
+    // Add vertices from all batches
+    currentBatch = mesh->getBatch_list();
+    while (currentBatch) {
+        if (currentBatch->getBatch_type() == LSBT_MESH) {
+            lsBatch_Mesh* meshBatch = static_cast<lsBatch_Mesh*>(currentBatch);
+            Vector3f* verts = meshBatch->getVerts();
+            int vertCount = meshBatch->getVertCount();
+            for (int i = 0; i < vertCount; ++i) {
+                batch->AddPoint(verts[i]);
+            }
+        }
+        currentBatch = currentBatch->getNext_batch();
+    }
+
+    shape = batch->End_ConvexHull();
+    setMem_used(sizeof(btConvexHullShape)); // Approximation
+    delete batch;
+}
+
+void lsBulletShape::Make_TriMesh_FromMesh( lsMesh* mesh )
+{
+    if (!mesh) return;
+
+    lsBatch_Bullet* batch = new lsBatch_Bullet(ogl);
+    if (!batch) return;
+
+    // Estimate total vertices and indices
+    int totalVerts = 0;
+    int totalIndices = 0;
+    lsBatch* currentBatch = mesh->getBatch_list();
+    while (currentBatch) {
+        if (currentBatch->getBatch_type() == LSBT_MESH) {
+            lsBatch_Mesh* meshBatch = static_cast<lsBatch_Mesh*>(currentBatch);
+            totalVerts += meshBatch->getVertCount();
+            totalIndices += meshBatch->getIndexCount();
+        }
+        currentBatch = currentBatch->getNext_batch();
+    }
+    batch->Begin(totalIndices); // Begin expects max vertices, but for trimesh it's more about indices
+
+    // Add triangles from all batches
+    currentBatch = mesh->getBatch_list();
+    while (currentBatch) {
+        if (currentBatch->getBatch_type() == LSBT_MESH) {
+            lsBatch_Mesh* meshBatch = static_cast<lsBatch_Mesh*>(currentBatch);
+            Vector3f* verts = meshBatch->getVerts();
+            GLushort* indices = meshBatch->getIndices();
+            int indexCount = meshBatch->getIndexCount();
+
+            for (int i = 0; i < indexCount; i += 3) {
+                Vector3f triangle[3];
+                triangle[0][0] = verts[indices[i]][0];
+                triangle[0][1] = verts[indices[i]][1];
+                triangle[0][2] = verts[indices[i]][2];
+
+                triangle[1][0] = verts[indices[i+1]][0];
+                triangle[1][1] = verts[indices[i+1]][1];
+                triangle[1][2] = verts[indices[i+1]][2];
+
+                triangle[2][0] = verts[indices[i+2]][0];
+                triangle[2][1] = verts[indices[i+2]][1];
+                triangle[2][2] = verts[indices[i+2]][2];
+                batch->AddTriangle(triangle);
+            }
+        }
+        currentBatch = currentBatch->getNext_batch();
+    }
+
+    shape = batch->End_TriMesh(mesh->getBSphere().radius);
+    setMem_used(sizeof(btBvhTriangleMeshShape)); // Approximation
+    delete batch;
+}
+
 btCollisionShape* lsBulletShape::getShape()
 {
 	if(! shape )
@@ -210,4 +303,5 @@ btCollisionShape* lsBulletShape::getShape()
 		return shape;
 	} else return shape;
 }
+
 

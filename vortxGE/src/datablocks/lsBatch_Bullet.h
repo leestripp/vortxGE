@@ -1,5 +1,4 @@
-#ifndef vortxGE_lsBatch_Bullet_h
-#define vortxGE_lsBatch_Bullet_h
+#pragma once
 
 #include "lsBatch.h"
 #include "../opengl/lsOpenGL.h"
@@ -30,6 +29,7 @@ public:
     void Update( double delta );
 
 	void Begin( GLuint nMaxVerts );
+	void AddPoint( Vector3f vert );
 	void AddTriangle( Vector3f verts[3] );
 	btBvhTriangleMeshShape*  End_TriMesh( float size );
 	btConvexHullShape*  End_ConvexHull();
@@ -50,6 +50,3 @@ private:
 	GLushort *pIndexes;
 	Vector3f *pVerts;
 };
-
-
-#endif

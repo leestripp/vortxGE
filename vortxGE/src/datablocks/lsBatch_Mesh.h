@@ -1,5 +1,4 @@
-#ifndef LSBATCH_MESH_H
-#define LSBATCH_MESH_H
+#pragma once
 
 // math
 #include "../math/lsVector2.h"
@@ -47,6 +46,24 @@ public:
 	// Animation Properties
 	void Add_Property( lsProperty* p );
 
+    // Getters for bullet shape creation
+    Vector3f* getVerts() const { return pVerts; }
+    GLushort* getIndices() const { return pIndex; }
+    int getVertCount() const { return count_verts; }
+    int getIndexCount() const { return count_tris; }
+	
+	// Material
+	lsVector4 diffuse;
+	lsVector4 specular;
+	lsVector4 ambiant;
+	GLfloat shininess;
+	GLfloat transparent;
+	GLfloat glow;
+	// Textures
+	GLuint tex_diffuse;
+	GLuint tex_normal;
+	GLuint tex_specular;
+
 private:
 	GLuint vao_mesh;
 	GLuint bufferObjects[6];
@@ -69,20 +86,4 @@ private:
 	lsAnimationManager *animationmanager;
 	// Properties
 	lsProperty *property_list;
-
-public:
-	// Material
-	lsVector4 diffuse;
-	lsVector4 specular;
-	lsVector4 ambiant;
-	GLfloat shininess;
-	GLfloat transparent;
-	GLfloat glow;
-	// Textures
-	GLuint tex_diffuse;
-	GLuint tex_normal;
-	GLuint tex_specular;
-
 };
-
-#endif // LSBATCH_MESH_H

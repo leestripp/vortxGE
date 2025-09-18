@@ -18,6 +18,8 @@ const int LSAT_BULLETSHAPE_BOX      = 4;
 const int LSAT_BULLETSHAPE_SPHERE   = 5;
 const int LSAT_BULLETSHAPE_PILL     = 6;
 const int LSAT_QUAD                 = 7;
+const int LSAT_BULLETSHAPE_CONVEXHULL = 8;
+const int LSAT_BULLETSHAPE_TRIMESH    = 9;
 // vortxEDIT
 const int LSAT_MESHGUIDE_EMPTY      = 1000;
 const int LSAT_MESHGUIDE_GRID       = 1001;
@@ -29,15 +31,6 @@ class lsData;
 using namespace std;
 
 
-/**
- * @brief Base class for all Assets
- *
- * To create a new asset use the functions in lsAssetManager
- *
- * AllocAsset() and FreeAsset() are used to manage your data, this makes it possibe to create
- * a dynamic asset when needed etc...
- *
- */
 class lsAsset
 {
 public:

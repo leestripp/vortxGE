@@ -111,7 +111,9 @@ I'll FIX these! DO NOT change the controls. You keep messing them up.
 ---
 
 Next Steps, ONLY FOCUS on the following steps:
-
+Lets create the last 2 Bullet shapes. Convex Hull and TriMesh.
+Edit lsBulletShape and create 2 new assets for the bullet shapes.
+I'd like to be able to load these new shapes from both gltf, glb and vbm files.
 
 
 

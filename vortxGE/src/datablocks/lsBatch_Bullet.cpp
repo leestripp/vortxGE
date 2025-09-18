@@ -102,12 +102,6 @@ void lsBatch_Bullet::Clear_GLdata()
 	// Not used.
 }
 
-
-//! Convex Hull
-/*!
- * Uses points for simple convex hull collisions.
- *
- * */
 btConvexHullShape* lsBatch_Bullet::End_ConvexHull()
 {
 	btVector3 point;
@@ -124,11 +118,6 @@ btConvexHullShape* lsBatch_Bullet::End_ConvexHull()
 	return hull;
 }
 
-//! Static Meshes
-/*!
- * Used for static mesh collisions.
- *
- * */
 btBvhTriangleMeshShape* lsBatch_Bullet::End_TriMesh( float size )
 {
 	// Add verticies
@@ -162,6 +151,32 @@ btBvhTriangleMeshShape* lsBatch_Bullet::End_TriMesh( float size )
 
 	Cleanup();
 	return meshshape;
+}
+
+void lsBatch_Bullet::AddPoint( Vector3f vert )
+{
+	const float e = 0.00001; // How small a difference to equate
+
+    // Search for match
+    GLuint iMatch = 0;
+    for( iMatch = 0; iMatch < nNumVerts; iMatch++ )
+    {
+        // If the vertex positions are the same
+        if( CloseEnough( pVerts[iMatch][0], vert[0], e ) &&
+            CloseEnough( pVerts[iMatch][1], vert[1], e ) &&
+            CloseEnough( pVerts[iMatch][2], vert[2], e ) )
+        {
+            // It's a duplicate, do nothing.
+            return;
+        }
+    }
+
+    // No match for this vertex, add to end of list
+    if( nNumVerts < nMaxIndexes )
+    {
+        memcpy( pVerts[nNumVerts], vert, sizeof(Vector3f));
+        nNumVerts++;
+    }
 }
 
 

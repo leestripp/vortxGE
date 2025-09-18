@@ -19,6 +19,8 @@
 #include "lsAsset_BulletShape_Plane.h"
 #include "lsAsset_BulletShape_Box.h"
 #include "lsAsset_BulletShape_Pill.h"
+#include "lsAsset_BulletShape_ConvexHull.h"
+#include "lsAsset_BulletShape_TriMesh.h"
 // guides
 #include "lsAsset_MeshGuide_Empty.h"
 #include "lsAsset_MeshGuide_Grid.h"
@@ -186,6 +188,34 @@ lsAsset_BulletShape_Pill* lsAssetManager::CreateAsset_BulletShape_Pill( float ra
     lsAsset_BulletShape_Pill *asset;
 
     asset = new lsAsset_BulletShape_Pill( radius, height );
+    if( asset )
+    {
+        asset->setAssetManager( this );
+        Add_Asset( asset );
+    }
+
+    return asset;
+}
+
+lsAsset_BulletShape_ConvexHull* lsAssetManager::CreateAsset_BulletShape_ConvexHull(lsAsset_Mesh* meshAsset)
+{
+    lsAsset_BulletShape_ConvexHull *asset;
+
+    asset = new lsAsset_BulletShape_ConvexHull( meshAsset );
+    if( asset )
+    {
+        asset->setAssetManager( this );
+        Add_Asset( asset );
+    }
+
+    return asset;
+}
+
+lsAsset_BulletShape_TriMesh* lsAssetManager::CreateAsset_BulletShape_TriMesh(lsAsset_Mesh* meshAsset)
+{
+    lsAsset_BulletShape_TriMesh *asset;
+
+    asset = new lsAsset_BulletShape_TriMesh( meshAsset );
     if( asset )
     {
         asset->setAssetManager( this );

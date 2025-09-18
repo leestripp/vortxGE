@@ -6,10 +6,9 @@
 #include "lsData.h"
 
 class btCollisionShape;
+class lsMesh;
 
-/**
- Holds the basic Bullet Shape to be attached to a lsBulletObject used by lsObjects
- */
+
 class lsBulletShape : public lsData
 {
 public:
@@ -23,14 +22,15 @@ public:
 	void Make_Box( float x, float y, float z );
 	void Make_Sphere( float r );
 	void Make_Pill( float radius, float height );
-	// From vbm file via lsBatch_Buller
+	// From vbm file via lsBatch_Bullet
 	void Make_ConvexHull( const string& filename, lsOpenGL *opengl );
     void Make_TriMesh( const string& filename, float size = 1.0 );
-
+	// From lsMesh
+	void Make_ConvexHull_FromMesh( lsMesh* mesh );
+    void Make_TriMesh_FromMesh( lsMesh* mesh );
+	
 	btCollisionShape *getShape();
 	
 private:
     btCollisionShape *shape;
-
 };
-
