@@ -124,5 +124,8 @@ add_object `monkey` `Scene` (1.469434, 1.177816, 0.076992) (0.000000, -0.000000,
 ```
 
 Next Steps, ONLY FOCUS on the following steps:
-export_scene.py Blender script
-Object X axis is wrong, it need to be rotated +90 degrees.
+Blender 4.5 export_scene.py script
+We need to export the objects to data/meshes/ in glb (gltf) format
+Export embeded textures, uv's, normals, tangents and apply modifiers.
+Allways give the full script to me.
+
