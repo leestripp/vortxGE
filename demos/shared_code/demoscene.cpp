@@ -64,11 +64,8 @@
 #include <scene/lsObject.h>
 #include <scene/lsObjectEmitter.h>
 #include <scene/lsCamera.h>
-#include <scene/lsLight_Spot.h>
 #include <scene/lsNode_FirstPersonRig.h> // Include the new rig
-
-// Light manager
-#include <lights/lsLightManager.h>
+#include <scene/lsLightManager.h>
 
 // Animation
 #include <animation/lsAnimationManager.h>
@@ -109,7 +106,6 @@ DemoScene::DemoScene()
 	m_viewer_scene = nullptr;
 	
 	m_playerRig = nullptr;
-	m_spot_light = nullptr;
 }
 
 DemoScene::~DemoScene()
@@ -299,210 +295,33 @@ void DemoScene::setupControls()
 
 void DemoScene::setupTestScene()
 {
-	cout << "DemoScene::setupTestScene() called" << endl;
+	// Create an infinite ground plane for physics
+	lsObject* ground = new lsObject(m_viewer_scene);
+	ground->setName("GroundPlane");
+	// This object is not rendered, so no mesh asset is needed.
 	
-	lsObject *debug_empty;
-	
-	// Create a spot light for shadows
-	m_spot_light = new lsLight_Spot(m_viewer_scene);
-	if(m_spot_light)
-	{
-		// void Set_Perspective( float view_angle, float width_ratio, float nplane, float fplane );
-		m_spot_light->Set_Perspective(45.0, 1.0, 0.1, 100.0);
-		
-		m_spot_light->setName("Shadow Spot Light");
-		m_spot_light->Set_Pos(0, 15, 10); // Position light high and behind camera to cast shadows forward
-		m_spot_light->Set_Rot(-45, 0, 0); // Pointing downwards at an angle
-		// Watts.
-		m_spot_light->setIntensity(800.0f);
-		
-		m_viewer_scene->Add_Node(m_spot_light);
-		
-		// Add a debug empty to visualize the light's position and orientation
-		debug_empty = new lsObject(m_spot_light);
-		if(debug_empty)
-		{
-			lsAsset_MeshGuide_Empty *asset_empty;
-			asset_empty = m_viewer_scene->getAssetManager()->CreateAsset_MeshGuide_Empty();
-			asset_empty->AllocAsset();
-			debug_empty->Set_Asset(asset_empty);
-			m_spot_light->Add_Node(debug_empty);
-		}
-	}
-	
-	// The main render pass needs to be added before the shadow pass, because lsPassManager
-	// adds new passes to the front of the list. This ensures the shadow pass runs first.
-	// The main FBO pass is already added in setupControls(), so we can add the shadow pass here.
-	lsPass_ShadowMap *pass_shadow = new lsPass_ShadowMap(0, 0, 1024, 1024, m_vortxge->getOpenGL());
-	if(pass_shadow)
-	{
-		pass_shadow->setScene(m_viewer_scene);
-		pass_shadow->setCamera(m_spot_light); // The light acts as the camera for the depth pass
-		pass_shadow->setCull_camera(m_spot_light); // Culling is also from the light's perspective
-		pass_shadow->setLight(m_spot_light);
-		m_viewer->getPassManager()->Add_Pass(pass_shadow);
-		
-		// Link the generated depth texture to the light so shaders can access it
-		if(m_spot_light && pass_shadow->getFBO())
-		{
-			m_spot_light->setHas_shadowmap(true);
-			m_spot_light->setTex_shadowmap(pass_shadow->getFBO()->getDepthTexture());
-		} else
-		{
-				cerr << "ERROR: No spot light or depth FBO found for Shadow pass." << endl;
-		}
-	}
-	
-	// Add some test Objects
-	lsObject *object;
+	// The plane is defined by its normal vector and a constant.
+	// For a ground plane at y=0, the normal is (0, 1, 0).
+	lsAsset_BulletShape_Plane* planeShapeAsset = m_viewer_scene->getAssetManager()->CreateAsset_BulletShape_Plane(0, 1, 0);
+	planeShapeAsset->AllocAsset();
+	lsBulletShape* planeShape = static_cast<lsBulletShape*>(planeShapeAsset->getData());
 
-	// Floor
-	object = new lsObject( m_viewer_scene );
-	if( object )
-	{
-		object->setName( "Floor" );
-		object->setCasts_shadows(false); // The floor doesn't need to cast shadows on itself
-		object->setReceives_shadows(true);
-		
-		// Load Mesh asset
-		lsAsset_Mesh *asset_mesh;
-		asset_mesh = m_viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/floor.glb" );
-		asset_mesh->AllocAsset();
-		object->Set_Asset( asset_mesh );
-		
-		// Assign the shadow-casting light to this object
-		object->getLightManager()->Add_Light( m_spot_light );
-		m_viewer_scene->Add_Node( object );
-	}
+	lsBulletObject* bulletObject = new lsBulletObject(ground, planeShape->getShape(), m_viewer_scene->getBulletworld()->getMax_proxies());
+	bulletObject->Init(0.0f); // Mass 0 for static object
+	ground->setBulletObject(bulletObject);
+	m_viewer_scene->Add_Node(ground);
 	
-	// Monkey
-	object = new lsObject( m_viewer_scene );
-	if( object )
-	{
-		object->setName( "Monkey" );
-		object->Set_Pos(1.5, 2.0, 0);
-		object->Set_Rot(-45, 0, 0);
-		object->setCasts_shadows(true);
-		object->setReceives_shadows(true);
+	// Load the demoscene.vgs file
+	if (m_viewer) {
+		m_viewer->getSceneManager()->LoadSceneFromFile("data/demoscene.vgs", m_viewer_scene);
 
-		// Load Mesh asset
-		lsAsset_Mesh *asset_mesh;
-		asset_mesh = m_viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/monkey.glb" );
-		asset_mesh->AllocAsset();
-		object->Set_Asset( asset_mesh );
+        // Manually trigger a single Move pass to update ModelMatrix for all nodes
+        // This is necessary so that nodes have their correct world positions for light linking.
+        m_viewer_scene->Move(m_viewer_scene, m_vortxge->getOpenGL(), 0.0); // Update scene's own matrix
+        m_viewer_scene->MoveThread(m_viewer_scene, m_vortxge->getOpenGL(), 0.0); // Update all children recursively
 
-		// Add Convex Hull physics
-		lsAsset_BulletShape_ConvexHull* asset_bsh = m_viewer_scene->getAssetManager()->CreateAsset_BulletShape_ConvexHull(asset_mesh);
-		if (asset_bsh)
-		{
-			asset_bsh->AllocAsset();
-			lsBulletShape* bulletshape = static_cast<lsBulletShape*>(asset_bsh->getData());
-			lsBulletObject* bo = new lsBulletObject(object, bulletshape->getShape(), m_viewer_scene->getBulletworld()->getMax_proxies());
-			bo->Init(10.0f); // 10kg mass, dynamic
-			
-			// Line up shape with object.
-			bo->Reset_Physics(object);
-		}
-		
-		// Assign the shadow-casting light to this object
-		object->getLightManager()->Add_Light( m_spot_light );
-		m_viewer_scene->Add_Node( object );
-	}
-	
-	// Cube
-	object = new lsObject( m_viewer_scene );
-	if( object )
-	{
-		object->setName( "GLTF_Cube" );
-		object->Set_Pos(-1.5, 1.0, 0);
-		// Shadows
-		object->setCasts_shadows(true);
-		object->setReceives_shadows(true);
-		
-		// Load Mesh asset
-		lsAsset_Mesh *asset_mesh;
-		asset_mesh = m_viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/cube.glb" );
-		asset_mesh->AllocAsset();
-		object->Set_Asset( asset_mesh );
-
-		// Add TriMesh physics
-		lsAsset_BulletShape_TriMesh* asset_bst = m_viewer_scene->getAssetManager()->CreateAsset_BulletShape_TriMesh(asset_mesh);
-		if (asset_bst)
-		{
-			asset_bst->AllocAsset();
-			lsBulletShape* bulletshape = static_cast<lsBulletShape*>(asset_bst->getData());
-			lsBulletObject* bo = new lsBulletObject(object, bulletshape->getShape(), m_viewer_scene->getBulletworld()->getMax_proxies());
-			bo->Init(0.0f); // 0 mass, static
-			
-			// Line up shape with object.
-			bo->Reset_Physics(object);
-		}
-		
-		// Assign the shadow-casting light to this object
-		object->getLightManager()->Add_Light( m_spot_light );
-		m_viewer_scene->Add_Node( object );
-	}
-	
-	// Object emitter
-	setupObjectEmitter();
-}
-
-void DemoScene::setupObjectEmitter()
-{
-	lsObject *object;
-	
-	// Floor Collision
-	object = new lsObject( m_viewer_scene );
-	if( object )
-	{
-		object->setName( "Floor Collsion" );
-
-		// Create bullet shape
-		lsAsset_BulletShape_Plane *asset_bsp = m_viewer_scene->getAssetManager()->CreateAsset_BulletShape_Plane( 0, 1, 0 );
-		if( asset_bsp )
-		{
-			asset_bsp->AllocAsset();
-			
-			lsBulletShape *bulletshape;
-			bulletshape = (lsBulletShape *)asset_bsp->getData();
-			
-			// create a bullet object
-			lsBulletObject *bo = new lsBulletObject( object, bulletshape->getShape(), m_viewer_scene->getBulletworld()->getMax_proxies() );
-			
-			// Connects it all up and checks btcollisonWorld before adding ridged body.
-			bo->Init( 0.0 ); // 0 = static
-		}
-		m_viewer_scene->Add_Node( object );
-	}
-
-	// Load Mesh asset
-	lsAsset_Mesh *asset_mesh;
-	asset_mesh = m_viewer_scene->getAssetManager()->CreateAsset_Mesh( "data/meshes/gltf/cube.glb" );
-	if( asset_mesh )
-	{
-		asset_mesh->AllocAsset();
-	} else return;
-	
-	// Create bullet shape
-	lsAsset_BulletShape_Box *asset_bs = m_viewer_scene->getAssetManager()->CreateAsset_BulletShape_Box( 1.0, 1.0, 1.0 );
-	if( asset_bs )
-	{
-		asset_bs->AllocAsset();
-	} else return;
-	
-	// Add emitter to scene
-	lsObjectEmitter *oe = new lsObjectEmitter( asset_mesh, asset_bs, m_viewer_scene );
-	if( oe )
-	{
-		oe->setName( "Object Emitter" );
-		oe->Set_Pos( 0, 20, -15 ); // Position emitter to drop objects in front of the camera
-		oe->setMass(50.0); // Set mass of emitted objects.
-		oe->setEmit_life( 20 * 1000 ); // in ms
-		oe->setEmittime( 500 );	// in ms
-		
-		oe->setEmit_light( m_spot_light );
-		
-		m_viewer_scene->Add_Node( oe );
+        // After loading and updating transforms, link lights to objects
+        m_viewer->getSceneManager()->LinkLightsInScene(m_viewer_scene);
 	}
 }
 

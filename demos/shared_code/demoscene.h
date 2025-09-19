@@ -10,7 +10,6 @@ class lsViewer;
 class lsObject;
 class lsCamera;
 class lsEvent;
-class lsLight_Spot;
 class lsNode_FirstPersonRig;
 
 using namespace std;
@@ -47,8 +46,6 @@ private:
     // Main Scene controls
     lsScene *m_viewer_scene;
     lsViewer *m_viewer;
-    // lights
-    lsLight_Spot *m_spot_light;
 	
     // Player Rig
     lsNode_FirstPersonRig* m_playerRig;

@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <thread>
@@ -8,20 +9,13 @@
 class lsBulletWorld;
 class lsEvent;
 class lsObject;
-class lsAssetManager; // Forward declaration
+class lsAssetManager;
+class lsLightManager;
+
 
 using namespace std;
 
-/*!
- * \brief The lsScene class must be used for any Scene.
- *
- * The base node for any scene in vortxGE.\n
- * \n
- * Holds an Event Manager that controls all nodes in this scene. e.g. To delete a scene object just create an Event and the Scene node will take care of it safely.\n
- * \n
- * maxProxies - Make sure you set this high enough to cover all your ridged bodies (bullet physics) or bullet will crash.\n
- *
- */
+
 class lsScene : public lsNode
 {
 public:
@@ -47,18 +41,18 @@ public:
 
     // Save data
     virtual const string& toString();
-
-
+	
+	
     lsObject* getDraw_list() const
     {
         return draw_list;
     }
-
+	
     lsNode* getFound_node() const
     {
         return found_node;
     }
-
+	
     void setFound_node( lsNode* val )
     {
         found_node = val;
@@ -81,6 +75,11 @@ public:
         return m_assetManager;
     }
 
+    lsLightManager* getLightManager() const
+    {
+        return m_lightManager;
+    }
+	
 private:
     lsObject* draw_list;
 
@@ -90,10 +89,11 @@ private:
     lsBulletWorld   *bulletworld;
     // Assets
     lsAssetManager* m_assetManager;
+    // Lights
+    lsLightManager* m_lightManager;
     // Found node
     lsNode* found_node;
-
+	
     // Threads
     mutex m_mutex;
 };
-

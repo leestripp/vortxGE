@@ -14,10 +14,7 @@
 #include "../scene/lsObject.h"
 #include "../scene/lsCamera.h"
 #include "../scene/lsLight.h"
-
-// Lights
-#include "../lights/lsLightManager.h"
-#include "../lights/lsLightPtr.h"
+#include "../scene/lsLightManager.h"
 
 // datablocks
 #include "../datablocks/lsBatch_Quad.h"
@@ -191,21 +188,27 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused
 			[[fallthrough]];
 		case LSST_LIGHT_TEX_NONE:
             // Shadow Map
-            if(object->getReceives_shadows() && object->getLightManager()->getLight_list())
             {
-                lsLight* light = object->getLightManager()->getLight_list()->getLight();
-                if (light && light->getHas_shadowmap())
-                {
+                lsLight* shadow_light = nullptr;
+                if (object->getReceives_shadows()) {
+                    const auto& lights = object->getLightManager()->getLights();
+                    for (lsLight* light : lights) {
+                        if (light && light->getHas_shadowmap()) {
+                            shadow_light = light;
+                            break; // Use the first shadow-casting light found
+                        }
+                    }
+                }
+
+                if (shadow_light) {
                     glUniform1i(iUse_shadowmap, 1);
                     glActiveTexture(GL_TEXTURE3);
-                    glBindTexture(GL_TEXTURE_2D, light->getTex_shadowmap());
+                    glBindTexture(GL_TEXTURE_2D, shadow_light->getTex_shadowmap());
                     glUniform1i(iTex_shadowmap, 3);
-                    glUniformMatrix4fv(isMatrix, 1, GL_FALSE, light->ShadowmapMatrix.matrix);
+                    glUniformMatrix4fv(isMatrix, 1, GL_FALSE, shadow_light->ShadowmapMatrix.matrix);
                 } else {
                     glUniform1i(iUse_shadowmap, 0);
                 }
-            } else {
-                glUniform1i(iUse_shadowmap, 0);
             }
 
 			// Material
@@ -459,30 +462,20 @@ bool lsShader::debugProgram()
 
 void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 {
-    int lc;
-    int i = 0;
-    lsLightPtr *light_ptr;
-    lsLight *light;
+    const auto& lights = object->getLightManager()->getLights();
+    int light_count = std::min((int)lights.size(), 3); // Shader supports max 3 lights
 
-    // Light count
-    lc = object->getLightManager()->getLight_count();
-
-    light_ptr = object->getLightManager()->getLight_list();
-    while( light_ptr )
+    for (int i = 0; i < light_count; ++i)
     {
-        light = light_ptr->getLight();
-        if( light )
+        lsLight* light = lights[i];
+        if (light)
         {
-            Set_Light( i, camera, light, object );
+            Set_Light(i, camera, light, object);
         }
-        i++;
-        if( i >= lc ) break;
-
-        light_ptr = light_ptr->getNext_lightptr();
-    } // while light_ptr
+    }
 
     // Set count
-    glUniform1i( iLightCount, lc );
+    glUniform1i(iLightCount, light_count);
 }
 
 void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__((unused)) lsObject *object )

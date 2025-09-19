@@ -15,9 +15,7 @@
 #include "lsScene.h"
 #include "lsObject.h"
 #include "lsLight.h"
-
-// Lights
-#include "../lights/lsLightManager.h"
+#include "lsLightManager.h"
 
 #include "lsObjectEmitter.h"
 

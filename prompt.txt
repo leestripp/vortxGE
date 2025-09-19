@@ -106,14 +106,23 @@ lsNode_FirstPersonRig
 * Mouse X position rotates the Pill ridged body.
 * Mouse Y position, rotates the rigs Camera Y rotation.
 * Keys: w, a, s, d : Moves the Pill ridged body with velocity so we get consistant modion.
-I'll FIX these! DO NOT change the controls. You keep messing them up.
+* When in Air or falling off ledge, velocity is maintained and no movement is allowed. w, a, s, d are blocked.
 
 ---
 
 Convex Hull and TriMesh bullet shapes creates.
 Test of new bullet shapes in demo scene done and working.
 
+Example scene file: : Located in the ExecPath + "data/"
+``` demoscene.vgs
+add_scene `Scene`
+
+add_light spot `Spot Light` `Scene` (7.409922, 11.537519, 5.023242) (22.277984, 1.419241, -33.991280) (1.000000, 1.000000, 1.000000)
+add_object `Floor` `Scene` (0.000000, 0.000000, 0.000000) (0.000000, -0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/Floor.glb`
+add_object `Cube` `Scene` (-1.504267, 1.000000, -0.000000) (0.000000, -0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/Cube.glb`
+add_object `monkey` `Scene` (1.469434, 1.177816, 0.076992) (0.000000, -0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/monkey.glb`
+```
+
 Next Steps, ONLY FOCUS on the following steps:
-lsNode_FirstPersonRig: Lets fix the issue where when Jumping, the movement speed slows down a lot. If I'm sprinting it should carry that momentum in the air. same with walk.
-
-
+export_scene.py Blender script
+Object X axis is wrong, it need to be rotated +90 degrees.

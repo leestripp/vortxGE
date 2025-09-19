@@ -4,7 +4,6 @@
 // datablocks
 #include "../datablocks/lsBulletShape.h"
 
-
 #include "lsAsset_BulletShape_Plane.h"
 
 lsAsset_BulletShape_Plane::lsAsset_BulletShape_Plane( float vectorX, float vectorY, float vectorZ ) : lsAsset(NULL)
@@ -20,7 +19,7 @@ lsAsset_BulletShape_Plane::~lsAsset_BulletShape_Plane()
 
 
 // #######################
-// lsAsset
+// AllocAsset
 
 void lsAsset_BulletShape_Plane::AllocAsset()
 {
@@ -46,4 +45,3 @@ void lsAsset_BulletShape_Plane::FreeAsset()
         setData( NULL );
     }
 }
-

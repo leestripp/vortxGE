@@ -34,7 +34,14 @@ lsScene::lsScene( lsOpenGL* ogl, float world_size, int maxProxies ) : lsNode( NU
         // ERROR
         cout << "ERROR: lsScene::lsScene - Could not instance lsAssetManager" << endl;
     }
-
+	
+    // Lights : used for fast lookup of lights.
+    m_lightManager = new lsLightManager();
+    if(! m_lightManager)
+    {
+        cout << "ERROR: lsScene::lsScene - Could not instance lsLightManager" << endl;
+    }
+	
     // Physics
     bulletworld = new lsBulletWorld( this );
     if(! bulletworld )
@@ -64,13 +71,16 @@ lsScene::lsScene( lsOpenGL* ogl, float world_size, int maxProxies ) : lsNode( NU
 lsScene::~lsScene()
 {
     // Scene Manager cleans up nodes
-
+	
     // Physics
     if( bulletworld ) delete bulletworld;
-
+	
+    // Lights
+    if (m_lightManager) delete m_lightManager;
+	
     // Assets
     if (m_assetManager) delete m_assetManager;
-
+	
 #ifdef VORTX_DEBUG_NODES
     cout << "lsScene::~lsScene() - Name: " << getName() << endl;
 #endif

@@ -1,11 +1,11 @@
-#ifndef VORTXGE_LSOBJECT_H
-#define VORTXGE_LSOBJECT_H
+#pragma once
 
 // opengl
 #include "../opengl/lsOpenGL.h"
 
 // scene
 #include "../scene/lsAnimNode.h"
+#include "../scene/lsLightManager.h"
 
 // Occlusion types;
 const int LSOT_NONE         =	0;
@@ -15,7 +15,6 @@ class lsAsset;
 class lsMesh;
 class lsBulletObject;
 class lsProperty;
-class lsLightManager;
 class lsAnimationManager;
 
 
@@ -170,5 +169,3 @@ private:
     bool receives_shadows;
 
 };
-
-#endif // VORTXGE_LSOBJECT_H

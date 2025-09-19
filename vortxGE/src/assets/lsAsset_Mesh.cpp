@@ -23,18 +23,12 @@ lsAsset_Mesh::~lsAsset_Mesh()
 }
 
 // #######################
-// lsAsset
+// AllocAsset
 
-/*!
- * \brief lsAsset_Mesh::AllocAsset
- *
- * Make sure you set the filename before you call this.\n
- *
- */
 void lsAsset_Mesh::AllocAsset()
 {
 #ifdef VORTX_DEBUG_ASSETS
-	cout << "lsAsset_Mesh::AllocAsset()" << endl;
+	cout << "lsAsset_Mesh::AllocAsset() for file: " << filename << endl;
 #endif
 
 	lsMesh *mesh;
@@ -56,6 +50,8 @@ void lsAsset_Mesh::AllocAsset()
 		if (pos != std::string::npos) {
 			ext = filename.substr(pos + 1);
 		}
+
+		std::cout << "DEBUG: Loading mesh '" << filename << "' with extension '" << ext << "'" << std::endl;
 
 		if (ext == "vbm")
 		{

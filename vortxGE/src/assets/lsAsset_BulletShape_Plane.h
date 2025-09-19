@@ -1,15 +1,11 @@
-#ifndef vortxGE_lsAsset_BulletShape_Plane_h
-#define vortxGE_lsAsset_BulletShape_Plane_h
+#pragma once
 
 // math
 #include "../math/lsVector3.h"
 
 #include "lsAsset.h"
 
-/**
- * @brief Creates a bullet physics infinite plane
- *
- */
+
 class lsAsset_BulletShape_Plane : public lsAsset
 {
 public:
@@ -24,6 +20,3 @@ private:
     lsVector3 normal;
 
 };
-
-
-#endif

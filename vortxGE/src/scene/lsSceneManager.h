@@ -1,5 +1,4 @@
-#ifndef vortxGE_lsSceneManager_h
-#define vortxGE_lsSceneManager_h
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -9,14 +8,7 @@ class lsOpenGL;
 
 using namespace std;
 
-//! Scene Manager
-/*!
- * Update() : Calls the first scene's Move() which inits a ModelMatrix.
- * Then it calls MoveThread() on each node in the heirarchy.
- *
- * You can link more Scenes to a Scene.
- *
- */
+
 class lsSceneManager
 {
 public:
@@ -28,16 +20,19 @@ public:
 
     // Linked scenes
     void Add_Scene( lsScene *scene );
+    lsScene* FindScene( const string& name );
 
     // Save and Load
 	void SaveScenes( const string& path );
-	void LoadScene( const string& file );
-	
+	bool LoadSceneFromFile( const string& filename, lsScene* targetScene );
+
+    void LinkLightsInScene(lsScene* scene, int maxLightsPerObject = 3);
+
     lsScene* getScene_list() const
     {
         return scene_list;
     }
-	
+
     void setScene_list( lsScene* val )
     {
         scene_list = val;
@@ -46,6 +41,3 @@ public:
 private:
     lsScene* scene_list;
 };
-
-
-#endif

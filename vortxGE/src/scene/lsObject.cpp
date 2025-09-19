@@ -7,6 +7,7 @@
 // scene
 #include "../scene/lsScene.h"
 #include "../scene/lsCamera.h"
+#include "../scene/lsLightManager.h"
 
 // passes
 #include "../passes/lsPass.h"
@@ -23,9 +24,6 @@
 
 // animation
 #include "../animation/lsAnimationManager.h"
-
-// lights
-#include "../lights/lsLightManager.h"
 
 // Physics
 #include "../physics/lsBulletObject.h"
