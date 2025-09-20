@@ -1,11 +1,10 @@
-
 #include "lsLight_Spot.h"
 
 lsLight_Spot::lsLight_Spot(lsNode* parent) : lsLight(parent)
 {
     setLight_type(LSLT_SPOT);
     setName("Spot Light");
-
+	
     // Set more sensible defaults. The perspective FOV should match the outer cone angle.
     // The demo scene will override the perspective settings anyway.
     spot_cutoff = 25.0f;

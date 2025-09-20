@@ -1,16 +1,17 @@
 bl_info = {
     "name": "vortxGE Scene Exporter",
     "author": "Lee A. Stripp",
-    "version": (1, 0),
-    "blender": (4, 0, 0),
+    "version": (1, 2),
+    "blender": (4, 5, 0),
     "location": "File > Export > vortxGE Scene (.vgs)",
-    "description": "Exports the scene to a vortxGE .vgs file",
+    "description": "Exports the scene to a vortxGE .vgs file and all meshes to .glb files",
     "warning": "",
     "doc_url": "",
     "category": "Import-Export",
 }
 
 import bpy
+import os
 import math
 from mathutils import Matrix, Vector
 from bpy_extras.io_utils import ExportHelper
@@ -49,11 +50,10 @@ def get_vortxge_transform(blender_obj, is_mesh=False):
 
     if is_mesh:
         # For meshes, apply a corrective rotation of +90 degrees around the X-axis.
-        # This is to counteract a -90 degree rotation that is often baked into
-        # exported models (e.g., glTF) to convert from Blender's Z-up to a Y-up
-        # system. The combination of this correction and the C_mat4 transform
-        # results in using the Blender world transform directly, which is correct
-        # if the exported model data is already in the engine's expected Y-up space.
+        # This is to counteract a -90 degree rotation that is baked into
+        # exported glTF models to convert from Blender's Z-up to the standard Y-up
+        # system. This ensures the transform in the .vgs file correctly orients
+        # the already Y-up model data from the .glb file.
         R_corr = Matrix.Rotation(math.radians(90.0), 4, 'X')
         world_matrix = world_matrix @ R_corr
 
@@ -74,9 +74,19 @@ def get_vortxge_transform(blender_obj, is_mesh=False):
 
 def write_vortxge_scene(context, filepath):
     """
-    Writes the current Blender scene to the specified filepath in .vgs format.
+    Writes the current Blender scene to the specified filepath in .vgs format
+    and exports all mesh objects to individual .glb files.
     """
+    # Store original selection to restore it later
+    original_selection = context.selected_objects
+    original_active = context.view_layer.objects.active
+
     try:
+        # --- Prepare Directories ---
+        vgs_dir = os.path.dirname(filepath)
+        meshes_dir = os.path.join(vgs_dir, "meshes")
+        os.makedirs(meshes_dir, exist_ok=True)
+
         with open(filepath, 'w') as f:
             # --- Scene Header ---
             scene_name = context.scene.name
@@ -115,13 +125,11 @@ def write_vortxge_scene(context, filepath):
             meshes = [obj for obj in context.scene.objects if obj.type == 'MESH']
             if meshes:
                 for obj in meshes:
+                    # --- Write object entry to .vgs file ---
                     name = f"`{obj.name}`"
                     parent = f"`{scene_name}`"
                     
                     loc, rot, scale = get_vortxge_transform(obj, is_mesh=True)
-
-                    # Assume asset path convention: data/meshes/OBJECT_NAME.glb
-                    # Blender's obj.name is the name of the object.
                     asset_path = f"`data/meshes/{obj.name}.glb`"
 
                     f.write(f"add_object {name} {parent} ")
@@ -129,6 +137,28 @@ def write_vortxge_scene(context, filepath):
                     f.write(f"({rot.x:.6f}, {rot.y:.6f}, {rot.z:.6f}) ")
                     f.write(f"({scale.x:.6f}, {scale.y:.6f}, {scale.z:.6f}) ")
                     f.write(f"{asset_path}\n")
+
+                    # --- Export the individual .glb file ---
+                    glb_filepath = os.path.join(meshes_dir, f"{obj.name}.glb")
+                    print(f"Exporting mesh '{obj.name}' to {glb_filepath}")
+
+                    # Select only the current object for export
+                    bpy.ops.object.select_all(action='DESELECT')
+                    obj.select_set(True)
+                    context.view_layer.objects.active = obj
+
+                    # Export to .glb with specified settings
+                    bpy.ops.export_scene.gltf(
+                        filepath=glb_filepath,
+                        use_selection=True,
+                        export_format='GLB',
+                        export_apply=True,      # Apply modifiers
+                        export_texcoords=True,  # Export UVs
+                        export_normals=True,    # Export Normals
+                        export_tangents=True,   # Export Tangents
+                        export_materials='EXPORT',
+                        export_yup=True          # Use +Y Up coordinate system
+                    )
 
         print(f"Scene successfully exported to {filepath}")
         return True
@@ -138,11 +168,25 @@ def write_vortxge_scene(context, filepath):
         return False
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        return False
+        # Re-raise the exception to trigger the Operator's error reporting
+        raise
+    finally:
+        # --- Restore original selection ---
+        bpy.ops.object.select_all(action='DESELECT')
+        if original_active:
+            try:
+                context.view_layer.objects.active = original_active
+            except:
+                pass # Object might have been deleted
+        for sel_obj in original_selection:
+            try:
+                sel_obj.select_set(True)
+            except:
+                pass # Object might have been deleted
 
 
 class ExportVortxGEScene(Operator, ExportHelper):
-    """Export the current scene to a vortxGE .vgs file"""
+    """Export the current scene to a vortxGE .vgs file and its meshes to .glb"""
     bl_idname = "export_scene.vortxge"
     bl_label = "Export vortxGE Scene"
 
@@ -156,10 +200,14 @@ class ExportVortxGEScene(Operator, ExportHelper):
     )
 
     def execute(self, context):
-        if write_vortxge_scene(context, self.filepath):
-            return {'FINISHED'}
-        else:
-            self.report({'ERROR'}, "Scene export failed. Check console for details.")
+        try:
+            if write_vortxge_scene(context, self.filepath):
+                return {'FINISHED'}
+            else:
+                self.report({'ERROR'}, "Scene export failed. Check console for details.")
+                return {'CANCELLED'}
+        except Exception as e:
+            self.report({'ERROR'}, f"Scene export failed: {e}")
             return {'CANCELLED'}
 
 
@@ -180,4 +228,3 @@ def unregister():
 
 if __name__ == "__main__":
     register()
-

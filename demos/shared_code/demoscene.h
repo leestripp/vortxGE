@@ -32,6 +32,7 @@ public:
 protected:
     void setupControls();
     void setupTestScene();
+    void setupShadows();
     void setupObjectEmitter();
     // Scene Events
     void processEvent( lsEvent* event );

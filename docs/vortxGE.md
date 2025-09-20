@@ -1,0 +1,112 @@
+# vortxGE
+
+#### **1. Overall Architecture & Philosophy**
+
+vortxGE is a C++ 3D engine designed with a modular, scene-graph-based architecture. It leverages modern OpenGL for rendering and the Bullet Physics library for physics simulation. The core philosophy is to separate concerns into distinct managers and data blocks, promoting flexibility and extensibility.
+
+The engine follows a **Right-Handed Coordinate System** with the view direction along the **-Z axis**, consistent with OpenGL's conventions.
+*   **+X**: Right
+*   **+Y**: Up
+*   **-Z**: Forward (View Direction)
+
+---
+
+#### **2. Core Components**
+
+The engine is structured around a central `vortxGE` class that orchestrates several managers.
+
+*   **`vortxGE`**: The main engine class. It initializes and owns the core managers (`lsOpenGL`, `lsControlManager`, etc.). It drives the main loop by calling `Update()` and `Render()` on the `lsControlManager`.
+
+*   **`lsOpenGL`**: A lightweight wrapper around the OpenGL API. It holds references to the `lsShaderManager` and `lsStats` for easy access and manages basic OpenGL state, such as the default framebuffer ID.
+
+*   **Managers**:
+    *   **`lsControlManager`**: Manages a hierarchy of `lsControl` objects. This forms the basis of the UI and viewport layout. The top-level `lsControlManager` in `vortxGE` is the entry point for the `Update` and `Render` calls.
+    *   **`lsAssetManager`**: Responsible for creating, loading, and managing shared `lsAsset` resources like meshes and textures. This prevents redundant loading of assets. Each `lsViewer` or `lsComposite` control has its own `lsAssetManager`.
+    *   **`lsShaderManager`**: Loads, compiles, and manages GLSL shader programs (`lsShader`). It provides a central repository for shaders, which can be retrieved by name.
+    *   **`lsSceneManager`**: Manages a list of `lsScene` objects. Each `lsViewer` or `lsComposite` has its own `lsSceneManager`.
+    *   **`lsPassManager`**: Manages the rendering pipeline by executing a list of `lsPass` objects in sequence. Each `lsViewer` or `lsComposite` has its own `lsPassManager`.
+    *   **`lsLightManager`**: Attached to each `lsObject`, it manages a list of `lsLight`s that affect that object.
+    *   **`lsEventManager`**: Handles a queue of events within a `lsScene`. Events are used for deferred actions like node deletion or reporting physics collisions.
+    *   **`lsAnimationManager`**: Manages animation curves (`lsAnimProperty`) for animatable nodes (`lsAnimNode`).
+
+---
+
+#### **3. Scene Graph (`lsNode` Hierarchy)**
+
+The engine uses a hierarchical scene graph composed of `lsNode` subclasses.
+
+*   **`lsNode`**: The abstract base class for all scene graph elements. It defines the parent-child relationships and holds transformation data (`position`, `rotation`, `scale`) and the final `ModelMatrix`.
+*   **`lsScene`**: The root node of a scene graph. It owns the scene's `lsBulletWorld`, `lsEventManager`, and `lsAssetManager`. It also manages the `draw_list` for rendering.
+*   **`lsAnimNode`**: A subclass of `lsNode` that can be animated. It owns an `lsAnimationManager` and a list of `lsProperty` objects that can be animated.
+*   **`lsObject`**: A renderable `lsAnimNode`. It holds a pointer to an `lsAsset` (e.g., a mesh) and an `lsLightManager`. It can also have an associated `lsBulletObject` for physics.
+*   **`lsCamera`**: A specialized `lsAnimNode` that defines a viewpoint. It contains a `ViewMatrix` and an `lsFrustum` for projection and culling. It inherits from `lsAnimNode` and can be animated.
+*   **`lsLight`**: A specialized `lsCamera` that acts as a light source. It contains lighting properties (color, intensity) and can cast shadows (acting as a camera for a shadow map pass).
+*   **`lsNode_FirstPersonRig`**: A player controller that combines a physics capsule (`lsBulletObject`) with a camera (`lsCamera`) for first-person movement and mouse look.
+*   **`lsObjectEmitter`**: A node that periodically spawns new `lsObject` instances with physics properties.
+
+---
+
+#### **4. Data Blocks**
+
+Data blocks represent the actual data used by the engine components.
+
+*   **`lsAsset`**: The base class for shared resources. Assets are created by an `lsAssetManager`.
+    *   `lsAsset_Mesh`: Represents a 3D model, loaded from formats like `.vbm` or `.glb`.
+    *   `lsAsset_Texture`: Represents a 2D texture, loaded from an image file.
+    *   `lsAsset_BulletShape_*`: Represents a collision shape for the physics engine.
+*   **`lsMesh`**: A container for one or more `lsBatch` objects. It represents the renderable data of a 3D model and holds the overall bounding sphere for the model.
+*   **`lsBatch`**: The lowest-level renderable unit. It contains VBOs and a VAO for a piece of geometry and is associated with a material and a shader.
+*   **`lsFBO`**: A wrapper for an OpenGL Framebuffer Object, used for rendering to textures (e.g., in `lsPass_FBO` and `lsPass_ShadowMap`).
+*   **`lsBulletShape`**: A wrapper around a `btCollisionShape` from the Bullet Physics library.
+
+---
+
+#### **5. Rendering Pipeline (`lsPass` Hierarchy)**
+
+The rendering process is defined by a sequence of passes managed by an `lsPassManager`.
+
+*   **`lsPass`**: The abstract base class for a rendering pass. It defines the `Update` and `Render` interface and holds references to the `lsScene` and `lsCamera` it should use.
+*   **`lsPass_DR` (Direct Render)**: A simple pass that renders a scene directly to the default framebuffer (the screen).
+*   **`lsPass_FBO`**: Renders a scene to an `lsFBO` (a texture), which can then be used in other passes (e.g., for post-processing or display on a quad).
+*   **`lsPass_ShadowMap`**: A specialized pass that renders the scene from a light's perspective into a depth-only `lsFBO` to create a shadow map.
+
+The render loop typically flows as follows:
+1.  `vortxGE::Render()` calls `lsControlManager::Render()`.
+2.  `lsControlManager` calls `Render()` on its `lsControl`s (e.g., `lsViewer`).
+3.  `lsViewer::Render()` calls `lsPassManager::Render()`.
+4.  `lsPassManager` iterates through its `lsPass` list, calling `Render()` on each.
+    *   A `lsPass_ShadowMap` might run first to generate the depth texture.
+    *   A `lsPass_FBO` then runs, rendering the main scene. Its shaders can sample the shadow map texture generated in the previous pass.
+    *   Another `lsPass_DR` might run to draw the FBO's texture to a quad on the screen.
+
+---
+
+#### **6. Physics**
+
+*   **`lsBulletWorld`**: Owned by `lsScene`, this class manages the `btDiscreteDynamicsWorld` and its configuration. It steps the physics simulation during the `Move` phase of the update loop.
+*   **`lsBulletObject`**: A component attached to an `lsObject`. It wraps a `btRigidBody` and links the object's transform to the physics simulation. During the `Move` phase, the `lsObject`'s transform is updated from the `btRigidBody`'s transform.
+
+---
+
+#### **7. Shaders & Lighting**
+
+The engine uses a modern, PBR-like (Physically Based Rendering) shading model.
+*   **Shaders**: GLSL shaders are used for rendering. They are loaded and managed by the `lsShaderManager`.
+*   **Uniforms**:
+    *   `pMatrix`: Projection Matrix (from `lsCamera::frustum`).
+    *   `mvMatrix`: Model-View Matrix (`camera->ViewMatrix * object->ModelMatrix`).
+    *   `mMatrix`: Model Matrix (`object->ModelMatrix`).
+    *   `nMatrix`: Normal Matrix (inverse transpose of the upper-left 3x3 of `mvMatrix`).
+    *   `sMatrix`: Light Space Matrix for shadows (`Bias * LightProjection * LightView`).
+    *   Lighting uniforms (`vxLightPos`, `vxLightDiffuse`, etc.) are passed as arrays to support multiple lights.
+    *   Material uniforms (`vxMatDiffuse`, `vxMatShininess`, etc.) control the surface properties.
+*   **Lighting**: Lights are `lsLight` nodes in the scene. An `lsObject`'s `lsLightManager` determines which lights affect it. Light properties are passed to the shader in view space.
+
+---
+
+lsNode_FirstPersonRig
+* Mouse X position rotates the Pill ridged body.
+* Mouse Y position, rotates the rigs Camera Y rotation.
+* Keys: w, a, s, d : Moves the Pill ridged body with velocity so we get consistant modion.
+* When in Air or falling off ledge, velocity is maintained and no movement is allowed. w, a, s, d are blocked.
+

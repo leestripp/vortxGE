@@ -20,6 +20,7 @@
 // datablocks
 #include "../datablocks/lsStats.h"
 #include "../datablocks/lsString.h"
+#include "../datablocks/lsBulletShape.h"
 
 // filesystem
 #include "../filesystem/lsDir.h"
@@ -31,6 +32,14 @@
 // assets
 #include "../assets/lsAssetManager.h"
 #include "../assets/lsAsset_Mesh.h"
+#include "../assets/lsAsset_BulletShape_Box.h"
+#include "../assets/lsAsset_BulletShape_Pill.h"
+#include "../assets/lsAsset_BulletShape_ConvexHull.h"
+#include "../assets/lsAsset_BulletShape_TriMesh.h"
+
+// Physics
+#include "../physics/lsBulletObject.h"
+#include "../physics/lsBulletWorld.h"
 
 #include "lsSceneManager.h"
 
@@ -246,15 +255,7 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             continue;
         }
 		
-        std::cout << "DEBUG: Parsing line " << line_num << ": " << line << std::endl;
-		
         std::vector<std::string> tokens = tokenize_vgs(line);
-
-        std::cout << "DEBUG: Tokens: ";
-        for(const auto& t : tokens) {
-            std::cout << "[" << t << "] ";
-        }
-        std::cout << std::endl;
 
         if (tokens.empty()) {
             continue;
@@ -307,13 +308,13 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             objects_in_scene.push_back(obj);
 
         } else if (command == "add_light" && tokens.size() >= 7) {
-            // add_light type `name` `parent` (pos) (rot) (scale)
+            // add_light type `name` `parent` (pos) (rot) (color)
             std::string type = tokens[1];
             std::string name = parse_name(tokens[2]);
             std::string parentName = parse_name(tokens[3]);
             lsVector3 pos = parse_vector3(tokens[4]);
             lsVector3 rot = parse_vector3(tokens[5]);
-            lsVector3 scale = parse_vector3(tokens[6]);
+            lsVector3 color = parse_vector3(tokens[6]);
             
             std::cout << "INFO: Adding " << type << " light '" << name << "'" << std::endl;
             
@@ -336,7 +337,7 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             light->setName(name);
             light->Set_Pos(pos.x, pos.y, pos.z);
             light->Set_Rot(rot.x, rot.y, rot.z);
-            light->Set_Scale(scale.x, scale.y, scale.z);
+            light->diffuse = lsVector4(color.x, color.y, color.z, 1.0f);
             
             parent->Add_Node(light);
             nodeMap[name] = light;
@@ -367,12 +368,92 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
 
             parent->Add_Node(cam);
             nodeMap[name] = cam;
+        }
+        else if (command == "add_bullet_box" && tokens.size() >= 4) {
+            // add_bullet_box `object_name` mass (half_extents)
+            std::string objectName = parse_name(tokens[1]);
+            float mass = converter.toFloat(tokens[2]);
+            lsVector3 halfExtents = parse_vector3(tokens[3]);
+            
+            lsNode* node = nodeMap[objectName];
+            lsObject* obj = dynamic_cast<lsObject*>(node);
+
+            if (obj) {
+                lsAsset_BulletShape_Box* shapeAsset = targetScene->getAssetManager()->CreateAsset_BulletShape_Box(halfExtents.x, halfExtents.y, halfExtents.z);
+                shapeAsset->AllocAsset();
+                lsBulletShape* bulletShape = static_cast<lsBulletShape*>(shapeAsset->getData());
+                
+                lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
+                bulletObject->Init(mass);
+            } else {
+                std::cout << "WARNING: Object '" << objectName << "' not found for bullet box shape attachment." << std::endl;
+            }
+        }
+        else if (command == "add_bullet_pill" && tokens.size() >= 5) {
+            // add_bullet_pill `object_name` mass radius height
+            std::string objectName = parse_name(tokens[1]);
+            float mass = converter.toFloat(tokens[2]);
+            float radius = converter.toFloat(tokens[3]);
+            float height = converter.toFloat(tokens[4]);
+            
+            lsNode* node = nodeMap[objectName];
+            lsObject* obj = dynamic_cast<lsObject*>(node);
+
+            if (obj) {
+                lsAsset_BulletShape_Pill* shapeAsset = targetScene->getAssetManager()->CreateAsset_BulletShape_Pill(radius, height);
+                shapeAsset->AllocAsset();
+                lsBulletShape* bulletShape = static_cast<lsBulletShape*>(shapeAsset->getData());
+                
+                lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
+                bulletObject->Init(mass);
+            } else {
+                std::cout << "WARNING: Object '" << objectName << "' not found for bullet pill shape attachment." << std::endl;
+            }
+        }
+        else if (command == "add_bullet_convexhull" && tokens.size() >= 3) {
+            // add_bullet_convexhull `object_name` mass
+            std::string objectName = parse_name(tokens[1]);
+            float mass = converter.toFloat(tokens[2]);
+
+            lsNode* node = nodeMap[objectName];
+            lsObject* obj = dynamic_cast<lsObject*>(node);
+
+            if (obj && obj->getAsset() && obj->getAsset()->getAsset_type() == LSAT_MESH) {
+                lsAsset_Mesh* meshAsset = static_cast<lsAsset_Mesh*>(obj->getAsset());
+                lsAsset_BulletShape_ConvexHull* shapeAsset = targetScene->getAssetManager()->CreateAsset_BulletShape_ConvexHull(meshAsset);
+                shapeAsset->AllocAsset();
+                lsBulletShape* bulletShape = static_cast<lsBulletShape*>(shapeAsset->getData());
+
+                lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
+                bulletObject->Init(mass);
+            } else {
+                 std::cout << "WARNING: Object '" << objectName << "' not found or has no mesh for convex hull shape." << std::endl;
+            }
+        }
+        else if (command == "add_bullet_trimesh" && tokens.size() >= 3) {
+            // add_bullet_trimesh `object_name` mass
+            std::string objectName = parse_name(tokens[1]);
+            float mass = converter.toFloat(tokens[2]);
+
+            lsNode* node = nodeMap[objectName];
+            lsObject* obj = dynamic_cast<lsObject*>(node);
+
+            if (obj && obj->getAsset() && obj->getAsset()->getAsset_type() == LSAT_MESH) {
+                lsAsset_Mesh* meshAsset = static_cast<lsAsset_Mesh*>(obj->getAsset());
+                lsAsset_BulletShape_TriMesh* shapeAsset = targetScene->getAssetManager()->CreateAsset_BulletShape_TriMesh(meshAsset);
+                shapeAsset->AllocAsset();
+                lsBulletShape* bulletShape = static_cast<lsBulletShape*>(shapeAsset->getData());
+
+                lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
+                bulletObject->Init(mass); // Mass should be 0 for trimesh for static objects
+            } else {
+                 std::cout << "WARNING: Object '" << objectName << "' not found or has no mesh for trimesh shape." << std::endl;
+            }
         } else {
             std::cout << "WARNING: Unrecognized or malformed command on line " << line_num << ": " << line << std::endl;
         }
     }
 	
-    // Assign all loaded lights to all loaded objects
     for (lsObject* obj : objects_in_scene)
     {
         for (lsLight* light : lights_in_scene)
