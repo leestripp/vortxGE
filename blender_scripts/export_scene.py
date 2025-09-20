@@ -138,6 +138,45 @@ def write_vortxge_scene(context, filepath):
                     f.write(f"({scale.x:.6f}, {scale.y:.6f}, {scale.z:.6f}) ")
                     f.write(f"{asset_path}\n")
 
+                    # --- Check for custom physics properties ---
+                    try:
+                        if "bullet_box" in obj:
+                            prop_val = str(obj["bullet_box"])
+                            parts = prop_val.split(' ', 1)
+                            if len(parts) == 2:
+                                mass = parts[0]
+                                size_str = parts[1]
+                                f.write(f"add_bullet_box {name} {mass} {size_str}\n")
+                            else:
+                                print(f"WARNING: Invalid format for 'bullet_box' on '{obj.name}'. Expected 'mass (sx, sy, sz)'.")
+
+                        if "bullet_pill" in obj:
+                            prop_val = str(obj["bullet_pill"])
+                            parts = prop_val.split()
+                            if len(parts) == 3:
+                                mass, radius, height = parts
+                                f.write(f"add_bullet_pill {name} {mass} {radius} {height}\n")
+                            else:
+                                print(f"WARNING: Invalid format for 'bullet_pill' on '{obj.name}'. Expected 'mass radius height'.")
+
+                        if "bullet_convexhull" in obj:
+                            mass = str(obj["bullet_convexhull"]).strip()
+                            if mass:
+                                f.write(f"add_bullet_convexhull {name} {mass}\n")
+                            else:
+                                print(f"WARNING: Empty 'bullet_convexhull' property on '{obj.name}'.")
+
+                        if "bullet_trimesh" in obj:
+                            mass = str(obj["bullet_trimesh"]).strip()
+                            if mass:
+                                f.write(f"add_bullet_trimesh {name} {mass}\n")
+                            else:
+                                print(f"WARNING: Empty 'bullet_trimesh' property on '{obj.name}'.")
+
+                    except Exception as e:
+                        print(f"ERROR processing custom properties for '{obj.name}': {e}")
+
+
                     # --- Export the individual .glb file ---
                     glb_filepath = os.path.join(meshes_dir, f"{obj.name}.glb")
                     print(f"Exporting mesh '{obj.name}' to {glb_filepath}")
@@ -159,6 +198,7 @@ def write_vortxge_scene(context, filepath):
                         export_materials='EXPORT',
                         export_yup=True          # Use +Y Up coordinate system
                     )
+                f.write("\n")
 
         print(f"Scene successfully exported to {filepath}")
         return True
@@ -228,3 +268,4 @@ def unregister():
 
 if __name__ == "__main__":
     register()
+

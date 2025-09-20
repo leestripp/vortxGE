@@ -1,3 +1,8 @@
 Next Steps, ONLY FOCUS on the following steps:
 
-We need to create a Readme.md file for GitLab to explain what vortxGE is.
+refactor export_scene.py
+Lets add support for custom proper6ies.
+bullet_box <string> : string contains the mass and size e.g. '5.0 (1.0, 1.0, 1.0)'
+bullet_pill <string> : string contains mass, radius and height. e.g. '5.0 0.5 2.0'
+bullet_convexhull <string> : string contains mass. e.g. '5.0'
+bullet_trimesh <string> : string contains mass. e.g. '5.0'
