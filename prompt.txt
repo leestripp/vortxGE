@@ -1,3 +1,2 @@
 Next Steps, ONLY FOCUS on the following steps:
 
-We need to create a Readme.md file for GitLab to explain what vortxGE is.
