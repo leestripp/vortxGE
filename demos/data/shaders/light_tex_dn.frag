@@ -119,16 +119,20 @@ void main(void) {
         vec3 H = normalize(V + L);
         float distance = length(vxLightPos[i] - osVertex);
         
-        // Attenuation
-        float attenuation = 1.0 / (distance * distance);
-        
-        if (vxLightType[i] == 2) { // LSLT_SPOT
-            vec3 lightDir = normalize(vxLightDir[i]);
-            float theta = dot(-L, lightDir);
-            float spotEffect = smoothstep(vxLightOuterCutoff[i], vxLightCutoff[i], theta);
-            attenuation *= spotEffect;
-        }
-
+		// Attenuation
+		// LSLT_DIRECT has no attenuation
+		float attenuation = 1.0;
+		if (vxLightType[i] == 1) { // LSLT_POINT
+			attenuation = attenuation / (distance * distance);
+	    }
+	    if (vxLightType[i] == 2) { // LSLT_SPOT
+			attenuation = attenuation / (distance * distance);
+	        vec3 lightDir = normalize(vxLightDir[i]);
+	        float theta = dot(-L, lightDir);
+	        float spotEffect = smoothstep(vxLightOuterCutoff[i], vxLightCutoff[i], theta);
+	        attenuation *= spotEffect;
+	    }
+		
         vec3 radiance = vxLightDiffuse[i].rgb * vxLightIntensity[i] * attenuation;
 
         // Cook-Torrance BRDF

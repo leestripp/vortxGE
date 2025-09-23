@@ -1,4 +1,5 @@
 #include "../vortx_debug.h"
+
 #include <map>
 #include <vector>
 #include <algorithm>
@@ -15,6 +16,7 @@
 #include "lsCamera.h"
 #include "lsLight_Spot.h"
 #include "lsLight_Point.h"
+#include "lsLight_Direct.h"
 #include "lsLightManager.h"
 
 // datablocks
@@ -231,14 +233,14 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
     std::string fullpath = dir.getexepath() + filename;
 	
     lsFileIO file;
-    if (!file.open(fullpath, LSIO_LINE_READ))
+    if(! file.open(fullpath, LSIO_LINE_READ))
     {
         std::cout << "ERROR: lsSceneManager::LoadSceneFromFile - Can't open file: " << fullpath << std::endl;
         return false;
     }
 	
     std::cout << "INFO: Loading scene file: " << fullpath << std::endl;
-
+	
     std::map<std::string, lsNode*> nodeMap;
     std::vector<lsLight*> lights_in_scene;
     std::vector<lsObject*> objects_in_scene;
@@ -251,26 +253,30 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
     {
         line_num++;
         line = file.getLine();
-        if (line.empty() || line[0] == '#') {
+        if(line.empty() || line[0] == '#')
+        {
             continue;
         }
 		
         std::vector<std::string> tokens = tokenize_vgs(line);
-
-        if (tokens.empty()) {
+        if (tokens.empty())
+        {
             continue;
         }
 		
         const std::string& command = tokens[0];
 		
-        if (command == "add_scene") {
-            if (tokens.size() >= 2) {
+        if(command == "add_scene")
+        {
+            if (tokens.size() >= 2)
+            {
                 std::string sceneName = parse_name(tokens[1]);
                 std::cout << "INFO: Adding scene '" << sceneName << "'" << std::endl;
                 targetScene->setName(sceneName);
                 nodeMap[sceneName] = targetScene;
             }
-        } else if (command == "add_object" && tokens.size() >= 7) {
+        } else if (command == "add_object" && tokens.size() >= 7)
+        {
             // add_object `name` `parent` (pos.x,pos.y,pos.z) (rot.x,rot.y,rot.z) (scale.x,scale.y,scale.z) `asset_path`
             std::string name = parse_name(tokens[1]);
             std::string parentName = parse_name(tokens[2]);
@@ -282,7 +288,8 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             std::cout << "INFO: Adding object '" << name << "' with asset '" << assetPath << "'" << std::endl;
 
             lsNode* parent = nodeMap[parentName];
-            if (!parent) {
+            if(! parent)
+            {
                 std::cout << "WARNING: Parent node '" << parentName << "' not found for object '" << name << "'. Attaching to scene root." << std::endl;
                 parent = targetScene;
             }
@@ -294,11 +301,13 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             obj->Set_Scale(scale.x, scale.y, scale.z);
 
             lsAsset_Mesh* meshAsset = static_cast<lsAsset_Mesh*>(targetScene->getAssetManager()->Find_Asset(assetPath));
-            if (!meshAsset) {
+            if(! meshAsset)
+            {
                 std::cout << "INFO: Creating new mesh asset for '" << assetPath << "'" << std::endl;
                 meshAsset = targetScene->getAssetManager()->CreateAsset_Mesh(assetPath);
                 meshAsset->AllocAsset();
-            } else {
+            } else
+            {
                 std::cout << "INFO: Re-using existing mesh asset for '" << assetPath << "'" << std::endl;
             }
             obj->Set_Asset(meshAsset);
@@ -306,8 +315,9 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             parent->Add_Node(obj);
             nodeMap[name] = obj;
             objects_in_scene.push_back(obj);
-
-        } else if (command == "add_light" && tokens.size() >= 7) {
+			
+        } else if (command == "add_light" && tokens.size() >= 7)
+        {
             // add_light type `name` `parent` (pos) (rot) (color)
             std::string type = tokens[1];
             std::string name = parse_name(tokens[2]);
@@ -319,17 +329,24 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             std::cout << "INFO: Adding " << type << " light '" << name << "'" << std::endl;
             
             lsNode* parent = nodeMap[parentName];
-            if (!parent) {
+            if(! parent)
+            {
                 std::cout << "WARNING: Parent node '" << parentName << "' not found for light '" << name << "'. Attaching to scene root." << std::endl;
                 parent = targetScene;
             }
-
+			
             lsLight* light = nullptr;
-            if (type == "spot") {
+            if(type == "spot")
+            {
                 light = new lsLight_Spot(parent);
-            } else if (type == "point") {
+            } else if(type == "point")
+            {
                 light = new lsLight_Point(parent);
-            } else {
+            } else if(type == "direct")
+            {
+                light = new lsLight_Direct(parent);
+            } else
+            {
                 std::cout << "WARNING: Unknown light type '" << type << "' for light '" << name << "'." << std::endl;
                 continue;
             }
@@ -343,33 +360,36 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             nodeMap[name] = light;
             lights_in_scene.push_back(light);
             targetScene->getLightManager()->Add_Light(light);
-
-        } else if (command == "add_camera" && tokens.size() >= 6) {
+			
+        } else if(command == "add_camera" && tokens.size() >= 6)
+        {
             // add_camera `name` `parent` (pos) (rot) (scale)
             std::string name = parse_name(tokens[1]);
             std::string parentName = parse_name(tokens[2]);
             lsVector3 pos = parse_vector3(tokens[3]);
             lsVector3 rot = parse_vector3(tokens[4]);
             lsVector3 scale = parse_vector3(tokens[5]);
-
+			
             std::cout << "INFO: Adding camera '" << name << "'" << std::endl;
-
+			
             lsNode* parent = nodeMap[parentName];
-            if (!parent) {
+            if(! parent)
+            {
                 std::cout << "WARNING: Parent node '" << parentName << "' not found for camera '" << name << "'. Attaching to scene root." << std::endl;
                 parent = targetScene;
             }
-
+			
             lsCamera* cam = new lsCamera(parent);
             cam->setName(name);
             cam->Set_Pos(pos.x, pos.y, pos.z);
             cam->Set_Rot(rot.x, rot.y, rot.z);
             cam->Set_Scale(scale.x, scale.y, scale.z);
-
+			
             parent->Add_Node(cam);
             nodeMap[name] = cam;
-        }
-        else if (command == "add_bullet_box" && tokens.size() >= 4) {
+            
+        } else if(command == "add_bullet_box" && tokens.size() >= 4)
+        {
             // add_bullet_box `object_name` mass (half_extents)
             std::string objectName = parse_name(tokens[1]);
             float mass = converter.toFloat(tokens[2]);
@@ -377,19 +397,21 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             
             lsNode* node = nodeMap[objectName];
             lsObject* obj = dynamic_cast<lsObject*>(node);
-
-            if (obj) {
+			
+            if(obj)
+            {
                 lsAsset_BulletShape_Box* shapeAsset = targetScene->getAssetManager()->CreateAsset_BulletShape_Box(halfExtents.x, halfExtents.y, halfExtents.z);
                 shapeAsset->AllocAsset();
                 lsBulletShape* bulletShape = static_cast<lsBulletShape*>(shapeAsset->getData());
                 
                 lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
                 bulletObject->Init(mass);
-            } else {
+            } else
+            {
                 std::cout << "WARNING: Object '" << objectName << "' not found for bullet box shape attachment." << std::endl;
             }
-        }
-        else if (command == "add_bullet_pill" && tokens.size() >= 5) {
+        } else if(command == "add_bullet_pill" && tokens.size() >= 5)
+        {
             // add_bullet_pill `object_name` mass radius height
             std::string objectName = parse_name(tokens[1]);
             float mass = converter.toFloat(tokens[2]);
@@ -399,26 +421,29 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             lsNode* node = nodeMap[objectName];
             lsObject* obj = dynamic_cast<lsObject*>(node);
 
-            if (obj) {
+            if (obj)
+            {
                 lsAsset_BulletShape_Pill* shapeAsset = targetScene->getAssetManager()->CreateAsset_BulletShape_Pill(radius, height);
                 shapeAsset->AllocAsset();
                 lsBulletShape* bulletShape = static_cast<lsBulletShape*>(shapeAsset->getData());
                 
                 lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
                 bulletObject->Init(mass);
-            } else {
+            } else
+            {
                 std::cout << "WARNING: Object '" << objectName << "' not found for bullet pill shape attachment." << std::endl;
             }
-        }
-        else if (command == "add_bullet_convexhull" && tokens.size() >= 3) {
+        } else if(command == "add_bullet_convexhull" && tokens.size() >= 3)
+        {
             // add_bullet_convexhull `object_name` mass
             std::string objectName = parse_name(tokens[1]);
             float mass = converter.toFloat(tokens[2]);
-
+			
             lsNode* node = nodeMap[objectName];
             lsObject* obj = dynamic_cast<lsObject*>(node);
-
-            if (obj && obj->getAsset() && obj->getAsset()->getAsset_type() == LSAT_MESH) {
+			
+            if(obj && obj->getAsset() && obj->getAsset()->getAsset_type() == LSAT_MESH)
+            {
                 lsAsset_Mesh* meshAsset = static_cast<lsAsset_Mesh*>(obj->getAsset());
                 lsAsset_BulletShape_ConvexHull* shapeAsset = targetScene->getAssetManager()->CreateAsset_BulletShape_ConvexHull(meshAsset);
                 shapeAsset->AllocAsset();
@@ -426,11 +451,12 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
 
                 lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
                 bulletObject->Init(mass);
-            } else {
+            } else
+            {
                  std::cout << "WARNING: Object '" << objectName << "' not found or has no mesh for convex hull shape." << std::endl;
             }
-        }
-        else if (command == "add_bullet_trimesh" && tokens.size() >= 3) {
+        } else if(command == "add_bullet_trimesh" && tokens.size() >= 3)
+        {
             // add_bullet_trimesh `object_name` mass
             std::string objectName = parse_name(tokens[1]);
             float mass = converter.toFloat(tokens[2]);
@@ -438,7 +464,8 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             lsNode* node = nodeMap[objectName];
             lsObject* obj = dynamic_cast<lsObject*>(node);
 
-            if (obj && obj->getAsset() && obj->getAsset()->getAsset_type() == LSAT_MESH) {
+            if (obj && obj->getAsset() && obj->getAsset()->getAsset_type() == LSAT_MESH)
+            {
                 lsAsset_Mesh* meshAsset = static_cast<lsAsset_Mesh*>(obj->getAsset());
                 lsAsset_BulletShape_TriMesh* shapeAsset = targetScene->getAssetManager()->CreateAsset_BulletShape_TriMesh(meshAsset);
                 shapeAsset->AllocAsset();
@@ -446,21 +473,25 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
 
                 lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
                 bulletObject->Init(mass); // Mass should be 0 for trimesh for static objects
-            } else {
+            } else
+            {
                  std::cout << "WARNING: Object '" << objectName << "' not found or has no mesh for trimesh shape." << std::endl;
             }
-        } else {
+        } else
+        {
             std::cout << "WARNING: Unrecognized or malformed command on line " << line_num << ": " << line << std::endl;
         }
     }
 	
-    for (lsObject* obj : objects_in_scene)
+	/* TODO: Remove this after new setupLights is working.
+    for(lsObject* obj : objects_in_scene)
     {
         for (lsLight* light : lights_in_scene)
         {
             obj->getLightManager()->Add_Light(light);
         }
     }
+	*/
 	
     std::cout << "INFO: Scene loading finished." << std::endl;
     return true;
@@ -490,39 +521,46 @@ void lsSceneManager::LinkLightsInScene(lsScene* scene, int maxLightsPerObject)
             all_objects.push_back(obj);
         }
 		
-        // Recurse for children
+        // Recurse for tree
         collectObjects(node->getNode_list());
-
+		
         // Recurse for siblings
         collectObjects(node->getNext_node());
     };
-
+	
     // Start collection from the scene's root children
     collectObjects(scene->getNode_list());
-
+	
     std::cout << "INFO: Found " << all_objects.size() << " objects and " << all_lights.size() << " lights to process for linking." << std::endl;
-
-    for (lsObject* obj : all_objects) {
+	
+    for(lsObject* obj : all_objects)
+    {
+    		// Make sure light list is empty.
         obj->getLightManager()->ClearLights();
-
+		
+		// Store lights with distance.
         std::vector<std::pair<float, lsLight*>> sorted_lights;
-
+		// Get object oosition.
         lsVector3 objPos(obj->ModelMatrix.matrix[12], obj->ModelMatrix.matrix[13], obj->ModelMatrix.matrix[14]);
 
-        for (lsLight* light : all_lights) {
+        for (lsLight* light : all_lights)
+        {
+        		// Get light position.
             lsVector3 lightPos(light->ModelMatrix.matrix[12], light->ModelMatrix.matrix[13], light->ModelMatrix.matrix[14]);
             float dist = objPos.distance(lightPos);
             sorted_lights.push_back({dist * dist, light}); // Use squared distance for sorting
         }
-
+		
         // Sort by distance (squared)
         std::sort(sorted_lights.begin(), sorted_lights.end(), 
                   [](const auto& a, const auto& b) {
                       return a.first < b.first;
                   });
-
+		
+		// Add light to object.
         int lights_to_add = std::min((int)sorted_lights.size(), maxLightsPerObject);
-        for (int i = 0; i < lights_to_add; ++i) {
+        for(int i = 0; i < lights_to_add; ++i)
+        {
             obj->getLightManager()->Add_Light(sorted_lights[i].second);
         }
     }

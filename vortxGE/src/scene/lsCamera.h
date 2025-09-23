@@ -29,7 +29,7 @@ public:
 	void Set_Orthographic( float xMin, float xMax, float yMin, float yMax, float zMin, float zMax );
     void Set_Orthographic( float cube );
     void Update_Camera();
-
+	
     // Save data
     virtual const string& toString();
 

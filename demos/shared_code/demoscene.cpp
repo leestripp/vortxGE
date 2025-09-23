@@ -315,14 +315,15 @@ void DemoScene::setupTestScene()
 	m_viewer_scene->Add_Node(ground);
 	
 	// Load the demoscene.vgs file
-	if (m_viewer) {
+	if (m_viewer)
+	{
 		m_viewer->getSceneManager()->LoadSceneFromFile("data/demoscene.vgs", m_viewer_scene);
-
+		
 		// Manually trigger a single Move pass to update ModelMatrix for all nodes
 		// This is necessary so that nodes have their correct world positions for light linking.
 		m_viewer_scene->Move(m_viewer_scene, m_vortxge->getOpenGL(), 0.0); // Update scene's own matrix
 		m_viewer_scene->MoveThread(m_viewer_scene, m_vortxge->getOpenGL(), 0.0); // Update all children recursively
-
+		
 		// After loading and updating transforms, link lights to objects
 		m_viewer->getSceneManager()->LinkLightsInScene(m_viewer_scene);
 	}
@@ -343,33 +344,33 @@ void DemoScene::setupShadows()
 
 	for (lsLight* light : lights)
 	{
-		// We only want to add shadow maps to spot lights
-		if (light->getLight_type() == LSLT_SPOT)
+		// Add shadow maps to spot and direct lights
+		if (light->getLight_type() == LSLT_SPOT || light->getLight_type() == LSLT_DIRECT)
 		{
-			cout << "  Found Spot Light '" << light->getName() << "', adding shadow map." << endl;
+			cout << "  Found Shadow Map Light '" << light->getName() << "', adding shadow map." << endl;
 
-			// 1. Create the shadow map pass (which creates its own FBO)
+			// Create the shadow map pass (which creates its own FBO)
 			lsPass_ShadowMap* shadowPass = new lsPass_ShadowMap(0, 0, 1024, 1024, m_vortxge->getOpenGL());
-			if (!shadowPass)
+			if(! shadowPass)
 			{
-				cerr << "    ERROR: Failed to create shadow pass." << endl;
+				cerr << "ERROR: Failed to create shadow pass." << endl;
 				continue;
 			}
-
-			// 2. Configure the pass
+			
+			// Configure the pass
 			shadowPass->setScene(m_viewer_scene);
 			shadowPass->setCamera(light); // The light acts as the camera for rendering the shadow map
 			shadowPass->setCull_camera(light);
 			shadowPass->setLight(light);
-
-			// 3. Link the shadow map texture back to the light
-			if (shadowPass->getFBO())
+			
+			// Link the shadow map texture back to the light
+			if(shadowPass->getFBO())
 			{
 				light->setTex_shadowmap(shadowPass->getFBO()->getDepthTexture());
 				light->setHas_shadowmap(true);
 			}
-
-			// 4. Add the pass to the viewer's pass manager.
+			
+			// Add the pass to the viewer's pass manager.
 			// lsPassManager adds to the front, so this will execute before the main render pass.
 			m_viewer->getPassManager()->Add_Pass(shadowPass);
 		}

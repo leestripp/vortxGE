@@ -76,13 +76,13 @@ void lsLight::buildShadowmap_matrix()
                             0.0, 0.5, 0.0, 0.0,
                             0.0, 0.0, 0.5, 0.0,
                             0.5, 0.5, 0.5, 1.0 };
-
+	
     lsMatrix4x4 biasMatrix;
     biasMatrix = bias;
-
+	
     // The Light's Projection and View matrices combined
     lsMatrix4x4 lightProjectionViewMatrix = frustum.getProjectionMatrix() * ViewMatrix;
-
+	
     // The final matrix to transform from world space to shadow map texture space
     ShadowmapMatrix = biasMatrix * lightProjectionViewMatrix;
 }

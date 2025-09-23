@@ -12,7 +12,7 @@
 const int LSLT_NONE     = 0;
 const int LSLT_POINT    = 1;
 const int LSLT_SPOT     = 2;
-const int LSLT_SUN      = 3;
+const int LSLT_DIRECT   = 3;
 
 
 class lsLight : public lsCamera
@@ -25,10 +25,10 @@ public:
     virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
     // shadow map
     void buildShadowmap_matrix();
-
+	
     // Save data
     virtual const string& toString();
-
+	
     // setters getters
     void setLight_type( int val )
     {
@@ -105,8 +105,7 @@ public:
     {
         return shadow_bias;
     }
-
-
+	
     // Data
     lsMatrix4x4 ShadowmapMatrix;
     lsVector4 ambient;
@@ -124,6 +123,5 @@ private:
     float pixel_x;
     float pixel_y;
     bool has_shadowmap;
-
 };
 

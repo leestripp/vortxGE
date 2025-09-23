@@ -32,7 +32,7 @@ public:
 	void RotateMatrix( float angle, float x, float y, float z );
 	void TranslateMatrix( float x, float y, float z );
 	void ScaleMatrix( float x, float y, float z );
-
+	
 	// Utilities
 	void PerspectiveProjection( float fovy, float aspect_ratio, float near_plane, float far_plane );
 	void OrthographicProjection( float xMin, float xMax, float yMin, float yMax, float zMin, float zMax );
