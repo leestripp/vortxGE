@@ -100,7 +100,7 @@ public:
     {
         shadow_bias = val;
     }
-
+	
     float getShadow_bias() const
     {
         return shadow_bias;
@@ -114,7 +114,7 @@ public:
     float intensity;
     float spot_cutoff;		// angle of light cutoff
     float spot_outer_cutoff;
-
+	
 private:
     int light_type;
 

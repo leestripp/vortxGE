@@ -116,6 +116,10 @@ void main(void) {
 	// Loop over lights
 	for (int i = 0; i < vxLightCount; ++i) {
 		vec3 L = normalize(vxLightPos[i] - osVertex);
+		if(vxLightType[i] == 3) {
+			// LSLT_DIRECT = 3
+			L = normalize(vxLightPos[i]);
+		}
 		vec3 H = normalize(V + L);
 		float distance = length(vxLightPos[i] - osVertex);
 		

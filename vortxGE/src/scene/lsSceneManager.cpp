@@ -70,7 +70,6 @@ lsSceneManager::~lsSceneManager()
     scene_list = NULL;
 }
 
-
 // Move all scene objects
 
 void lsSceneManager::Update( lsOpenGL* opengl, double delta )
@@ -482,16 +481,6 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             std::cout << "WARNING: Unrecognized or malformed command on line " << line_num << ": " << line << std::endl;
         }
     }
-	
-	/* TODO: Remove this after new setupLights is working.
-    for(lsObject* obj : objects_in_scene)
-    {
-        for (lsLight* light : lights_in_scene)
-        {
-            obj->getLightManager()->Add_Light(light);
-        }
-    }
-	*/
 	
     std::cout << "INFO: Scene loading finished." << std::endl;
     return true;
