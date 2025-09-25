@@ -52,8 +52,8 @@ public:
     // Lights
     void Setup_Lights( lsCamera *camera, lsObject *object );
     void Set_Light( int i, lsCamera *camera, lsLight *light, lsObject *object );
-
-
+	
+	
     // Navi ---------------------------
 
     lsShader* getNext_shader() const
@@ -121,20 +121,24 @@ private:
 	GLint iTex_diffuse;
 	GLint iTex_normal;
 	GLint iTex_specular;
+	
+	// TODO: We need one per light.
     // Shadowmap locations
 	GLint iTex_shadowmap;
 	GLint iShadow_bias;
 	GLint iPixel_x;
 	GLint iPixel_y;
 	GLint iUse_shadowmap;
+	
 	// Material
 	GLint iMat_diffuse;
 	GLint iMat_specular;
-	GLint iMat_ambiant;
 	GLint iMat_shininess;
+	GLint iMat_ambiant;
 	GLint iGlow;
 	// Light locations
     GLint iLightCount;
+    
     // Light 1
 	GLint iLightType1;
     GLint iLightPos1;
@@ -162,7 +166,7 @@ private:
     GLint iLightDiffuse3;
     GLint iLightSpecular3;
     GLint iLightIntensity3;
-
+	
     // Materail
     GLuint iMatAmbiant;
     GLuint iMatDiffuse;

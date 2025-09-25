@@ -4,6 +4,7 @@
 #include "../opengl/lsOpenGL.h"
 
 // math
+#include "../math/lsVector3.h"
 #include "../math/lsVector4.h"
 #include "../math/lsMatrix4x4.h"
 

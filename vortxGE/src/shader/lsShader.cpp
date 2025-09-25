@@ -14,6 +14,8 @@
 #include "../scene/lsObject.h"
 #include "../scene/lsCamera.h"
 #include "../scene/lsLight.h"
+#include "../scene/lsLight_Spot.h"
+#include "../scene/lsLight_Direct.h"
 #include "../scene/lsLightManager.h"
 
 // datablocks
@@ -479,7 +481,7 @@ void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 			Set_Light(i, camera, light, object);
 		}
 	}
-
+	
 	// Set count
 	glUniform1i(iLightCount, light_count);
 }
@@ -503,6 +505,10 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 		// Transform it to view space using the camera's view matrix (rotation only)
 		lightDir_view_space = camera->ViewMatrix.Rotate(lightDir_world);
 		lightDir_view_space.normalize();
+	} else if(light->getLight_type() == LSLT_DIRECT)
+	{
+		lsLight_Direct* l = static_cast<lsLight_Direct*>(light);
+		lightDir_view_space = l->m_lightDirection;
 	}
 	
 	switch( i )
@@ -513,7 +519,7 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 			glUniform4f( iLightDiffuse1, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
 			glUniform4f( iLightSpecular1, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
 			glUniform1f( iLightIntensity1, light->getIntensity() );
-			if (light->getLight_type() == LSLT_SPOT)
+			if (light->getLight_type() == LSLT_SPOT || light->getLight_type() == LSLT_DIRECT)
 			{
 				glUniform3f( iLightDir1, lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
 				glUniform1f( iLightCutoff1, cos(light->spot_cutoff * ANG2RAD) );

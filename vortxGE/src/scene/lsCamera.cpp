@@ -186,7 +186,7 @@ void lsCamera::Set_Orthographic( float cube )
 void lsCamera::Update_Camera()
 {
 	lsVector3 eye, lookat, vup;
-
+	
 	eye = lsVector3( ModelMatrix.matrix[12], ModelMatrix.matrix[13], ModelMatrix.matrix[14] );
 	// The camera/light's forward direction is its local -Z axis.
 	// The 3rd column of the model matrix (indices 8,9,10) is the transformed +Z axis.

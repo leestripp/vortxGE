@@ -79,7 +79,7 @@ float calculateShadow(vec4 shadowCoord) {
 	for (int x = -1; x <= 1; ++x) {
 		for (int y = -1; y <= 1; ++y) {
 			float pcfDepth = texture(tex_shadowmap, projCoords.xy + vec2(x, y) * texelSize).r;
-			shadow += projCoords.z - 0.0001 > pcfDepth ? 0.0 : 1.0;
+			shadow += projCoords.z - 0.00001 > pcfDepth ? 0.0 : 1.0;
 		}
 	}
 	
@@ -124,7 +124,7 @@ void main(void) {
 		vec3 L = normalize(vxLightPos[i] - osVertex);
 		if(vxLightType[i] == 3) {
 			// LSLT_DIRECT = 3
-			L = normalize(vxLightPos[i]);
+			L = normalize(vxLightDir[i]);
 		}
 		vec3 H = normalize(V + L);
 		float distance = length(vxLightPos[i] - osVertex);

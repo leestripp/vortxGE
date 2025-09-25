@@ -46,9 +46,6 @@ public:
 	// Public data
 	lsMatrix4x4 ViewMatrix;
 	lsFrustum frustum;
-	
-private:
-	int camera_mode;
 	// perspective.
 	float cam_fov;
 	float cam_ratio;
@@ -63,4 +60,7 @@ private:
 	// Auto update
 	int update_interval;
 	int update_counter;
+	
+private:
+	int camera_mode;
 };

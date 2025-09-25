@@ -149,7 +149,8 @@ static std::string parse_name(const std::string& s) {
 }
 
 // A tokenizer for the scene file format that respects quotes and parentheses
-static std::vector<std::string> tokenize_vgs(const std::string& input) {
+static std::vector<std::string> tokenize_vgs(const std::string& input)
+{
     std::vector<std::string> tokens;
     std::string current_token;
     bool in_quoted_string = false;

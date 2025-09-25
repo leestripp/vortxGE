@@ -68,6 +68,7 @@
 #include <scene/lsLight.h>
 #include <scene/lsLight_Spot.h>
 #include <scene/lsLight_Point.h>
+#include <scene/lsLight_Direct.h>
 #include <scene/lsLightManager.h>
 
 // Animation
@@ -256,7 +257,8 @@ void DemoScene::setupControls()
 		if( m_viewer_scene )
 		{
 			m_viewer->getSceneManager()->Add_Scene( m_viewer_scene );
-
+			
+			//*****************
 			// Add Player Rig
 			m_playerRig = new lsNode_FirstPersonRig(m_viewer_scene);
 			m_playerRig->Set_Pos(0, 5, 8); // Position camera to look at the scene from +Z
@@ -287,6 +289,26 @@ void DemoScene::setupControls()
 				pass_fbo->setCamera( playerCam );
 				pass_fbo->setCull_camera( playerCam );
 			}// if pass_fbo
+			
+			// Create a lsLight_Direct to follow the player.
+			lsLight_Direct* sun_light = new lsLight_Direct(m_viewer_scene);
+			if(sun_light && playerCam)
+			{
+				// Set the follow camera.
+				sun_light->setFollowCamera(playerCam);
+				
+				// Default settings.
+				sun_light->Set_Orthographic(-100.0, 100.0, -100.0, 100.0, 1.0, 100.0);
+		        sun_light->setName("Sun Light");
+				sun_light->Set_Pos(0.0, 50.0, 50.0);
+		        sun_light->Set_Rot(-60.0, 0.0, 0.0);
+		        // light colour
+		        sun_light->diffuse = lsVector4(0.8, 0.8, 1.0, 1.0);
+		        
+				// Add to scene.
+				m_viewer_scene->Add_Node(sun_light);
+		        m_viewer_scene->getLightManager()->Add_Light(sun_light);
+			}
 		}// if viewer_scene
 	}// if viewer
 }
