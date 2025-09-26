@@ -1,8 +1,8 @@
 #version 430
 
 // textures
-uniform sampler2D tex_diffuse;   // Albedo
-uniform sampler2D tex_normal;    // Normal map
+uniform sampler2D tex_albedo;
+uniform sampler2D tex_normal;
 uniform sampler2D tex_shadowmap;
 uniform int use_shadowmap;
 
@@ -17,8 +17,9 @@ uniform float vxLightOuterCutoff[3];
 uniform int vxLightCount;
 
 // Material
-uniform vec4 vxMatSpecular;    // .r = metallic
-uniform float vxMatShininess;  // mapped to roughness
+uniform vec4 vxMatAlbedo;
+uniform float vxMatRoughness;
+uniform float vxMatMetallic;
 
 // from vertex shader
 in vec3 osVertex;
@@ -92,10 +93,10 @@ float calculateShadow(vec4 shadowCoord) {
 
 void main(void) {
 	// PBR properties
-	vec3 albedo = texture(tex_diffuse, osTexCoord).rgb;
+	vec3 albedo = texture(tex_albedo, osTexCoord).rgb;
 	vec3 normal_map = texture(tex_normal, osTexCoord).rgb * 2.0 - 1.0;
-	float metallic = vxMatSpecular.r;
-	float roughness = clamp(1.0 - (vxMatShininess / 256.0), 0.05, 1.0);
+	float metallic = vxMatMetallic;
+	float roughness = clamp(1.0 - (vxMatRoughness / 256.0), 0.05, 1.0);
 	float ao = 1.0;
 	
 	// Vectors

@@ -1,11 +1,16 @@
 #version 430
 
 // textures
-uniform sampler2D tex_diffuse;   // Albedo
-uniform sampler2D tex_normal;    // Normal map
-uniform sampler2D tex_specular;  // R: Metallic, G: Roughness, B: AO
+uniform sampler2D tex_albedo;
+uniform sampler2D tex_normal;
+uniform sampler2D tex_roughness_metallic;  // R: Roughness, G: Metallic, B: AO
 uniform sampler2D tex_shadowmap;
 uniform int use_shadowmap;
+
+// Material
+uniform vec4 vxMatAlbedo;
+uniform float vxMatRoughness;
+uniform float vxMatMetallic;
 
 // Lighting
 uniform vec3 vxLightPos[3];
@@ -89,13 +94,13 @@ float calculateShadow(vec4 shadowCoord) {
 
 void main(void) {
 	// PBR properties from textures
-	vec3 albedo     = texture(tex_diffuse, osTexCoord).rgb;
+	vec3 albedo     = texture(tex_albedo, osTexCoord).rgb;
 	vec3 normal_map = texture(tex_normal, osTexCoord).rgb * 2.0 - 1.0;
-	vec4 mrao       = texture(tex_specular, osTexCoord);
-	float metallic  = mrao.r;
-	float roughness = mrao.g;
-	float ao        = mrao.b;
-
+	vec4 rmao       = texture(tex_roughness_metallic, osTexCoord);
+	float roughness = rmao.r;
+	float metallic  = rmao.g;
+	float ao        = rmao.b;
+	
 	// Vectors
 	vec3 N_vs = normalize(osNormal);
 	vec3 T_vs = normalize(osTangent);

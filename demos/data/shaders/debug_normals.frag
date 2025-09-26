@@ -1,6 +1,4 @@
 #version 430
-#pragma debug(on)
-#pragma optimize(off)
 
 // Lighting
 uniform mat3 nMatrix;
@@ -11,11 +9,9 @@ uniform int vxLightType[3];
 uniform int vxLightCount;
 
 // Material
-uniform vec4 vxMatAmbiant;
-uniform vec4 vxMatDiffuse;
-uniform vec4 vxMatSpecular;
-uniform float vxMatShininess;
-uniform float vxMatGlow;
+uniform vec4 vxMatAlbedo;
+uniform float vxMatRoughness;
+uniform float vxMatMetallic;
 
 // from vertex shader
 in vec3 osVertex;

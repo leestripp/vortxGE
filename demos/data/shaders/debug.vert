@@ -1,6 +1,4 @@
 #version 430
-#pragma debug(on)
-#pragma optimize(off)
 
 // vbo's
 layout (location = 0) in vec4 vxVertex;

@@ -26,146 +26,144 @@ class lsAnimationManager;
 class lsObject : public lsAnimNode
 {
 public:
-    lsObject( lsNode* parent );
-    virtual ~lsObject();
+	lsObject( lsNode* parent );
+	virtual ~lsObject();
+	
+	virtual void Move( lsScene* scn, lsOpenGL* opengl, double delta );
+	virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+	virtual void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+	
+	// Occlusion
+	void DrawSingle( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+	
+	// Transforms : override lsNode
+	void Set_Pos(float x, float y, float z);
+	void Set_Rot(float x, float y, float z);
+	void Set_Scale(float x, float y, float z);
+	
+	lsMesh* Get_Mesh();
+	
+	// Save data
+	virtual const string& toString();
 
-    virtual void Move( lsScene* scn, lsOpenGL* opengl, double delta );
-    virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
-    virtual void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+	void Set_Asset( lsAsset* asset );
+	lsAsset* getAsset() const
+	{
+		return asset;
+	}
 
-    // Occlusion
-    void DrawSingle( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+	lsBulletObject* getBulletObject() const
+	{
+		return bulletobject;
+	}
 
-    // Transforms : override lsNode
-    void Set_Pos(float x, float y, float z);
-    void Set_Rot(float x, float y, float z);
-    void Set_Scale(float x, float y, float z);
+	void setBulletObject( lsBulletObject* val )
+	{
+		bulletobject = val;
+	}
 
-    lsMesh* Get_Mesh();
+	lsLightManager* getLightManager() const
+	{
+		return lightmanager;
+	}
 
-    // Save data
-    virtual const string& toString();
+	// rendering
+	bool getcull_mesh() const
+	{
+		return cull_mesh;
+	}
 
-    void Set_Asset( lsAsset* asset );
-    lsAsset* getAsset() const
-    {
-        return asset;
-    }
+	void setCull_mesh( bool val )
+	{
+		cull_mesh = val;
+	}
 
-    lsBulletObject* getBulletObject() const
-    {
-        return bulletobject;
-    }
+	bool getOccluded() const
+	{
+		return occluded;
+	}
 
-    void setBulletObject( lsBulletObject* val )
-    {
-        bulletobject = val;
-    }
+	void setOccluded( bool val )
+	{
+		occluded = val;
+	}
 
-    lsLightManager* getLightManager() const
-    {
-        return lightmanager;
-    }
+	float getDistance_to_camera() const
+	{
+		return distance_to_camera;
+	}
 
-    // rendering
-    bool getcull_mesh() const
-    {
-        return cull_mesh;
-    }
+	void setDistance_to_camera( float val )
+	{
+		distance_to_camera = val;
+	}
 
-    void setCull_mesh( bool val )
-    {
-        cull_mesh = val;
-    }
+	int getOcclusion_type() const
+	{
+		return occlusion_type;
+	}
 
-    bool getOccluded() const
-    {
-        return occluded;
-    }
+	void setOcclusion_type( int val )
+	{
+		occlusion_type = val;
+	}
 
-    void setOccluded( bool val )
-    {
-        occluded = val;
-    }
+	GLuint getOcclusionID() const
+	{
+		return occlusion_id;
+	}
 
-    float getDistance_to_camera() const
-    {
-        return distance_to_camera;
-    }
-
-    void setDistance_to_camera( float val )
-    {
-        distance_to_camera = val;
-    }
-
-    int getOcclusion_type() const
-    {
-        return occlusion_type;
-    }
-
-    void setOcclusion_type( int val )
-    {
-        occlusion_type = val;
-    }
-
-    GLuint getOcclusionID() const
-    {
-        return occlusion_id;
-    }
-
-    void setOcclusionID( GLuint val )
-    {
-        occlusion_id = val;
-    }
-
-
-    // Draw --------------------------
-
-    lsObject* getNext_drawobject() const
-    {
-        return next_drawobject;
-    }
-
-    void setNext_drawobject( lsObject* val )
-    {
-        next_drawobject = val;
-    }
-
-    lsObject* getPrev_drawobject() const
-    {
-        return prev_drawobject;
-    }
-
-    void setPrev_drawobject( lsObject* val )
-    {
-        prev_drawobject = val;
-    }
-
-    // Shadow flags
-    bool getCasts_shadows() const { return casts_shadows; }
-    void setCasts_shadows(bool val) { casts_shadows = val; }
-    bool getReceives_shadows() const { return receives_shadows; }
-    void setReceives_shadows(bool val) { receives_shadows = val; }
+	void setOcclusionID( GLuint val )
+	{
+		occlusion_id = val;
+	}
 
 
+	// Draw --------------------------
+
+	lsObject* getNext_drawobject() const
+	{
+		return next_drawobject;
+	}
+
+	void setNext_drawobject( lsObject* val )
+	{
+		next_drawobject = val;
+	}
+
+	lsObject* getPrev_drawobject() const
+	{
+		return prev_drawobject;
+	}
+
+	void setPrev_drawobject( lsObject* val )
+	{
+		prev_drawobject = val;
+	}
+
+	// Shadow flags
+	bool getCasts_shadows() const { return casts_shadows; }
+	void setCasts_shadows(bool val) { casts_shadows = val; }
+	bool getReceives_shadows() const { return receives_shadows; }
+	void setReceives_shadows(bool val) { receives_shadows = val; }
+	
 private:
-    lsAsset             *asset;
-    lsLightManager      *lightmanager;
-    lsBulletObject      *bulletobject;
+	lsAsset             *asset;
+	lsLightManager      *lightmanager;
+	lsBulletObject      *bulletobject;
 
-    // rendering draw list
-    lsObject *next_drawobject;
-    lsObject *prev_drawobject;
+	// rendering draw list
+	lsObject *next_drawobject;
+	lsObject *prev_drawobject;
 
-    // Culling
-    bool cull_mesh;
-    bool occluded;
-    float distance_to_camera;
-    int occlusion_type;
-    GLuint occlusion_id;
-
-    // Shadows
-    bool casts_shadows;
-    bool receives_shadows;
-
+	// Culling
+	bool cull_mesh;
+	bool occluded;
+	float distance_to_camera;
+	int occlusion_type;
+	GLuint occlusion_id;
+	
+	// Shadows
+	bool casts_shadows;
+	bool receives_shadows;
 };

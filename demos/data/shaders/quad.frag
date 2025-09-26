@@ -1,8 +1,6 @@
 #version 430
-#pragma debug(on)
-#pragma optimize(off)
 
-uniform sampler2D tex_diffuse;
+uniform sampler2D tex_albedo;
 
 in vec4 osColour;
 in vec2 osTexCoord;
@@ -19,7 +17,6 @@ vec3 LinearToSRGB( vec3 rgb )
 
 void main(void)
 {
-    vec4 c = texture( tex_diffuse, osTexCoord );
+    vec4 c = texture( tex_albedo, osTexCoord );
     fragColour = vec4( LinearToSRGB(c.rgb), c.a );
 }
-

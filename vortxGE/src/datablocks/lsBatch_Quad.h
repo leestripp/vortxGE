@@ -34,14 +34,14 @@ public:
     void Copy_GLdata();
     void Clear_GLdata();
 
-    GLuint getTex_diffuse() const
+    GLuint getTex_albedo() const
     {
-        return tex_diffuse;
+        return tex_albedo;
     }
 
-    void setTex_diffuse( GLuint val )
+    void setTex_albedo( GLuint val )
     {
-        tex_diffuse = val;
+        tex_albedo = val;
     }
 
 private:
@@ -50,10 +50,9 @@ private:
 	GLuint vbo_verts;
 	GLuint vbo_uvs;
 	GLuint vbo_indices;
-
+	
     // Textures
-    GLuint      tex_diffuse;
-
+    GLuint      tex_albedo;
 };
 
 

@@ -66,7 +66,7 @@ void lsShader::setShader_type( int val )
 	{
 	case LSST_LIGHT_TEX_DNS:
 		// Texture
-		iTex_specular = glGetUniformLocation( shader, "tex_specular" );
+		iTex_roughness_metallic = glGetUniformLocation( shader, "tex_roughness_metallic" );
 		[[fallthrough]];
 	case LSST_LIGHT_TEX_DN:
 		// Texture
@@ -74,7 +74,7 @@ void lsShader::setShader_type( int val )
 		[[fallthrough]];
 	case LSST_LIGHT_TEX_D:
 		// Texture
-		iTex_diffuse = glGetUniformLocation( shader, "tex_diffuse" );
+		iTex_albedo = glGetUniformLocation( shader, "tex_albedo" );
 		[[fallthrough]];
 	case LSST_LIGHT_TEX_NONE:
 	case LSST_DEBUG_NORMALS:
@@ -113,12 +113,10 @@ void lsShader::setShader_type( int val )
 		iLightIntensity3 = glGetUniformLocation( shader, "vxLightIntensity[2]" );
 		
 		// Material
-		iMatAmbiant = glGetUniformLocation( shader, "vxMatAmbiant" );
-		iMatDiffuse = glGetUniformLocation( shader, "vxMatDiffuse" );
-		iMatSpecular = glGetUniformLocation( shader, "vxMatSpecular" );
-		iMatShininess = glGetUniformLocation( shader, "vxMatShininess" );
-		iMatGlow = glGetUniformLocation( shader, "vxMatGlow" );
-
+		iMatAlbedo = glGetUniformLocation( shader, "vxMatAlbedo" );
+		iMatRoughness = glGetUniformLocation( shader, "vxMatRoughness" );
+		iMatMetallic = glGetUniformLocation( shader, "vxMatMetallic" );
+		
 		// Need ModelViewMatrix and ProjectionMatrix
 		imvMatrix = glGetUniformLocation( shader, "mvMatrix" );
 		imMatrix = glGetUniformLocation( shader, "mMatrix" );
@@ -129,7 +127,7 @@ void lsShader::setShader_type( int val )
 
 	case LSST_QUAD:
 		// Texture
-		iTex_diffuse = glGetUniformLocation( shader, "tex_diffuse" );
+		iTex_albedo = glGetUniformLocation( shader, "tex_albedo" );
 		[[fallthrough]];
 	case LSST_DEBUG:
 		// Need ModelViewMatrix and ProjectionMatrix
@@ -171,10 +169,10 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused
 	switch( shader_type )
 	{
 		case LSST_LIGHT_TEX_DNS:
-			// Texture specular
+			// Texture 'S' combined roughness and metallic
 			glActiveTexture( GL_TEXTURE2 );
-			glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_specular );
-			glUniform1i( iTex_specular, 2 );
+			glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_roughness_metallic );
+			glUniform1i( iTex_roughness_metallic, 2 );
 			[[fallthrough]];
 		case LSST_LIGHT_TEX_DN:
 			// Texture normal
@@ -183,10 +181,10 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused
 			glUniform1i( iTex_normal, 1 );
 			[[fallthrough]];
 		case LSST_LIGHT_TEX_D:
-			// Texture diffuse
+			// Texture 'D' Albedo
 			glActiveTexture( GL_TEXTURE0 );
-			glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_diffuse );
-			glUniform1i( iTex_diffuse, 0 );
+			glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_albedo );
+			glUniform1i( iTex_albedo, 0 );
 			[[fallthrough]];
 		case LSST_LIGHT_TEX_NONE:
 			// Shadow Map
@@ -222,11 +220,9 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused
 			// Material
 			if( batch->getBatch_type() == LSBT_MESH )
 			{
-				glUniform4f( iMatAmbiant, batch_mesh->ambiant.x, batch_mesh->ambiant.y, batch_mesh->ambiant.z, batch_mesh->ambiant.w );
-				glUniform4f( iMatDiffuse, batch_mesh->diffuse.x, batch_mesh->diffuse.y, batch_mesh->diffuse.z, batch_mesh->diffuse.w );
-				glUniform4f( iMatSpecular, batch_mesh->specular.x, batch_mesh->specular.y, batch_mesh->specular.z, batch_mesh->specular.w );
-				glUniform1f( iMatShininess, batch_mesh->shininess );
-				glUniform1f( iMatGlow, batch_mesh->glow );
+				glUniform4f( iMatAlbedo, batch_mesh->m_albedo.x, batch_mesh->m_albedo.y, batch_mesh->m_albedo.z, batch_mesh->m_albedo.w );
+				glUniform1f( iMatRoughness, batch_mesh->m_roughness );
+				glUniform1f( iMatMetallic, batch_mesh->m_metallic );
 			}
 			
 			// Matrix data
@@ -248,11 +244,9 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused
 			// Material
 			if( batch->getBatch_type() == LSBT_MESH )
 			{
-				glUniform4f( iMatAmbiant, batch_mesh->ambiant.x, batch_mesh->ambiant.y, batch_mesh->ambiant.z, batch_mesh->ambiant.w );
-				glUniform4f( iMatDiffuse, batch_mesh->diffuse.x, batch_mesh->diffuse.y, batch_mesh->diffuse.z, batch_mesh->diffuse.w );
-				glUniform4f( iMatSpecular, batch_mesh->specular.x, batch_mesh->specular.y, batch_mesh->specular.z, batch_mesh->specular.w );
-				glUniform1f( iMatShininess, batch_mesh->shininess );
-				glUniform1f( iMatGlow, batch_mesh->glow );
+				glUniform4f( iMatAlbedo, batch_mesh->m_albedo.x, batch_mesh->m_albedo.y, batch_mesh->m_albedo.z, batch_mesh->m_albedo.w );
+				glUniform1f( iMatRoughness, batch_mesh->m_roughness );
+				glUniform1f( iMatMetallic, batch_mesh->m_metallic );
 			}
 			
 			// Matrix data
@@ -276,8 +270,8 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused
 			
 			// Textures
 			glActiveTexture( GL_TEXTURE0 );
-			glBindTexture( GL_TEXTURE_2D, batch_quad->getTex_diffuse() );
-			glUniform1i( iTex_diffuse, 0 );
+			glBindTexture( GL_TEXTURE_2D, batch_quad->getTex_albedo() );
+			glUniform1i( iTex_albedo, 0 );
 			break;
 		
 		case LSST_DEBUG:

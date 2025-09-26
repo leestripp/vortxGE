@@ -37,93 +37,88 @@ using namespace std;
 class lsShader
 {
 public:
-    lsShader( lsOpenGL *opengl );
-    virtual ~lsShader();
+	lsShader( lsOpenGL *opengl );
+	virtual ~lsShader();
 
-    // opengl
-    lsOpenGL *ogl;
+	// opengl
+	lsOpenGL *ogl;
 
-    void UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch *batch );
-    void Load_Shader( const string& name );
-    void debug( GLuint s );
-    bool debugProgram();
-    void setShader_type( int val );
+	void UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch *batch );
+	void Load_Shader( const string& name );
+	void debug( GLuint s );
+	bool debugProgram();
+	void setShader_type( int val );
 
-    // Lights
-    void Setup_Lights( lsCamera *camera, lsObject *object );
-    void Set_Light( int i, lsCamera *camera, lsLight *light, lsObject *object );
+	// Lights
+	void Setup_Lights( lsCamera *camera, lsObject *object );
+	void Set_Light( int i, lsCamera *camera, lsLight *light, lsObject *object );
 	
 	
-    // Navi ---------------------------
+	// Navi ---------------------------
 
-    lsShader* getNext_shader() const
-    {
-        return next_shader;
-    }
+	lsShader* getNext_shader() const
+	{
+		return next_shader;
+	}
 
-    void setNext_shader( lsShader* val )
-    {
-        next_shader = val;
-    }
+	void setNext_shader( lsShader* val )
+	{
+		next_shader = val;
+	}
 
-    lsShader* getPrev_shader() const
-    {
-        return prev_shader;
-    }
+	lsShader* getPrev_shader() const
+	{
+		return prev_shader;
+	}
 
-    void setPrev_shader( lsShader* val )
-    {
-        prev_shader = val;
-    }
+	void setPrev_shader( lsShader* val )
+	{
+		prev_shader = val;
+	}
 
-    // Data ---------------------------
+	// Data ---------------------------
 
-    const string& getName()
-    {
-        return name;
-    }
+	const string& getName()
+	{
+		return name;
+	}
 
-    void setName( const string& val )
-    {
-        name = val;
-    }
+	void setName( const string& val )
+	{
+		name = val;
+	}
 
-    int getShader_type() const
-    {
-        return shader_type;
-    }
+	int getShader_type() const
+	{
+		return shader_type;
+	}
 
-    GLuint getProgram() const
-    {
-        return shader;
-    }
+	GLuint getProgram() const
+	{
+		return shader;
+	}
 
 private:
-    lsShader *next_shader;
-    lsShader *prev_shader;
-    string name;
-    int shader_type;
+	lsShader *next_shader;
+	lsShader *prev_shader;
+	string name;
+	int shader_type;
 
-    // Shader names
-    GLuint shader_v;
-    GLuint shader_f;
-    GLuint shader;
+	// Shader names
+	GLuint shader_v;
+	GLuint shader_f;
+	GLuint shader;
 	
-    	// uniforms
+		// uniforms
 	GLint imvpMatrix;
-    GLint ipMatrix;         // Projection Matrix
-    GLint imvMatrix;        // Model View Matrix
-    GLint imMatrix;         // Model Matrix
-    GLint inMatrix;         // Normal Matrix
-    GLint isMatrix;         // Shadow Matrix
-    
-	// texture locations
-	GLint iTex_diffuse;
-	GLint iTex_normal;
-	GLint iTex_specular;
+	GLint ipMatrix;         // Projection Matrix
+	GLint imvMatrix;        // Model View Matrix
+	GLint imMatrix;         // Model Matrix
+	GLint inMatrix;         // Normal Matrix
+	GLint isMatrix;         // Shadow Matrix
 	
 	// TODO: We need one per light.
-    // Shadowmap locations
+	// Shadowmap locations
 	GLint iTex_shadowmap;
 	GLint iShadow_bias;
 	GLint iPixel_x;
@@ -131,47 +126,42 @@ private:
 	GLint iUse_shadowmap;
 	
 	// Material
-	GLint iMat_diffuse;
-	GLint iMat_specular;
-	GLint iMat_shininess;
-	GLint iMat_ambiant;
-	GLint iGlow;
-	// Light locations
-    GLint iLightCount;
-    
-    // Light 1
-	GLint iLightType1;
-    GLint iLightPos1;
-    GLint iLightDir1;
-    GLint iLightCutoff1;
-    GLint iLightOuterCutoff1;
-    GLint iLightDiffuse1;
-    GLint iLightSpecular1;
-    GLint iLightIntensity1;
-    // light 2
-    GLint iLightType2;
-    GLint iLightPos2;
-    GLint iLightDir2;
-    GLint iLightCutoff2;
-    GLint iLightOuterCutoff2;
-    GLint iLightDiffuse2;
-    GLint iLightSpecular2;
-    GLint iLightIntensity2;
-    // light 3
-    GLint iLightType3;
-    GLint iLightPos3;
-    GLint iLightDir3;
-    GLint iLightCutoff3;
-    GLint iLightOuterCutoff3;
-    GLint iLightDiffuse3;
-    GLint iLightSpecular3;
-    GLint iLightIntensity3;
+	GLint iMatAlbedo;
+	GLint iMatRoughness;
+	GLint iMatMetallic;
+	// PBR textures
+	GLint iTex_albedo;
+	GLint iTex_roughness_metallic;
+	GLint iTex_normal;
 	
-    // Materail
-    GLuint iMatAmbiant;
-    GLuint iMatDiffuse;
-    GLuint iMatSpecular;
-    GLuint iMatShininess;
-    GLuint iMatGlow;
-
+	// Light locations
+	GLint iLightCount;
+	
+	// Light 1
+	GLint iLightType1;
+	GLint iLightPos1;
+	GLint iLightDir1;
+	GLint iLightCutoff1;
+	GLint iLightOuterCutoff1;
+	GLint iLightDiffuse1;
+	GLint iLightSpecular1;
+	GLint iLightIntensity1;
+	// light 2
+	GLint iLightType2;
+	GLint iLightPos2;
+	GLint iLightDir2;
+	GLint iLightCutoff2;
+	GLint iLightOuterCutoff2;
+	GLint iLightDiffuse2;
+	GLint iLightSpecular2;
+	GLint iLightIntensity2;
+	// light 3
+	GLint iLightType3;
+	GLint iLightPos3;
+	GLint iLightDir3;
+	GLint iLightCutoff3;
+	GLint iLightOuterCutoff3;
+	GLint iLightDiffuse3;
+	GLint iLightSpecular3;
+	GLint iLightIntensity3;
 };

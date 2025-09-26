@@ -53,17 +53,15 @@ public:
     int getIndexCount() const { return count_tris; }
 	
 	// Material
-	lsVector4 diffuse;
-	lsVector4 specular;
-	lsVector4 ambiant;
-	GLfloat shininess;
-	GLfloat transparent;
-	GLfloat glow;
+	lsVector4 m_albedo;
+	float m_roughness;
+	float m_metallic;
+	
 	// Textures
-	GLuint tex_diffuse;
+	GLuint tex_albedo;
+	GLuint tex_roughness_metallic;
 	GLuint tex_normal;
-	GLuint tex_specular;
-
+	
 private:
 	GLuint vao_mesh;
 	GLuint bufferObjects[6];

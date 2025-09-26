@@ -1,6 +1,4 @@
 #version 430
-#pragma debug(on)
-#pragma optimize(off)
 
 // vertex shader
  in vec4 osColour;

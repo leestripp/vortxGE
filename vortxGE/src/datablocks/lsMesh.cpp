@@ -745,6 +745,7 @@ void lsMesh::LoadVBM(const string& filename, lsAssetManager *am, lsShaderManager
 				}
 
 				// ##################################################3 Material
+				
 			} else if( list[0] == "diffuse" )
 			{
 				rx = convert.toFloat( list[1] );
@@ -752,48 +753,29 @@ void lsMesh::LoadVBM(const string& filename, lsAssetManager *am, lsShaderManager
 				rz = convert.toFloat( list[3] );
 				rw = convert.toFloat( list[4] );
 
-				batch->diffuse = lsVector4( rx, ry, rz, rw );
+				batch->m_albedo = lsVector4( rx, ry, rz, rw );
 
 			} else if( list[0] == "specular" )
 			{
 				rx = convert.toFloat( list[1] );
-				ry = convert.toFloat( list[2] );
-				rz = convert.toFloat( list[3] );
-				rw = convert.toFloat( list[4] );
-
-				batch->specular = lsVector4( rx, ry, rz, rw );
-
-			} else if( list[0] == "ambiant" )
-			{
-				rx = convert.toFloat( list[1] );
-				ry = convert.toFloat( list[2] );
-				rz = convert.toFloat( list[3] );
-				rw = convert.toFloat( list[4] );
-
-				batch->ambiant = lsVector4( rx, ry, rz, rw );
+				
+				batch->m_roughness = rx;
 
 			} else if( list[0] == "shininess" )
 			{
-				batch->shininess = convert.toFloat( list[1] );
+				batch->m_metallic = convert.toFloat( list[1] );
 
-			} else if( list[0] == "transparent" )
-			{
-				batch->transparent = convert.toFloat( list[1] );
-
-			} else if( list[0] == "glow" )
-			{
-				batch->glow = convert.toFloat( list[1] );
-
-				// ##########################################3 Textures
 			} else if( list[0] == "tex_d" )
 			{
+				// ##########################################3 Textures
+				
 				image = (lsAsset_Texture *)am->Find_Asset( list[1] );
 				if( image )
 				{
 					if( image->getData() )
 					{
 						texture = (lsTexture*)image->getData();
-						batch->tex_diffuse = texture->getTexture();
+						batch->tex_albedo = texture->getTexture();
 					}
 				} else
 				{
@@ -806,7 +788,7 @@ void lsMesh::LoadVBM(const string& filename, lsAssetManager *am, lsShaderManager
 						if( image->getData() )
 						{
 							texture = (lsTexture*)image->getData();
-							batch->tex_diffuse = texture->getTexture();
+							batch->tex_albedo = texture->getTexture();
 						}
 
 					}// if image
@@ -847,7 +829,7 @@ void lsMesh::LoadVBM(const string& filename, lsAssetManager *am, lsShaderManager
 					if( image->getData() )
 					{
 						texture = (lsTexture*)image->getData();
-						batch->tex_specular = texture->getTexture();
+						batch->tex_roughness_metallic = texture->getTexture();
 					}
 				} else
 				{
@@ -860,7 +842,7 @@ void lsMesh::LoadVBM(const string& filename, lsAssetManager *am, lsShaderManager
 						if( image->getData() )
 						{
 							texture = (lsTexture*)image->getData();
-							batch->tex_specular = texture->getTexture();
+							batch->tex_roughness_metallic = texture->getTexture();
 						}
 
 					}// if image
@@ -1045,14 +1027,10 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 				const tinygltf::Material& mat = model.materials[primitive.material];
 				
 				const auto& pbr = mat.pbrMetallicRoughness;
-				batch->diffuse = lsVector4(pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], pbr.baseColorFactor[3]);
+				batch->m_albedo = lsVector4(pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], pbr.baseColorFactor[3]);
+				batch->m_roughness = pbr.roughnessFactor;
+				batch->m_metallic = pbr.metallicFactor;
 				
-				float metallic = pbr.metallicFactor;
-				float roughness = pbr.roughnessFactor;
-				batch->specular = lsVector4(0.04f + metallic * 0.96f, 0.04f + metallic * 0.96f, 0.04f + metallic * 0.96f, 1.0f);
-				batch->shininess = (1.0f - roughness) * 256.0f;
-				batch->ambiant = lsVector4(0.1f, 0.1f, 0.1f, 1.0f);
-
 				std::string shader_name_suffix = "";
 
 				auto get_texture_id = [&](int tex_idx) -> GLuint {
@@ -1099,8 +1077,8 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 				};
 
 				if (pbr.baseColorTexture.index > -1) {
-					batch->tex_diffuse = get_texture_id(pbr.baseColorTexture.index);
-					if (batch->tex_diffuse != 0) shader_name_suffix += "d";
+					batch->tex_albedo = get_texture_id(pbr.baseColorTexture.index);
+					if (batch->tex_albedo != 0) shader_name_suffix += "d";
 				}
 				if (mat.normalTexture.index > -1) {
 					batch->tex_normal = get_texture_id(mat.normalTexture.index);

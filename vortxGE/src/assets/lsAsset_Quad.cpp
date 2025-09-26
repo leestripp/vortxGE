@@ -85,7 +85,7 @@ void lsAsset_Quad::Set_texture( GLuint val )
 {
     if( batch_quad )
     {
-        batch_quad->setTex_diffuse( val );
+        batch_quad->setTex_albedo( val );
     }
 }
 
