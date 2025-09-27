@@ -162,7 +162,7 @@ void lsShader::setShader_type( int val )
 	glUseProgram(0);
 }
 
-void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch *batch )
+void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, lsBatch *batch )
 {
 #ifdef VORTX_DEBUG_SHADERS
 	cout << "lsShader::UseShader() - Called" << endl;

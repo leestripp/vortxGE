@@ -57,7 +57,7 @@ def get_vortxge_transform(blender_obj, is_mesh=False):
         R_corr = Matrix.Rotation(math.radians(90.0), 4, 'X')
         world_matrix = world_matrix @ R_corr
 
-    # Transform the matrix into vortxGE's coordinate space
+    # Apply the coordinate system conversion
     final_vortx_mat = C_mat4 @ world_matrix
 
     # Decompose the transformed matrix to get location, rotation, and scale
@@ -114,11 +114,12 @@ def write_vortxge_scene(context, filepath):
                     
                     loc, rot, _ = get_vortxge_transform(obj, is_mesh=False)
                     color = light.color
+                    intensity = light.energy # Get Blender's light energy (intensity)
 
                     f.write(f"add_light {light_type_str} {name} {parent} ")
                     f.write(f"({loc.x:.6f}, {loc.y:.6f}, {loc.z:.6f}) ")
                     f.write(f"({rot.x:.6f}, {rot.y:.6f}, {rot.z:.6f}) ")
-                    f.write(f"({color.r:.6f}, {color.g:.6f}, {color.b:.6f})\n")
+                    f.write(f"({color.r:.6f}, {color.g:.6f}, {color.b:.6f}) {intensity:.6f}\n") # Add intensity
                 f.write("\n")
 
             # --- Export Objects (Meshes) ---

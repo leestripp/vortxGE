@@ -316,15 +316,16 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             nodeMap[name] = obj;
             objects_in_scene.push_back(obj);
 			
-        } else if (command == "add_light" && tokens.size() >= 7)
+        } else if (command == "add_light" && tokens.size() >= 8) // Changed from >= 7 to >= 8
         {
-            // add_light type `name` `parent` (pos) (rot) (color)
+            // add_light type `name` `parent` (pos) (rot) (color) intensity
             std::string type = tokens[1];
             std::string name = parse_name(tokens[2]);
             std::string parentName = parse_name(tokens[3]);
             lsVector3 pos = parse_vector3(tokens[4]);
             lsVector3 rot = parse_vector3(tokens[5]);
             lsVector3 color = parse_vector3(tokens[6]);
+            float intensity = converter.toFloat(tokens[7]); // Parse intensity
             
             std::cout << "INFO: Adding " << type << " light '" << name << "'" << std::endl;
             
@@ -355,6 +356,7 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
             light->Set_Pos(pos.x, pos.y, pos.z);
             light->Set_Rot(rot.x, rot.y, rot.z);
             light->diffuse = lsVector4(color.x, color.y, color.z, 1.0f);
+            light->setIntensity(intensity); // Set the parsed intensity
             
             parent->Add_Node(light);
             nodeMap[name] = light;
