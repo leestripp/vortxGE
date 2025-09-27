@@ -1,8 +1,8 @@
 #version 430
 
 // textures
-uniform sampler2D tex_shadowmap;
-uniform int use_shadowmap;
+uniform sampler2D tex_shadowmaps[3]; // Changed to array
+uniform int use_shadowmap[3];        // Changed to array
 
 // Material
 uniform vec4 vxMatAlbedo;
@@ -24,7 +24,7 @@ in vec3 osVertex;
 in vec3 osNormal;
 in vec3 osTangent;
 in vec2 osTexCoord;
-in vec4 osShadowCoord;
+in vec4 osShadowCoords[3]; // Changed to array
 
 // output to frame buffer
 out vec4 fragColour;
@@ -66,27 +66,28 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-float calculateShadow(vec4 shadowCoord) {
+// Function now accepts a specific shadow map sampler
+float calculateShadow(vec4 shadowCoord, sampler2D shadowMap) {
 	vec3 projCoords = shadowCoord.xyz / shadowCoord.w;
 	
+	float bias = 0.00001; 
+	
 	if (any(lessThan(projCoords.xyz, vec3(0.0))) || any(greaterThan(projCoords.xyz, vec3(1.0)))) {
-		return 1.0;
+		return 1.0; 
 	}
 	
 	// PCF implementation
 	float shadow = 0.0;
-	vec2 texelSize = 1.0 / textureSize(tex_shadowmap, 0); 
+	vec2 texelSize = 1.0 / textureSize(shadowMap, 0); 
 	
-	// Sample a 3x3 kernel around the projected coordinates
-	for (int x = -1; x <= 1; ++x) {
-		for (int y = -1; y <= 1; ++y) {
-			float pcfDepth = texture(tex_shadowmap, projCoords.xy + vec2(x, y) * texelSize).r;
-			shadow += projCoords.z - 0.00001 > pcfDepth ? 0.0 : 1.0;
+	for (int x = -2; x <= 2; ++x) {
+		for (int y = -2; y <= 2; ++y) {
+			float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+			shadow += projCoords.z - bias > pcfDepth ? 0.0 : 1.0;
 		}
 	}
 	
-	// Average the samples
-	return shadow / 9.0;
+	return shadow / 25.0; 
 }
 
 void main(void) {
@@ -106,12 +107,6 @@ void main(void) {
 
 	// Radiance accumulator
 	vec3 Lo = vec3(0.0);
-
-	// Shadow calculation
-	float shadow = 1.0;
-	if (use_shadowmap == 1) {
-		shadow = calculateShadow(osShadowCoord);
-	}
 
 	// Loop over lights
 	for (int i = 0; i < vxLightCount; ++i) {
@@ -159,12 +154,19 @@ void main(void) {
 		kD *= 1.0 - metallic;
 
 		float NdotL = max(dot(N, L), 0.0);
-		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+		
+		// Shadow calculation for this light
+		float light_shadow = 1.0;
+		if (use_shadowmap[i] == 1) {
+			light_shadow = calculateShadow(osShadowCoords[i], tex_shadowmaps[i]);
+		}
+		
+		Lo += (kD * albedo / PI + specular) * radiance * NdotL * light_shadow;
 	}
 
 	// Ambient lighting
 	vec3 ambient = vec3(0.03) * albedo * ao;
-	vec3 color = ambient + (Lo * shadow);
+	vec3 color = ambient + Lo;
 
 	fragColour = vec4(color, 1.0);
 }

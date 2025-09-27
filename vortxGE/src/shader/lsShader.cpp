@@ -1,3 +1,7 @@
+#include <iostream>
+#include <vector> // For std::vector
+#include <algorithm> // For std::min
+
 // core
 #include "../vortx_debug.h"
 
@@ -42,6 +46,35 @@ lsShader::lsShader( lsOpenGL *opengl )
 	glAttachShader( shader, shader_v );
 	glAttachShader( shader, shader_f );
 
+	// Initialize all uniform locations to -1
+	imvpMatrix = -1;
+	ipMatrix = -1;
+	imvMatrix = -1;
+	imMatrix = -1;
+	inMatrix = -1;
+	
+	iTex_albedo = -1;
+	iTex_roughness_metallic = -1;
+	iTex_normal = -1;
+
+	for(int i = 0; i < 3; ++i) {
+		isMatrices[i] = -1;
+		iTex_shadowmaps[i] = -1;
+		iUse_shadowmap[i] = -1;
+		iLightType[i] = -1;
+		iLightPos[i] = -1;
+		iLightDir[i] = -1;
+		iLightCutoff[i] = -1;
+		iLightOuterCutoff[i] = -1;
+		iLightDiffuse[i] = -1;
+		iLightSpecular[i] = -1;
+		iLightIntensity[i] = -1;
+	}
+
+	iLightCount = -1;
+	iMatAlbedo = -1;
+	iMatRoughness = -1;
+	iMatMetallic = -1;
 }
 
 lsShader::~lsShader()
@@ -64,86 +97,72 @@ void lsShader::setShader_type( int val )
 	// by shader type
 	switch( shader_type )
 	{
-	case LSST_LIGHT_TEX_DNS:
-		// Texture
-		iTex_roughness_metallic = glGetUniformLocation( shader, "tex_roughness_metallic" );
-		[[fallthrough]];
-	case LSST_LIGHT_TEX_DN:
-		// Texture
-		iTex_normal = glGetUniformLocation( shader, "tex_normal" );
-		[[fallthrough]];
-	case LSST_LIGHT_TEX_D:
-		// Texture
-		iTex_albedo = glGetUniformLocation( shader, "tex_albedo" );
-		[[fallthrough]];
-	case LSST_LIGHT_TEX_NONE:
-	case LSST_DEBUG_NORMALS:
-		// Shadow Matrix
-		isMatrix = glGetUniformLocation( shader, "sMatrix" );
-		iTex_shadowmap = glGetUniformLocation( shader, "tex_shadowmap" );
-		iUse_shadowmap = glGetUniformLocation( shader, "use_shadowmap" );
-		// Lights
-		iLightCount = glGetUniformLocation( shader, "vxLightCount" );
-		// Light 1
-		iLightType1 = glGetUniformLocation( shader, "vxLightType[0]" );
-		iLightPos1 = glGetUniformLocation( shader, "vxLightPos[0]" );
-		iLightDir1 = glGetUniformLocation( shader, "vxLightDir[0]" );
-		iLightCutoff1 = glGetUniformLocation( shader, "vxLightCutoff[0]" );
-		iLightOuterCutoff1 = glGetUniformLocation( shader, "vxLightOuterCutoff[0]" );
-		iLightDiffuse1 = glGetUniformLocation( shader, "vxLightDiffuse[0]" );
-		iLightSpecular1 = glGetUniformLocation( shader, "vxLightSpecular[0]" );
-		iLightIntensity1 = glGetUniformLocation( shader, "vxLightIntensity[0]" );
-		// Light 2
-		iLightType2 = glGetUniformLocation( shader, "vxLightType[1]" );
-		iLightPos2 = glGetUniformLocation( shader, "vxLightPos[1]" );
-		iLightDir2 = glGetUniformLocation( shader, "vxLightDir[1]" );
-		iLightCutoff2 = glGetUniformLocation( shader, "vxLightCutoff[1]" );
-		iLightOuterCutoff2 = glGetUniformLocation( shader, "vxLightOuterCutoff[1]" );
-		iLightDiffuse2 = glGetUniformLocation( shader, "vxLightDiffuse[1]" );
-		iLightSpecular2 = glGetUniformLocation( shader, "vxLightSpecular[1]" );
-		iLightIntensity2 = glGetUniformLocation( shader, "vxLightIntensity[1]" );
-		// Light 3
-		iLightType3 = glGetUniformLocation( shader, "vxLightType[2]" );
-		iLightPos3 = glGetUniformLocation( shader, "vxLightPos[2]" );
-		iLightDir3 = glGetUniformLocation( shader, "vxLightDir[2]" );
-		iLightCutoff3 = glGetUniformLocation( shader, "vxLightCutoff[2]" );
-		iLightOuterCutoff3 = glGetUniformLocation( shader, "vxLightOuterCutoff[2]" );
-		iLightDiffuse3 = glGetUniformLocation( shader, "vxLightDiffuse[2]" );
-		iLightSpecular3 = glGetUniformLocation( shader, "vxLightSpecular[2]" );
-		iLightIntensity3 = glGetUniformLocation( shader, "vxLightIntensity[2]" );
-		
-		// Material
-		iMatAlbedo = glGetUniformLocation( shader, "vxMatAlbedo" );
-		iMatRoughness = glGetUniformLocation( shader, "vxMatRoughness" );
-		iMatMetallic = glGetUniformLocation( shader, "vxMatMetallic" );
-		
-		// Need ModelViewMatrix and ProjectionMatrix
-		imvMatrix = glGetUniformLocation( shader, "mvMatrix" );
-		imMatrix = glGetUniformLocation( shader, "mMatrix" );
-		ipMatrix = glGetUniformLocation( shader, "pMatrix" );
-		// Normal Matrix
-		inMatrix = glGetUniformLocation( shader, "nMatrix" );
-		break;
+		case LSST_LIGHT_TEX_DNS:
+			// Texture 'S' combined roughness and metallic
+			iTex_roughness_metallic = glGetUniformLocation( shader, "tex_roughness_metallic" );
+			[[fallthrough]];
+		case LSST_LIGHT_TEX_DN:
+			// Texture
+			iTex_normal = glGetUniformLocation( shader, "tex_normal" );
+			[[fallthrough]];
+		case LSST_LIGHT_TEX_D:
+			// Texture 'D' Albedo
+			iTex_albedo = glGetUniformLocation( shader, "tex_albedo" );
+			[[fallthrough]];
+		case LSST_LIGHT_TEX_NONE:
+		case LSST_DEBUG_NORMALS: // Although debug_normals doesn't use all lights, keep light uniform init common
+			// Shadow Map uniforms (arrays)
+			for(int i = 0; i < 3; ++i) {
+				isMatrices[i] = glGetUniformLocation( shader, ("sMatrices[" + std::to_string(i) + "]").c_str() );
+				iTex_shadowmaps[i] = glGetUniformLocation( shader, ("tex_shadowmaps[" + std::to_string(i) + "]").c_str() );
+				iUse_shadowmap[i] = glGetUniformLocation( shader, ("use_shadowmap[" + std::to_string(i) + "]").c_str() );
+			}
+			
+			// Lights uniforms (arrays)
+			iLightCount = glGetUniformLocation( shader, "vxLightCount" );
+			for(int i = 0; i < 3; ++i) {
+				iLightType[i] = glGetUniformLocation( shader, ("vxLightType[" + std::to_string(i) + "]").c_str() );
+				iLightPos[i] = glGetUniformLocation( shader, ("vxLightPos[" + std::to_string(i) + "]").c_str() );
+				iLightDir[i] = glGetUniformLocation( shader, ("vxLightDir[" + std::to_string(i) + "]").c_str() );
+				iLightCutoff[i] = glGetUniformLocation( shader, ("vxLightCutoff[" + std::to_string(i) + "]").c_str() );
+				iLightOuterCutoff[i] = glGetUniformLocation( shader, ("vxLightOuterCutoff[" + std::to_string(i) + "]").c_str() );
+				iLightDiffuse[i] = glGetUniformLocation( shader, ("vxLightDiffuse[" + std::to_string(i) + "]").c_str() );
+				iLightSpecular[i] = glGetUniformLocation( shader, ("vxLightSpecular[" + std::to_string(i) + "]").c_str() );
+				iLightIntensity[i] = glGetUniformLocation( shader, ("vxLightIntensity[" + std::to_string(i) + "]").c_str() );
+			}
+			
+			// Material
+			iMatAlbedo = glGetUniformLocation( shader, "vxMatAlbedo" );
+			iMatRoughness = glGetUniformLocation( shader, "vxMatRoughness" );
+			iMatMetallic = glGetUniformLocation( shader, "vxMatMetallic" );
+			
+			// Need ModelViewMatrix and ProjectionMatrix
+			imvMatrix = glGetUniformLocation( shader, "mvMatrix" );
+			imMatrix = glGetUniformLocation( shader, "mMatrix" );
+			ipMatrix = glGetUniformLocation( shader, "pMatrix" );
+			// Normal Matrix
+			inMatrix = glGetUniformLocation( shader, "nMatrix" );
+			break;
 
-	case LSST_QUAD:
-		// Texture
-		iTex_albedo = glGetUniformLocation( shader, "tex_albedo" );
-		[[fallthrough]];
-	case LSST_DEBUG:
-		// Need ModelViewMatrix and ProjectionMatrix
-		imvpMatrix = glGetUniformLocation( shader, "mvpMatrix" );
-		break;
+		case LSST_QUAD:
+			// Texture
+			iTex_albedo = glGetUniformLocation( shader, "tex_albedo" );
+			[[fallthrough]];
+		case LSST_DEBUG:
+			// Need ModelViewMatrix and ProjectionMatrix
+			imvpMatrix = glGetUniformLocation( shader, "mvpMatrix" );
+			break;
 
-	case LSST_SHADOWMAP:
-		imvpMatrix = glGetUniformLocation( shader, "mvpMatrix" );
-		break;
+		case LSST_SHADOWMAP:
+			imvpMatrix = glGetUniformLocation( shader, "mvpMatrix" );
+			break;
 
 	} // switch shader_type
 	
 	glUseProgram(0);
 }
 
-void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused)) lsPass *pass, lsBatch *batch )
+void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch *batch )
 {
 #ifdef VORTX_DEBUG_SHADERS
 	cout << "lsShader::UseShader() - Called" << endl;
@@ -187,34 +206,32 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, __attribute__((unused
 			glUniform1i( iTex_albedo, 0 );
 			[[fallthrough]];
 		case LSST_LIGHT_TEX_NONE:
-			// Shadow Map
+			// Shadow Map & Light Uniforms
 			{
-				// TODO: Support multiple shadows, move to light uniform
-				lsLight* shadow_light = nullptr;
-				if (object->getReceives_shadows())
+				const auto& lights = object->getLightManager()->getLights();
+				int active_lights_count = 0;
+				for (int i = 0; i < std::min((int)lights.size(), 3); ++i)
 				{
-					const auto& lights = object->getLightManager()->getLights();
-					for (lsLight* light : lights)
+					lsLight* light = lights[i];
+					if (light)
 					{
-						if (light && light->getHas_shadowmap())
+						// Bind shadow map texture for this light
+						if (light->getHas_shadowmap())
 						{
-							shadow_light = light;
-							break; // Use the first shadow-casting light found
+							glActiveTexture(GL_TEXTURE3 + i); // Use texture units 3, 4, 5 for shadow maps
+							glBindTexture(GL_TEXTURE_2D, light->getTex_shadowmap());
+							glUniform1i(iTex_shadowmaps[i], 3 + i);
+							glUniform1i(iUse_shadowmap[i], 1);
+							glUniformMatrix4fv(isMatrices[i], 1, GL_FALSE, light->ShadowmapMatrix.matrix);
+						} else {
+							glUniform1i(iUse_shadowmap[i], 0);
 						}
+						active_lights_count++; // Count actual lights processed
 					}
 				}
-
-				if (shadow_light)
-				{
-					glUniform1i(iUse_shadowmap, 1);
-					glActiveTexture(GL_TEXTURE3);
-					glBindTexture(GL_TEXTURE_2D, shadow_light->getTex_shadowmap());
-					glUniform1i(iTex_shadowmap, 3);
-					glUniformMatrix4fv(isMatrix, 1, GL_FALSE, shadow_light->ShadowmapMatrix.matrix);
-				} else
-				{
-					glUniform1i(iUse_shadowmap, 0);
-				}
+				// Pass the count of active lights to the shader
+				glUniform1i(iLightCount, active_lights_count);
+				Setup_Lights(cam, object); // Now Setup_Lights will pass all light properties
 			}
 			
 			// Material
@@ -465,9 +482,9 @@ bool lsShader::debugProgram()
 void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 {
 	const auto& lights = object->getLightManager()->getLights();
-	int light_count = std::min((int)lights.size(), 3); // Shader supports max 3 lights
-
-	for (int i = 0; i < light_count; ++i)
+	int num_lights = std::min((int)lights.size(), 3); // Shader supports max 3 lights
+	
+	for (int i = 0; i < num_lights; ++i)
 	{
 		lsLight* light = lights[i];
 		if (light)
@@ -476,12 +493,18 @@ void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 		}
 	}
 	
-	// Set count
-	glUniform1i(iLightCount, light_count);
+	// Default remaining lights to type 0 (LSLT_NONE) to disable them in shader
+	for(int i = num_lights; i < 3; ++i) {
+		if (iLightType[i] != -1) glUniform1i(iLightType[i], LSLT_NONE);
+	}
+
+	glUniform1i(iLightCount, num_lights);
 }
 
 void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__((unused)) lsObject *object )
 {
+	if (i < 0 || i >= 3) return; // Only support up to 3 lights for now
+
 	lsMatrix4x4 light_in_view_space_matrix;
 	
 	// Light position in camera Space
@@ -503,55 +526,21 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 	{
 		lsLight_Direct* l = static_cast<lsLight_Direct*>(light);
 		lightDir_view_space = l->m_lightDirection;
+		lightDir_view_space.normalize();
 	}
 	
-	switch( i )
+	if (iLightPos[i] != -1) glUniform3f( iLightPos[i], light_in_view_space_matrix.matrix[12], light_in_view_space_matrix.matrix[13], light_in_view_space_matrix.matrix[14] );
+	if (iLightType[i] != -1) glUniform1i( iLightType[i], light->getLight_type() );
+	if (iLightDiffuse[i] != -1) glUniform4f( iLightDiffuse[i], light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
+	if (iLightSpecular[i] != -1) glUniform4f( iLightSpecular[i], light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+	if (iLightIntensity[i] != -1) glUniform1f( iLightIntensity[i], light->getIntensity() );
+
+	// Only set direction and cutoff for spot/direct lights
+	if (light->getLight_type() == LSLT_SPOT || light->getLight_type() == LSLT_DIRECT)
 	{
-		case 0:
-			glUniform3f( iLightPos1, light_in_view_space_matrix.matrix[12], light_in_view_space_matrix.matrix[13], light_in_view_space_matrix.matrix[14] );
-			glUniform1i( iLightType1, light->getLight_type() );
-			glUniform4f( iLightDiffuse1, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
-			glUniform4f( iLightSpecular1, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
-			glUniform1f( iLightIntensity1, light->getIntensity() );
-			if (light->getLight_type() == LSLT_SPOT || light->getLight_type() == LSLT_DIRECT)
-			{
-				glUniform3f( iLightDir1, lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
-				glUniform1f( iLightCutoff1, cos(light->spot_cutoff * ANG2RAD) );
-				glUniform1f( iLightOuterCutoff1, cos(light->spot_outer_cutoff * ANG2RAD) );
-			}
-			break;
-		
-		case 1:
-			glUniform3f( iLightPos2, light_in_view_space_matrix.matrix[12], light_in_view_space_matrix.matrix[13], light_in_view_space_matrix.matrix[14] );
-			glUniform1i( iLightType2, light->getLight_type() );
-			glUniform4f( iLightDiffuse2, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
-			glUniform4f( iLightSpecular2, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
-			glUniform1f( iLightIntensity2, light->getIntensity() );
-			if (light->getLight_type() == LSLT_SPOT) {
-				glUniform3f( iLightDir2, lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
-				glUniform1f( iLightCutoff2, cos(light->spot_cutoff * ANG2RAD) );
-				glUniform1f( iLightOuterCutoff2, cos(light->spot_outer_cutoff * ANG2RAD) );
-			}
-			break;
-		
-		case 2:
-			glUniform3f( iLightPos3, light_in_view_space_matrix.matrix[12], light_in_view_space_matrix.matrix[13], light_in_view_space_matrix.matrix[14] );
-			glUniform1i( iLightType3, light->getLight_type() );
-			glUniform4f( iLightDiffuse3, light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
-			glUniform4f( iLightSpecular3, light->specular.x, light->specular.y, light->specular.z, light->specular.w );
-			glUniform1f( iLightIntensity3, light->getIntensity() );
-			if (light->getLight_type() == LSLT_SPOT) {
-				glUniform3f( iLightDir3, lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
-				glUniform1f( iLightCutoff3, cos(light->spot_cutoff * ANG2RAD) );
-				glUniform1f( iLightOuterCutoff3, cos(light->spot_outer_cutoff * ANG2RAD) );
-			}
-			break;
-		
-		default:
-			// should never get here
-			cout << "ERROR: More then 3 lights attached" << endl;
-			break;
+		if (iLightDir[i] != -1) glUniform3f( iLightDir[i], lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
+		if (iLightCutoff[i] != -1) glUniform1f( iLightCutoff[i], cos(light->spot_cutoff * ANG2RAD) );
+		if (iLightOuterCutoff[i] != -1) glUniform1f( iLightOuterCutoff[i], cos(light->spot_outer_cutoff * ANG2RAD) );
 	}
 }
-
 

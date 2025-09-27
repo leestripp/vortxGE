@@ -10,8 +10,8 @@ layout (location = 4) in vec2 vxTexCoord;
 // Uniforms
 uniform mat4 pMatrix;
 uniform mat4 mvMatrix;
-uniform mat4 mMatrix; // ADD: Model Matrix
-uniform mat4 sMatrix; // This will now be LightSpaceMatrix (Bias * Proj * View)
+uniform mat4 mMatrix; // Model Matrix
+uniform mat4 sMatrices[3]; // Changed to array
 // Normal Matrix
 uniform mat3 nMatrix;
 
@@ -21,7 +21,7 @@ out vec4 osColour;
 out vec3 osNormal;
 out vec3 osTangent;
 out vec2 osTexCoord;
-out vec4 osShadowCoord;
+out vec4 osShadowCoords[3]; // Changed to array
 
 
 void main(void)
@@ -36,8 +36,9 @@ void main(void)
     // base colour
     osColour = vec4( 1.0 );
 
-    // Shadow coordinate
-    // CHANGE: Calculate from world space position
+    // Shadow coordinate calculation for up to 3 lights
     vec4 worldPos = mMatrix * vxVertex;
-    osShadowCoord = sMatrix * worldPos;
+    for (int i = 0; i < 3; ++i) {
+        osShadowCoords[i] = sMatrices[i] * worldPos;
+    }
 }

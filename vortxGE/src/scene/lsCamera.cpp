@@ -31,9 +31,10 @@ lsCamera::lsCamera( lsNode* parent ) : lsAnimNode(parent)
 	orth_bottom = -1.0;
 	orth_top = 1.0;
 	
-	update_interval = 50;
+	// Update the camera's Projection matrix, Frustum.
+	update_interval = 30;
 	update_counter = 0;
-
+	
 	ViewMatrix.LoadIdentity();
 	Set_Perspective( cam_fov, cam_ratio, cam_near, cam_far );
 

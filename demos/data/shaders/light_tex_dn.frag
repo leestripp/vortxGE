@@ -3,8 +3,9 @@
 // textures
 uniform sampler2D tex_albedo;
 uniform sampler2D tex_normal;
-uniform sampler2D tex_shadowmap;
-uniform int use_shadowmap;
+// CHANGE: Array of shadow map textures
+uniform sampler2D tex_shadowmaps[3];
+uniform int use_shadowmap[3];
 
 // Lighting
 uniform vec3 vxLightPos[3];
@@ -26,14 +27,16 @@ in vec3 osVertex;
 in vec3 osNormal;
 in vec3 osTangent;
 in vec2 osTexCoord;
-in vec4 osShadowCoord;
+// CHANGE: Array of shadow coordinates
+in vec4 osShadowCoords[3];
 
 // output to frame buffer
 out vec4 fragColour;
 
 const float PI = 3.14159265359;
 
-// PBR Functions /////////////////////////////////////////////////////////////
+// PBR Functions (omitted for brevity, they remain unchanged)
+//////////////////////////////////////////////////////////////////////////////
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
 	float a = roughness * roughness;
@@ -68,27 +71,36 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-float calculateShadow(vec4 shadowCoord) {
+// CHANGE: Now accepts the sampler for the specific light
+float calculateShadow(vec4 shadowCoord, sampler2D shadowMap) {
 	vec3 projCoords = shadowCoord.xyz / shadowCoord.w;
 	
+    // The bias added here is a simple solution to shadow acne, but often 
+    // needs to be dynamic (based on fragment slope) for best results.
+	float bias = 0.00001; 
+	
 	if (any(lessThan(projCoords.xyz, vec3(0.0))) || any(greaterThan(projCoords.xyz, vec3(1.0)))) {
+        // If the point is outside the light's frustum, it is unshadowed.
 		return 1.0;
 	}
 	
 	// PCF implementation
 	float shadow = 0.0;
-	vec2 texelSize = 1.0 / textureSize(tex_shadowmap, 0); 
+	// Use the passed-in shadowMap to determine the texture size
+	vec2 texelSize = 1.0 / textureSize(shadowMap, 0); 
 	
-	// Sample a 3x3 kernel around the projected coordinates
-	for (int x = -1; x <= 1; ++x) {
-		for (int y = -1; y <= 1; ++y) {
-			float pcfDepth = texture(tex_shadowmap, projCoords.xy + vec2(x, y) * texelSize).r;
-			shadow += projCoords.z - 0.00001 > pcfDepth ? 0.0 : 1.0;
+	// Sample kernel around the projected coordinates
+	int Ks = 2; // 5x5
+	// Larger kernels give softer shadows but are more expensive.
+	for (int x = -Ks; x <= Ks; ++x) {
+		for (int y = -Ks; y <= Ks; ++y) {
+			float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+			shadow += projCoords.z - bias > pcfDepth ? 0.0 : 1.0;
 		}
 	}
 	
 	// Average the samples
-	return shadow / 9.0;
+	return shadow / ((2.0 * Ks + 1.0)*(2.0 * Ks + 1.0)); // Correct divisor based on Ks
 }
 
 void main(void) {
@@ -112,15 +124,9 @@ void main(void) {
 	// Reflectivity at normal incidence (F0)
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metallic);
-
+	
 	// Radiance accumulator
 	vec3 Lo = vec3(0.0);
-
-	// Shadow calculation
-	float shadow = 1.0;
-	if (use_shadowmap == 1) {
-		shadow = calculateShadow(osShadowCoord);
-	}
 	
 	// Loop over lights
 	for (int i = 0; i < vxLightCount; ++i) {
@@ -136,10 +142,10 @@ void main(void) {
 		// LSLT_DIRECT = 3 has no attenuation
 		float attenuation = 1.0;
 		if (vxLightType[i] == 1) { // LSLT_POINT
-			attenuation = attenuation / (distance * distance);
+			attenuation = 1.0 / (distance * distance);
 	    }
 	    if (vxLightType[i] == 2) { // LSLT_SPOT
-			attenuation = attenuation / (distance * distance);
+			attenuation = 1.0 / (distance * distance);
 	        vec3 lightDir = normalize(vxLightDir[i]);
 	        float theta = dot(-L, lightDir);
 	        float spotEffect = smoothstep(vxLightOuterCutoff[i], vxLightCutoff[i], theta);
@@ -150,7 +156,6 @@ void main(void) {
 
 		// Cook-Torrance BRDF
 		float NDF = DistributionGGX(N, H, roughness);
-		// roughness
 		float G = GeometrySmith(N, V, L, roughness);
 		vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 		
@@ -163,12 +168,22 @@ void main(void) {
 		kD *= 1.0 - metallic;
 
 		float NdotL = max(dot(N, L), 0.0);
-		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+		
+		// Shadow
+        // Calculate the shadow factor *only* for the current light (i).
+		float light_shadow = 1.0;
+		if (use_shadowmap[i] == 1) {
+            // Pass the correct shadow coordinate and shadow map sampler for this light
+			light_shadow = calculateShadow(osShadowCoords[i], tex_shadowmaps[i]);
+		}
+        // Apply the shadow factor *only* to the current light's radiance contribution.
+		Lo += ((kD * albedo / PI + specular) * radiance * NdotL) * light_shadow;
 	}
-
+	
 	// Ambient lighting
 	vec3 ambient = vec3(0.03) * albedo * ao;
-	vec3 color = ambient + (Lo * shadow);
+    // 3. Add the ambient term (which is never shadowed) to the total shadowed radiance (Lo).
+	vec3 color = ambient + Lo;
 
 	fragColour = vec4(color, 1.0);
 }

@@ -51,7 +51,8 @@ public:
 
 	// Lights
 	void Setup_Lights( lsCamera *camera, lsObject *object );
-	void Set_Light( int i, lsCamera *camera, lsLight *light, lsObject *object );
+	// Changed to array to match shader uniform arrays
+	void Set_Light( int index, lsCamera *camera, lsLight *light, lsObject *object );
 	
 	
 	// Navi ---------------------------
@@ -73,7 +74,7 @@ public:
 
 	void setPrev_shader( lsShader* val )
 	{
-		prev_shader = val;
+		this->prev_shader = val;
 	}
 
 	// Data ---------------------------
@@ -115,53 +116,30 @@ private:
 	GLint imvMatrix;        // Model View Matrix
 	GLint imMatrix;         // Model Matrix
 	GLint inMatrix;         // Normal Matrix
-	GLint isMatrix;         // Shadow Matrix
+	GLint isMatrices[3];    // Array for up to 3 Shadow Matrices
 	
-	// TODO: We need one per light.
-	// Shadowmap locations
-	GLint iTex_shadowmap;
-	GLint iShadow_bias;
-	GLint iPixel_x;
-	GLint iPixel_y;
-	GLint iUse_shadowmap;
+	// PBR Textures
+	GLint iTex_albedo;
+	GLint iTex_roughness_metallic;
+	GLint iTex_normal;
+
+	// Shadowmap uniform arrays
+	GLint iTex_shadowmaps[3]; // Array for up to 3 Shadowmap textures
+	GLint iUse_shadowmap[3];  // Array for up to 3 use_shadowmap flags
 	
 	// Material
 	GLint iMatAlbedo;
 	GLint iMatRoughness;
 	GLint iMatMetallic;
-	// PBR textures
-	GLint iTex_albedo;
-	GLint iTex_roughness_metallic;
-	GLint iTex_normal;
 	
-	// Light locations
+	// Light locations (arrays for up to 3 lights)
 	GLint iLightCount;
-	
-	// Light 1
-	GLint iLightType1;
-	GLint iLightPos1;
-	GLint iLightDir1;
-	GLint iLightCutoff1;
-	GLint iLightOuterCutoff1;
-	GLint iLightDiffuse1;
-	GLint iLightSpecular1;
-	GLint iLightIntensity1;
-	// light 2
-	GLint iLightType2;
-	GLint iLightPos2;
-	GLint iLightDir2;
-	GLint iLightCutoff2;
-	GLint iLightOuterCutoff2;
-	GLint iLightDiffuse2;
-	GLint iLightSpecular2;
-	GLint iLightIntensity2;
-	// light 3
-	GLint iLightType3;
-	GLint iLightPos3;
-	GLint iLightDir3;
-	GLint iLightCutoff3;
-	GLint iLightOuterCutoff3;
-	GLint iLightDiffuse3;
-	GLint iLightSpecular3;
-	GLint iLightIntensity3;
+	GLint iLightType[3];
+	GLint iLightPos[3];
+	GLint iLightDir[3];
+	GLint iLightCutoff[3];
+	GLint iLightOuterCutoff[3];
+	GLint iLightDiffuse[3];
+	GLint iLightSpecular[3];
+	GLint iLightIntensity[3];
 };

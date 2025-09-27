@@ -8,12 +8,13 @@ layout (location = 3) in vec3 vxTangent;
 layout (location = 4) in vec2 vxTexCoord;
 
 // Uniforms
-uniform mat4 pMatrix;
-uniform mat4 mvMatrix;
-uniform mat4 mMatrix; // ADD: Model Matrix
-uniform mat4 sMatrix; // This will now be LightSpaceMatrix (Bias * Proj * View)
-// Normal Matrix
-uniform mat3 nMatrix;
+uniform mat4 pMatrix; // Camera Projection
+uniform mat4 mvMatrix; // Model View
+uniform mat4 mMatrix; // Model Matrix (World Space Position calculation)
+uniform mat3 nMatrix; // Normal Matrix
+// Lighting.
+// CHANGE: Array of Light Space Matrices (Bias * Proj * View)
+uniform mat4 sMatrices[3];
 
 // outputs
 out vec3 osVertex;
@@ -21,23 +22,25 @@ out vec4 osColour;
 out vec3 osNormal;
 out vec3 osTangent;
 out vec2 osTexCoord;
-out vec4 osShadowCoord;
-
+// CHANGE: Array of Shadow Coordinates (one for each potential light)
+out vec4 osShadowCoords[3];
 
 void main(void)
 {
-    gl_Position = pMatrix * mvMatrix * vxVertex;
-
-    osTexCoord = vxTexCoord;
-    osVertex = vec3( mvMatrix * vxVertex );
-    osNormal = normalize( nMatrix * vxNormal );
-    osTangent = normalize( nMatrix * vxTangent );
-
-    // base colour
-    osColour = vec4( 1.0 );
-
-    // Shadow coordinate
-    // CHANGE: Calculate from world space position
-    vec4 worldPos = mMatrix * vxVertex;
-    osShadowCoord = sMatrix * worldPos;
+	gl_Position = pMatrix * mvMatrix * vxVertex;
+	
+	osTexCoord = vxTexCoord;
+	osVertex = vec3( mvMatrix * vxVertex );
+	osNormal = normalize( nMatrix * vxNormal );
+	osTangent = normalize( nMatrix * vxTangent );
+	
+	// base colour
+	osColour = vec4( 1.0 );
+	
+	// Shadow coordinate calculation for up to 3 lights
+	vec4 worldPos = mMatrix * vxVertex;
+	// Calculate all 3 shadow coordinates
+	for (int i = 0; i < 3; ++i) {
+		osShadowCoords[i] = sMatrices[i] * worldPos;
+	}
 }
