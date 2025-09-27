@@ -98,7 +98,7 @@ void lsShader::setShader_type( int val )
 	switch( shader_type )
 	{
 		case LSST_LIGHT_TEX_DNS:
-			// Texture 'S' combined roughness and metallic
+			// Texture 'S' combined roughness (r), metallic (g) and AO (b).
 			iTex_roughness_metallic = glGetUniformLocation( shader, "tex_roughness_metallic" );
 			[[fallthrough]];
 		case LSST_LIGHT_TEX_DN:
@@ -188,7 +188,7 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 	switch( shader_type )
 	{
 		case LSST_LIGHT_TEX_DNS:
-			// Texture 'S' combined roughness and metallic
+			// Texture 'S' combined roughness (r), metallic (g) and AO (b).
 			glActiveTexture( GL_TEXTURE2 );
 			glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_roughness_metallic );
 			glUniform1i( iTex_roughness_metallic, 2 );

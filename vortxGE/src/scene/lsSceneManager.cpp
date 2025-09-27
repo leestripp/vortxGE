@@ -540,16 +540,22 @@ void lsSceneManager::LinkLightsInScene(lsScene* scene, int maxLightsPerObject)
         		// Get light position.
             lsVector3 lightPos(light->ModelMatrix.matrix[12], light->ModelMatrix.matrix[13], light->ModelMatrix.matrix[14]);
             float dist = objPos.distance(lightPos);
-            sorted_lights.push_back({dist * dist, light}); // Use squared distance for sorting
+            
+            // Direct lights get priority (distance = 0)
+            if (light->getLight_type() == LSLT_DIRECT) {
+                sorted_lights.push_back({0.0f, light});
+            } else {
+                sorted_lights.push_back({dist * dist, light}); // Use squared distance for sorting
+            }
         }
 		
-        // Sort by distance (squared)
+        // Sort by distance (squared) - direct lights will be at the beginning due to 0.0 distance
         std::sort(sorted_lights.begin(), sorted_lights.end(), 
                   [](const auto& a, const auto& b) {
                       return a.first < b.first;
                   });
 		
-		// Add light to object.
+		// Add lights to object.
         int lights_to_add = std::min((int)sorted_lights.size(), maxLightsPerObject);
         for(int i = 0; i < lights_to_add; ++i)
         {

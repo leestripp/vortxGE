@@ -27,7 +27,7 @@ public:
 	bool LoadSceneFromFile( const string& filename, lsScene* targetScene );
 
     void LinkLightsInScene(lsScene* scene, int maxLightsPerObject = 3);
-
+	
     lsScene* getScene_list() const
     {
         return scene_list;

@@ -298,12 +298,12 @@ void DemoScene::setupControls()
 				sun_light->setFollowCamera(playerCam);
 				
 				// Default settings.
-				sun_light->Set_Orthographic(-100.0, 100.0, -100.0, 100.0, 1.0, 100.0);
+				sun_light->Set_Orthographic(-200.0, 200.0, -200.0, 200.0, 1.0, 100.0);
 		        sun_light->setName("Sun Light");
-				sun_light->Set_Pos(0.0, 50.0, 50.0);
+				sun_light->Set_Pos(0.0, 50.0, 30.0);
 		        sun_light->Set_Rot(-60.0, 0.0, 0.0);
 		        // light colour
-		        sun_light->diffuse = lsVector4(0.8, 0.8, 1.0, 1.0);
+		        sun_light->diffuse = lsVector4(1.0, 0.9, 0.85, 1.0);
 		        
 				// Add to scene.
 				m_viewer_scene->Add_Node(sun_light);
