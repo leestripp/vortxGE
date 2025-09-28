@@ -102,7 +102,7 @@ def write_vortxge_scene(context, filepath):
                     if light.type == 'POINT':
                         light_type_str = 'point'
                     elif light.type == 'SUN':
-                        light_type_str = 'sun'
+                        light_type_str = 'direct'
                     elif light.type == 'SPOT':
                         light_type_str = 'spot'
                     else:
@@ -114,91 +114,108 @@ def write_vortxge_scene(context, filepath):
                     
                     loc, rot, _ = get_vortxge_transform(obj, is_mesh=False)
                     color = light.color
-                    intensity = light.energy # Get Blender's light energy (intensity)
+                    intensity = light.energy
 
                     f.write(f"add_light {light_type_str} {name} {parent} ")
                     f.write(f"({loc.x:.6f}, {loc.y:.6f}, {loc.z:.6f}) ")
                     f.write(f"({rot.x:.6f}, {rot.y:.6f}, {rot.z:.6f}) ")
-                    f.write(f"({color.r:.6f}, {color.g:.6f}, {color.b:.6f}) {intensity:.6f}\n") # Add intensity
+                    f.write(f"({color.r:.6f}, {color.g:.6f}, {color.b:.6f}) {intensity:.6f}\n")
                 f.write("\n")
 
-            # --- Export Objects (Meshes) ---
+            # --- Export Objects (Meshes) and Physics-Only Meshes ---
             meshes = [obj for obj in context.scene.objects if obj.type == 'MESH']
             if meshes:
                 for obj in meshes:
-                    # --- Write object entry to .vgs file ---
-                    name = f"`{obj.name}`"
-                    parent = f"`{scene_name}`"
-                    
-                    loc, rot, scale = get_vortxge_transform(obj, is_mesh=True)
-                    asset_path = f"`data/meshes/{obj.name}.glb`"
-
-                    f.write(f"add_object {name} {parent} ")
-                    f.write(f"({loc.x:.6f}, {loc.y:.6f}, {loc.z:.6f}) ")
-                    f.write(f"({rot.x:.6f}, {rot.y:.6f}, {rot.z:.6f}) ")
-                    f.write(f"({scale.x:.6f}, {scale.y:.6f}, {scale.z:.6f}) ")
-                    f.write(f"{asset_path}\n")
-
-                    # --- Check for custom physics properties ---
-                    try:
-                        if "bullet_box" in obj:
-                            prop_val = str(obj["bullet_box"])
-                            parts = prop_val.split(' ', 1)
-                            if len(parts) == 2:
-                                mass = parts[0]
-                                size_str = parts[1]
-                                f.write(f"add_bullet_box {name} {mass} {size_str}\n")
-                            else:
-                                print(f"WARNING: Invalid format for 'bullet_box' on '{obj.name}'. Expected 'mass (sx, sy, sz)'.")
-
-                        if "bullet_pill" in obj:
-                            prop_val = str(obj["bullet_pill"])
-                            parts = prop_val.split()
-                            if len(parts) == 3:
-                                mass, radius, height = parts
-                                f.write(f"add_bullet_pill {name} {mass} {radius} {height}\n")
-                            else:
-                                print(f"WARNING: Invalid format for 'bullet_pill' on '{obj.name}'. Expected 'mass radius height'.")
-
-                        if "bullet_convexhull" in obj:
-                            mass = str(obj["bullet_convexhull"]).strip()
-                            if mass:
-                                f.write(f"add_bullet_convexhull {name} {mass}\n")
-                            else:
-                                print(f"WARNING: Empty 'bullet_convexhull' property on '{obj.name}'.")
-
-                        if "bullet_trimesh" in obj:
-                            mass = str(obj["bullet_trimesh"]).strip()
-                            if mass:
-                                f.write(f"add_bullet_trimesh {name} {mass}\n")
-                            else:
-                                print(f"WARNING: Empty 'bullet_trimesh' property on '{obj.name}'.")
-
-                    except Exception as e:
-                        print(f"ERROR processing custom properties for '{obj.name}': {e}")
-
-
-                    # --- Export the individual .glb file ---
+                    # Determine GLB export path
                     glb_filepath = os.path.join(meshes_dir, f"{obj.name}.glb")
-                    print(f"Exporting mesh '{obj.name}' to {glb_filepath}")
+                    asset_path = f"`data/meshes/{obj.name}.glb`"
+                    name = f"`{obj.name}`"
 
-                    # Select only the current object for export
+                    # --- Export GLB for all meshes ---
+                    print(f"Exporting mesh '{obj.name}' to {glb_filepath}")
                     bpy.ops.object.select_all(action='DESELECT')
                     obj.select_set(True)
                     context.view_layer.objects.active = obj
-
-                    # Export to .glb with specified settings
                     bpy.ops.export_scene.gltf(
                         filepath=glb_filepath,
                         use_selection=True,
                         export_format='GLB',
-                        export_apply=True,      # Apply modifiers
-                        export_texcoords=True,  # Export UVs
-                        export_normals=True,    # Export Normals
-                        export_tangents=True,   # Export Tangents
+                        export_apply=True,
+                        export_texcoords=True,
+                        export_normals=True,
+                        export_tangents=True,
                         export_materials='EXPORT',
-                        export_yup=True          # Use +Y Up coordinate system
+                        export_yup=True
                     )
+
+                    # --- Write object or physics-only entry to .vgs file ---
+                    if "bullet_only_mesh" in obj:
+                        try:
+                            prop_val = str(obj["bullet_only_mesh"]).strip()
+                            parts = prop_val.split(maxsplit=1)
+                            if len(parts) >= 2:
+                                physics_type = parts[0]
+                                mass = parts[1]
+                                
+                                # Get the position for bullet-only meshes
+                                loc, rot, scale = get_vortxge_transform(obj, is_mesh=True)
+                                
+                                f.write(f"add_bullet_only_mesh {name} {physics_type} {mass} {asset_path} ")
+                                f.write(f"({loc.x:.6f}, {loc.y:.6f}, {loc.z:.6f}) ")
+                                f.write(f"({rot.x:.6f}, {rot.y:.6f}, {rot.z:.6f}) ")
+                                f.write(f"({scale.x:.6f}, {scale.y:.6f}, {scale.z:.6f})\n")
+                            else:
+                                print(f"WARNING: Invalid format for 'bullet_only_mesh' on '{obj.name}'. Expected 'type mass'.")
+                        except Exception as e:
+                            print(f"ERROR processing 'bullet_only_mesh' for '{obj.name}': {e}")
+                    else:
+                        # Normal mesh object
+                        parent = f"`{scene_name}`"
+                        loc, rot, scale = get_vortxge_transform(obj, is_mesh=True)
+
+                        f.write(f"add_object {name} {parent} ")
+                        f.write(f"({loc.x:.6f}, {loc.y:.6f}, {loc.z:.6f}) ")
+                        f.write(f"({rot.x:.6f}, {rot.y:.6f}, {rot.z:.6f}) ")
+                        f.write(f"({scale.x:.6f}, {scale.y:.6f}, {scale.z:.6f}) ")
+                        f.write(f"{asset_path}\n")
+
+                        # --- Check for existing physics properties (for rendered objects) ---
+                        try:
+                            if "bullet_box" in obj:
+                                prop_val = str(obj["bullet_box"])
+                                parts = prop_val.split(' ', 1)
+                                if len(parts) == 2:
+                                    mass = parts[0]
+                                    size_str = parts[1]
+                                    f.write(f"add_bullet_box {name} {mass} {size_str}\n")
+                                else:
+                                    print(f"WARNING: Invalid format for 'bullet_box' on '{obj.name}'. Expected 'mass (sx, sy, sz)'.")
+
+                            if "bullet_pill" in obj:
+                                prop_val = str(obj["bullet_pill"])
+                                parts = prop_val.split()
+                                if len(parts) == 3:
+                                    mass, radius, height = parts
+                                    f.write(f"add_bullet_pill {name} {mass} {radius} {height}\n")
+                                else:
+                                    print(f"WARNING: Invalid format for 'bullet_pill' on '{obj.name}'. Expected 'mass radius height'.")
+
+                            if "bullet_convexhull" in obj:
+                                mass = str(obj["bullet_convexhull"]).strip()
+                                if mass:
+                                    f.write(f"add_bullet_convexhull {name} {mass}\n")
+                                else:
+                                    print(f"WARNING: Empty 'bullet_convexhull' property on '{obj.name}'.")
+
+                            if "bullet_trimesh" in obj:
+                                mass = str(obj["bullet_trimesh"]).strip()
+                                if mass:
+                                    f.write(f"add_bullet_trimesh {name} {mass}\n")
+                                else:
+                                    print(f"WARNING: Empty 'bullet_trimesh' property on '{obj.name}'.")
+
+                        except Exception as e:
+                            print(f"ERROR processing custom properties for '{obj.name}': {e}")
                 f.write("\n")
 
         print(f"Scene successfully exported to {filepath}")
@@ -209,21 +226,19 @@ def write_vortxge_scene(context, filepath):
         return False
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        # Re-raise the exception to trigger the Operator's error reporting
         raise
     finally:
-        # --- Restore original selection ---
         bpy.ops.object.select_all(action='DESELECT')
         if original_active:
             try:
                 context.view_layer.objects.active = original_active
             except:
-                pass # Object might have been deleted
+                pass
         for sel_obj in original_selection:
             try:
                 sel_obj.select_set(True)
             except:
-                pass # Object might have been deleted
+                pass
 
 
 class ExportVortxGEScene(Operator, ExportHelper):
@@ -231,13 +246,12 @@ class ExportVortxGEScene(Operator, ExportHelper):
     bl_idname = "export_scene.vortxge"
     bl_label = "Export vortxGE Scene"
 
-    # ExportHelper mixin class uses these properties to display the file browser
     filename_ext = ".vgs"
 
     filter_glob: StringProperty(
         default="*.vgs",
         options={'HIDDEN'},
-        maxlen=255,  # Max path length
+        maxlen=255,
     )
 
     def execute(self, context):
@@ -252,7 +266,6 @@ class ExportVortxGEScene(Operator, ExportHelper):
             return {'CANCELLED'}
 
 
-# Add to a menu
 def menu_func_export(self, context):
     self.layout.operator(ExportVortxGEScene.bl_idname, text="vortxGE Scene (.vgs)")
 

@@ -371,12 +371,12 @@ void DemoScene::setupShadows()
 		if( light->getLight_type() == LSLT_DIRECT)
 		{
 			// Create the shadow map pass (which creates its own FBO)
-			shadowPass = new lsPass_ShadowMap(0, 0, 2048, 2048, m_vortxge->getOpenGL());
+			shadowPass = new lsPass_ShadowMap(0, 0, 4096, 4096, m_vortxge->getOpenGL());
 		}
 		if (light->getLight_type() == LSLT_SPOT)
 		{
 			// Create the shadow map pass (which creates its own FBO)
-			shadowPass = new lsPass_ShadowMap(0, 0, 1024, 1024, m_vortxge->getOpenGL());
+			shadowPass = new lsPass_ShadowMap(0, 0, 2048, 2048, m_vortxge->getOpenGL());
 		}
 		if(! shadowPass)
 		{

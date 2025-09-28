@@ -71,37 +71,51 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-// CHANGE: Now accepts the sampler for the specific light
+// Function now accepts a specific shadow map sampler
 float calculateShadow(vec4 shadowCoord, sampler2D shadowMap) {
-	vec3 projCoords = shadowCoord.xyz / shadowCoord.w;
-	
-    // The bias added here is a simple solution to shadow acne, but often 
-    // needs to be dynamic (based on fragment slope) for best results.
-	float bias = 0.00001; 
-	
-	if (any(lessThan(projCoords.xyz, vec3(0.0))) || any(greaterThan(projCoords.xyz, vec3(1.0)))) {
-        // If the point is outside the light's frustum, it is unshadowed.
-		return 1.0;
-	}
-	
-	// PCF implementation
-	float shadow = 0.0;
-	// Use the passed-in shadowMap to determine the texture size
-	vec2 texelSize = 1.0 / textureSize(shadowMap, 0); 
-	
-	// Sample kernel around the projected coordinates
-	int Ks = 2; // 5x5
-	// Larger kernels give softer shadows but are more expensive.
-	for (int x = -Ks; x <= Ks; ++x) {
-		for (int y = -Ks; y <= Ks; ++y) {
-			float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-			shadow += projCoords.z - bias > pcfDepth ? 0.0 : 1.0;
-		}
-	}
-	
-	// Average the samples
-	return shadow / ((2.0 * Ks + 1.0)*(2.0 * Ks + 1.0)); // Correct divisor based on Ks
+    vec3 projCoords = shadowCoord.xyz / shadowCoord.w;
+    
+    // 1. Perspective Divide and Bounds Check
+    // If the fragment is outside the light's view, treat it as fully lit (unshadowed).
+    if (any(lessThan(projCoords.xyz, vec3(0.0))) || any(greaterThan(projCoords.xyz, vec3(1.0)))) {
+        return 1.0; 
+    }
+    
+    // 2. Setup Parameters
+    float bias = 0.00001; // Add small bias to reduce shadow acne
+    float shadow = 0.0;
+    
+    // Calculate the size of one texel
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0); 
+    
+    // Use a single, slightly expanded offset for a fixed soft shadow. 
+    // This factor (1.5) determines the width of the penumbra.
+    float softFactor = 0.25;
+    vec2 offsetStep = texelSize * softFactor; 
+    
+    // PCF Kernel Size
+    int Ks = 4;
+    for (int x = -Ks; x <= Ks; ++x) {
+        for (int y = -Ks; y <= Ks; ++y) {
+            
+            // Calculate the offset for this sample point using the softened offset step
+            vec2 pcfOffset = vec2(x, y) * offsetStep;
+            
+            // Get the depth value from the shadow map
+            float pcfDepth = texture(shadowMap, projCoords.xy + pcfOffset).r;
+            
+            // Compare the current fragment's depth (projCoords.z) to the recorded depth (pcfDepth)
+            // If the fragment is farther (projCoords.z - bias > pcfDepth), it's in shadow (0.0).
+            // Otherwise, it's lit (1.0).
+            shadow += projCoords.z - bias > pcfDepth ? 0.0 : 1.0;
+        }
+    }
+    
+    // Average the samples and return the final shadow amount (0.0 to 1.0)
+    float kernelArea = (2.0 * Ks + 1.0) * (2.0 * Ks + 1.0);
+    return shadow / kernelArea;
 }
+
 
 void main(void) {
 	// PBR properties

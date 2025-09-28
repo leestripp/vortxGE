@@ -81,16 +81,23 @@ float calculateShadow(vec4 shadowCoord, sampler2D shadowMap) {
 	
 	// PCF implementation
 	float shadow = 0.0;
+	// Use the passed-in shadowMap to determine the texture size
 	vec2 texelSize = 1.0 / textureSize(shadowMap, 0); 
+	// Expand shadow.
+	texelSize *= 0.1;
 	
-	for (int x = -2; x <= 2; ++x) {
-		for (int y = -2; y <= 2; ++y) {
+	// Sample kernel around the projected coordinates
+	int Ks = 4; // 9x9
+	// Larger kernels give softer shadows but are more expensive.
+	for (int x = -Ks; x <= Ks; ++x) {
+		for (int y = -Ks; y <= Ks; ++y) {
 			float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
 			shadow += projCoords.z - bias > pcfDepth ? 0.0 : 1.0;
 		}
 	}
 	
-	return shadow / 25.0; 
+	// Average the samples
+	return shadow / ((2.0 * Ks + 1.0)*(2.0 * Ks + 1.0)); // Correct divisor based on Ks
 }
 
 void main(void) {

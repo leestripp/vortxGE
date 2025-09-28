@@ -81,7 +81,7 @@ void lsPass_FBO::Render()
 
         // use FBO
         m_lsfbo->Enable();
-
+		
 		// set viewport
 		glViewport( getPosition().x, getPosition().y, getSize().x, getSize().y );
 
@@ -89,8 +89,11 @@ void lsPass_FBO::Render()
         glClearDepth( 1.0 );
         glEnable( GL_DEPTH_TEST );
         glDepthMask( GL_TRUE );
+		// default depth range.
+		glDepthRangef(0.0f, 1.0f);
+		
         m_lsfbo->ClearBuffers();
-
+		
         // Draw
         if( getScene() ) getScene()->Draw( getCamera(), this, NULL, getOgl() );
 

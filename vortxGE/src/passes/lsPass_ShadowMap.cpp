@@ -49,6 +49,8 @@ void lsPass_ShadowMap::Render()
 		glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y);
 		
 		glEnable(GL_DEPTH_TEST);
+		// default depth range.
+		glDepthRangef(0.0f, 1.0f);
 		// glCullFace(GL_FRONT);
 		
 		// This pushes the depth values back, away from the light, to prevent shadow acne.

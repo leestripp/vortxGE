@@ -31,7 +31,7 @@ void lsOpenGL::Init()
 
     // Extensions
     // User needs to load extensions e.g. GLEW
-
+	
     // collect info
     glInfo();
 }
