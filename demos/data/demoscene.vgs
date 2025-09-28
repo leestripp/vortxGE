@@ -16,4 +16,3 @@ add_bullet_only_mesh `bullet_shape` convexhull 0.0 `data/meshes/bullet_shape.glb
 add_object `material test 01` `Scene` (-3.000000, 1.000000, -4.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/material test 01.glb`
 add_object `material test 01.001` `Scene` (0.000000, 1.000000, -4.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/material test 01.001.glb`
 add_object `material test 01.002` `Scene` (3.000000, 1.000000, -4.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/material test 01.002.glb`
-

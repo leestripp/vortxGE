@@ -1,5 +1,7 @@
 # vortxGE v0.7.1
 
+![image](screenshots/vortxGE.png)
+
 vortxGE is a lightweight, modern 3D graphics engine written in C++20. It is designed for creating real-time graphics applications and simulations on Linux, featuring a flexible rendering pipeline, physics integration, and a straightforward asset workflow with Blender.
 
 ## Features
