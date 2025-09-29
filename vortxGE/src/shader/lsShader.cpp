@@ -102,7 +102,7 @@ void lsShader::setShader_type( int val )
 			iTex_roughness_metallic = glGetUniformLocation( shader, "tex_roughness_metallic" );
 			[[fallthrough]];
 		case LSST_LIGHT_TEX_DN:
-			// Texture
+			// Texture normal
 			iTex_normal = glGetUniformLocation( shader, "tex_normal" );
 			[[fallthrough]];
 		case LSST_LIGHT_TEX_D:
@@ -157,6 +157,14 @@ void lsShader::setShader_type( int val )
 			imvpMatrix = glGetUniformLocation( shader, "mvpMatrix" );
 			break;
 
+		case LSST_SKYBOX: // Initialize uniforms for skybox shader
+			ipMatrix = glGetUniformLocation(shader, "pMatrix");
+			imvMatrix = glGetUniformLocation(shader, "mvMatrix");
+			iTex_albedo = glGetUniformLocation(shader, "tex_skybox");
+			break;
+			
+		default:
+			break;
 	} // switch shader_type
 	
 	glUseProgram(0);
@@ -173,8 +181,8 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 
 	lsMatrix4x4 mvpMatrix;
 	lsMatrix4x4 mvMatrix;
-	lsMatrix4x4 mMatrix;
 	lsMatrix4x4 pMatrix;
+	lsMatrix4x4 mMatrix; // Declare mMatrix locally. This was the fix.
 	lsMatrix3x3 m_eMatrix;      // extract 3x3
 	lsMatrix3x3 m_iMatrix;      // inverse modelview matrix
 	lsMatrix3x3 nMatrix;        // normal matrix
@@ -304,7 +312,26 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 			mvpMatrix = pMatrix * mvMatrix;
 			glUniformMatrix4fv(imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix);
 			break;
-		
+
+		case LSST_SKYBOX:
+			pMatrix = cam->frustum.getProjectionMatrix();
+			// For skybox, remove translation from camera's view matrix
+			// This keeps the skybox centered on the camera, giving infinite distance
+			mvMatrix = cam->ViewMatrix.extractRotation(); 
+			
+			glUniformMatrix4fv(ipMatrix, 1, GL_FALSE, pMatrix.matrix);
+			glUniformMatrix4fv(imvMatrix, 1, GL_FALSE, mvMatrix.matrix);
+
+			// Bind skybox texture
+			glActiveTexture(GL_TEXTURE0);
+			// Assuming tex_albedo holds the skybox texture, cast batch to lsBatch_Mesh
+			if (batch->getBatch_type() == LSBT_MESH) {
+				lsBatch_Mesh* mesh_batch = static_cast<lsBatch_Mesh*>(batch);
+				glBindTexture(GL_TEXTURE_2D, mesh_batch->tex_albedo); 
+			}
+			glUniform1i(iTex_albedo, 0);
+			break;
+
 		default:
 #ifdef VORTX_DEBUG_SHADERS
 			cout << "ERROR: lsShader::UseShader() - Unsupported shader type" << endl;
@@ -322,6 +349,7 @@ void lsShader::Load_Shader( const string& name )
 	if( name == "" )
 	{
 		cout << "ERROR: lsShader::Load_Shader() - Shader must have a name" << endl;
+		shader_type = LSST_NONE;
 		return;
 	}
 
@@ -439,6 +467,9 @@ void lsShader::Load_Shader( const string& name )
 	} else  if( name == "shadowmap" )
 	{
 		setShader_type( LSST_SHADOWMAP );
+	} else  if( name == "skybox" ) // Add this
+	{
+		setShader_type( LSST_SKYBOX );
 	}
 }
 
@@ -525,7 +556,7 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 	} else if(light->getLight_type() == LSLT_DIRECT)
 	{
 		lsLight_Direct* l = static_cast<lsLight_Direct*>(light);
-		lightDir_view_space = l->m_lightDirection;
+		lightDir_view_space = camera->ViewMatrix.Rotate(l->m_lightDirection); // Use camera's rotation for direct light direction in view space
 		lightDir_view_space.normalize();
 	}
 	
@@ -543,4 +574,3 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 		if (iLightOuterCutoff[i] != -1) glUniform1f( iLightOuterCutoff[i], cos(light->spot_outer_cutoff * ANG2RAD) );
 	}
 }
-

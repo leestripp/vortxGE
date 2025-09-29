@@ -39,6 +39,8 @@ public:
 	float Cotangent(float angle);
 	void LookAt( const lsVector3& eyePosition, const lsVector3& lookAt, const lsVector3& upVector );
 	lsMatrix4x4& transpose( const lsMatrix4x4& m );
+	// New: Extract only the rotation component of the matrix.
+	lsMatrix4x4 extractRotation() const;
 	// checks
 	bool isEqual( const lsMatrix4x4& mat );
 	bool isIdentity();

@@ -257,12 +257,12 @@ void lsMatrix4x4::LookAt( const lsVector3& eyePosition, const lsVector3& lookAt,
     side.normalize();
 
     // The "up" vector is re-calculated to be orthogonal to the side and forward vectors.
-    // This gives us the view's Y-axis.
+    // This gives us the "up" direction in camera space.
     lsVector3 up = math.Cross(side, forward);
 
     // The view matrix transforms world coordinates to view (camera) coordinates.
     // It's the inverse of the camera's world transformation matrix.
-    // For an orthonormal rotation matrix R and translation T, Inverse(T*R) = R^T * T^-1
+    // It's [ R^T  -R^T*T ] where R is the rotation and T is the translation.
     
     LoadIdentity();
 
@@ -296,6 +296,32 @@ lsMatrix4x4& lsMatrix4x4::transpose( const lsMatrix4x4& m )
 		matrix[n] = m.matrix[4*j + i];
 	}
 	return *this;
+}
+
+// New method: Extract only the rotation component of the matrix.
+lsMatrix4x4 lsMatrix4x4::extractRotation() const
+{
+    lsMatrix4x4 rotationMatrix; // Automatically loads identity
+    
+    // Copy the 3x3 rotation part
+    rotationMatrix.matrix[0] = this->matrix[0];
+    rotationMatrix.matrix[1] = this->matrix[1];
+    rotationMatrix.matrix[2] = this->matrix[2];
+
+    rotationMatrix.matrix[4] = this->matrix[4];
+    rotationMatrix.matrix[5] = this->matrix[5];
+    rotationMatrix.matrix[6] = this->matrix[6];
+
+    rotationMatrix.matrix[8] = this->matrix[8];
+    rotationMatrix.matrix[9] = this->matrix[9];
+    rotationMatrix.matrix[10] = this->matrix[10];
+
+    // Set translation components to zero
+    rotationMatrix.matrix[12] = 0.0f;
+    rotationMatrix.matrix[13] = 0.0f;
+    rotationMatrix.matrix[14] = 0.0f;
+    
+    return rotationMatrix;
 }
 
 bool lsMatrix4x4::isEqual(const lsMatrix4x4 &mat)
@@ -347,3 +373,4 @@ void lsMatrix4x4::debug( const string& str )
 	
     cout << msg.str();
 }
+

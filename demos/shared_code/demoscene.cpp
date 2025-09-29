@@ -24,6 +24,7 @@
 #include <assets/lsAsset_Quad.h>
 #include <assets/lsAsset_MeshGuide_Empty.h>
 #include <assets/lsAsset_MeshGuide_Grid.h>
+#include <assets/lsAsset_Texture.h> // Include for lsAsset_Texture
 // bullet
 #include <assets/lsAsset_BulletShape_Box.h>
 #include <assets/lsAsset_BulletShape_Plane.h>
@@ -38,10 +39,12 @@
 #include <datablocks/lsBatch.h>
 #include <datablocks/lsBatch_Lines.h>
 #include <datablocks/lsBatch_Quad.h>
+#include <datablocks/lsBatch_Mesh.h> // Include for lsBatch_Mesh to access tex_albedo
 #include <datablocks/lsMesh.h>
 #include <datablocks/lsFBO_ColourDepth_8.h>
 #include <datablocks/lsFBO_Depth.h>
 #include <datablocks/lsBulletShape.h>
+#include <datablocks/lsTexture.h> // Include for lsTexture
 
 // Controls
 #include <controls/lsControlManager.h>
@@ -129,7 +132,7 @@ DemoScene::~DemoScene()
 bool DemoScene::Init()
 {
 	cout << "DemoScene::Init() called" << endl;
-
+	
 	// create m_vortxge - must have an active GL context
 	m_vortxge = new vortxGE();
 	if( m_vortxge )
@@ -137,27 +140,27 @@ bool DemoScene::Init()
 		// start GLEW extension handler
 		glewExperimental = GL_TRUE;
 		glewInit();
-
+		
 		// Need debug context and extensions loaded first.
 		glEnable( GL_DEBUG_OUTPUT );
 		glDebugMessageCallback( MessageCallback, 0 );
-
+		
 		m_vortxge->Init();
-
+		
 		// Set some openGL defaults
 		glFrontFace( GL_CCW );
 		glEnable( GL_CULL_FACE );
 		glCullFace( GL_BACK );
-
+		
 		setupControls();
 		setupTestScene();
-
+		
 	} else
 	{
 		cout << "ERROR: DemoScene::Init() : Can't create m_vortxge instance." << endl;
 		return false;
 	}
-
+	
 	// Check GL errors
 	m_vortxge->getOpenGL()->CheckGLErrors( "DemoScene::Init() END" );
 	
@@ -320,6 +323,55 @@ void DemoScene::setupControls()
 
 void DemoScene::setupTestScene()
 {
+	// Skybox Setup
+	// Load custom shaders not part of vortxGE's default set
+	lsShader* skyboxShader = m_vortxge->getShaderManager()->Find_Shader("skybox");
+	if(! skyboxShader)
+	{
+		skyboxShader = new lsShader(m_vortxge->getOpenGL());
+		if(skyboxShader)
+		{
+			skyboxShader->Load_Shader("skybox");
+			// Set shader type. LSST_SKYBOX
+			skyboxShader->setShader_type(LSST_SKYBOX);
+			
+			m_vortxge->getShaderManager()->Add_Shader(skyboxShader);
+		} else
+		{
+			cout << "ERROR: DemoScene::Init() : Can't create lsShader instance for skybox." << endl;
+		}
+	}
+	
+	// Load the sphere mesh (e.g., from a Blender export named "SkySphere")
+	lsAsset_Mesh* sphereMeshAsset = m_viewer_scene->getAssetManager()->CreateAsset_Mesh("data/meshes/SkySphere.glb");
+	sphereMeshAsset->AllocAsset();
+	
+	// Create the skybox object
+	lsObject* skyObject = new lsObject(m_viewer_scene);
+	if (skyObject)
+	{
+		skyObject->setName("SkyboxObject");
+		skyObject->Set_Asset(sphereMeshAsset); 
+		skyObject->Set_Scale(1.0f, 1.0f, 1.0f);		// Already scaled to 1000.0
+		skyObject->Set_Pos(0, 0, 0);
+		skyObject->Set_Rot(0, 0, 0);
+		
+		// Assign the skybox shader
+		lsShader* skyboxShader = m_vortxge->getShaderManager()->Find_Shader("skybox");
+		if (skyboxShader)
+		{
+			static_cast<lsBatch_Mesh*>(skyObject->Get_Mesh()->getBatch_list())->setShader(skyboxShader);
+		} else
+		{
+			std::cerr << "WARNING: Skybox shader not found! Using default shader." << std::endl;
+		}
+		// Set as the special sky_object, managed by lsScene.
+		m_viewer_scene->setSkyObject(skyObject);
+	} else
+	{
+		std::cerr << "ERROR: Failed to create SkyboxObject." << std::endl;
+	}
+	
 	// Create an infinite ground plane for physics
 	lsObject* ground = new lsObject(m_viewer_scene);
 	ground->setName("GroundPlane");
@@ -329,9 +381,9 @@ void DemoScene::setupTestScene()
 	// For a ground plane at y=0, the normal is (0, 1, 0).
 	lsAsset_BulletShape_Plane* planeShapeAsset = m_viewer_scene->getAssetManager()->CreateAsset_BulletShape_Plane(0, 1, 0);
 	planeShapeAsset->AllocAsset();
-	lsBulletShape* planeShape = static_cast<lsBulletShape*>(planeShapeAsset->getData());
+	lsBulletShape* bulletShape = static_cast<lsBulletShape*>(planeShapeAsset->getData());
 
-	lsBulletObject* bulletObject = new lsBulletObject(ground, planeShape->getShape(), m_viewer_scene->getBulletworld()->getMax_proxies());
+	lsBulletObject* bulletObject = new lsBulletObject(ground, bulletShape->getShape(), m_viewer_scene->getBulletworld()->getMax_proxies());
 	bulletObject->Init(0.0f); // Mass 0 for static object
 	ground->setBulletObject(bulletObject);
 	m_viewer_scene->Add_Node(ground);
@@ -469,4 +521,3 @@ void DemoScene::rotatePlayerView( double delta_x, double delta_y)
 		m_playerRig->handleMouseLook(delta_x, delta_y);
 	}
 }
-

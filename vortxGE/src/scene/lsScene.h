@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <thread>
@@ -79,6 +78,10 @@ public:
     {
         return m_lightManager;
     }
+
+    // New: Skybox object
+    lsObject* getSkyObject() const { return sky_object; }
+    void setSkyObject(lsObject* val) { sky_object = val; }
 	
 private:
     lsObject* draw_list;
@@ -93,6 +96,9 @@ private:
     lsLightManager* m_lightManager;
     // Found node
     lsNode* found_node;
+
+    // Skybox object
+    lsObject* sky_object;
 	
     // Threads
     mutex m_mutex;

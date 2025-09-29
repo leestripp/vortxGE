@@ -14,18 +14,18 @@ class lsSceneManager
 public:
     lsSceneManager();
     virtual ~lsSceneManager();
-
+	
 	// Calls Move on all scenes.
     void Update( lsOpenGL* opengl, double delta );
-
+	
     // Linked scenes
     void Add_Scene( lsScene *scene );
     lsScene* FindScene( const string& name );
-
+	
     // Save and Load
 	void SaveScenes( const string& path );
 	bool LoadSceneFromFile( const string& filename, lsScene* targetScene );
-
+	
     void LinkLightsInScene(lsScene* scene, int maxLightsPerObject = 3);
 	
     lsScene* getScene_list() const

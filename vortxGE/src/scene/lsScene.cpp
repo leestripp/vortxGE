@@ -66,11 +66,14 @@ lsScene::lsScene( lsOpenGL* ogl, float world_size, int maxProxies ) : lsNode( NU
     }
 
     draw_list = NULL;
+    sky_object = nullptr;
 }
 
 lsScene::~lsScene()
 {
     // Scene Manager cleans up nodes
+	// except the sky_object.
+	if(sky_object) delete sky_object;
 	
     // Physics
     if( bulletworld ) delete bulletworld;
@@ -104,7 +107,7 @@ void lsScene::Move( __attribute__((unused)) lsScene* scn, lsOpenGL* opengl, doub
 	
     // Update physics engine
     if( opengl->getStats() ) opengl->getStats()->Physics_Start();
-    if( bulletworld ) bulletworld->BulletStep( 10, delta );
+    if( bulletworld ) bulletworld->BulletStep( 10, delta ); // Fixed: BulletStep
     if( opengl->getStats() ) opengl->getStats()->Physics_Stop();
 
 #ifdef VORTX_DEBUG_NODES
@@ -130,8 +133,31 @@ void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene
 #endif
     // Draw stats
     if( opengl->getStats() ) opengl->getStats()->Draw_Start();
-	
-    // Draw our draw list
+    
+    // Draw Skybox first
+	if(sky_object)
+	{
+		// Set depth function to draw the skybox (which is fixed at max depth 1.0)
+		//    We use GL_LEQUAL to allow it to pass even when its depth equals the far plane's depth.
+		glDepthFunc(GL_LEQUAL); 
+		
+		// Disable depth writing (We don't want the skybox to obscure other objects' depth)
+		glDepthMask(GL_FALSE); 
+		
+		// Disable culling for skybox geometry (so we see the inside of the cube/sphere)
+		glDisable(GL_CULL_FACE); 
+		
+		sky_object->Draw(cam, pass, this, opengl);
+
+		// 4. Restore state after drawing skybox
+		glEnable(GL_CULL_FACE); 
+		glDepthMask(GL_TRUE); 
+		
+		// Restore the default depth function for the rest of the scene
+		glDepthFunc(GL_LESS); 
+	}
+    
+    // Draw remaining scene objects
     if( draw_list ) draw_list->Draw( cam, pass, this, opengl );
 	
     if( opengl->getStats() ) opengl->getStats()->Draw_Stop();
@@ -185,6 +211,7 @@ void lsScene::ClearScene()
         delete getNode_list();
         setNode_list( NULL );
     }
+    sky_object = NULL; // Clear sky object pointer
 }
 
 /**
@@ -312,6 +339,10 @@ void lsScene::Del_Node( lsNode* node )
         if( next ) next->setPrev_node( 0 );
     }
 
+    // If the deleted node was the sky object, clear the pointer
+    if (node == sky_object) {
+        sky_object = NULL;
+    }
     delete node;
 
 }
@@ -336,4 +367,3 @@ const string& lsScene::toString()
 
     return save_str;
 }
-

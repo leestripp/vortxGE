@@ -1,5 +1,5 @@
-#ifndef vortxGE_lsTexture_h
-#define vortxGE_lsTexture_h
+
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -14,6 +14,7 @@ class lsAsset;
 const int LSIT_TGA	= 0;
 const int LSIT_RGBE	= 1;
 const int LSIT_EXR	= 2;
+const int LSIT_HDR	= 3; // Added for HDR image type
 
 using namespace std;
 
@@ -31,7 +32,8 @@ public:
     lsTexture( lsOpenGL *opengl );
     virtual ~lsTexture();
 
-    bool load_image( string filename, bool mipmap, bool compressed );
+    // Modified to handle HDR
+    bool load_image( string filename, bool mipmap, bool compressed, bool is_hdr = false );
 
     // texture
     GLuint getTexture() const
@@ -61,7 +63,7 @@ public:
 
     void setWidth( int val )
     {
-        width = val;
+        this->width = val;
     }
 
     int getHeight() const
@@ -71,25 +73,27 @@ public:
 
     void setHeight( int val )
     {
-        height = val;
+        this->height = val;
     }
 
     lsOpenGL *getOgl() const;
     void setOgl(lsOpenGL *value);
-	
-	
+
+    // Add a method to get raw float data for HDR processing if needed elsewhere
+    float* getFloatImageData() const { return float_image_data; }
+    
 private:
-    GLuint MakeGlTexture( GLenum Format, void *pixels, unsigned int w, unsigned int h, bool mipmap, bool compressed );
+    // Modified to handle float data for HDR
+    GLuint MakeGlTexture( GLenum Format, void *pixels, unsigned int w, unsigned int h, bool mipmap, bool compressed, GLenum dataType = GL_UNSIGNED_BYTE );
     int Get_ImageType( const string& filename );
 
     GLuint texture;
     int image_type;
     int width;
     int height;
-	
+
+    float* float_image_data; // To store HDR float data
+    
     // opengl
     lsOpenGL *ogl;
 };
-
-
-#endif

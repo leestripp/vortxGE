@@ -16,7 +16,7 @@ const int LSST_NONE                 = 0;
 const int LSST_DEBUG                = 1;
 const int LSST_LIGHT_TEX_D          = 2;
 const int LSST_LIGHT_TEX_DN         = 3;
-const int LSST_LIGHT_TEX_DNS		= 4;
+const int LSST_LIGHT_TEX_DNS			= 4;
 const int LSST_OCCLUSION            = 5;
 const int LSST_SHADELESS_TEX_D		= 6;
 const int LSST_SHADELESS_TEX_NONE	= 7;
@@ -26,6 +26,7 @@ const int LSST_LIGHT_TEX_NONE		= 10;
 const int LSST_BLOOM                = 11;
 const int LSST_DEBUG_NORMALS        = 12;
 const int LSST_SHADOWMAP            = 13;
+const int LSST_SKYBOX               = 14; // New skybox shader type
 
 using namespace std;
 
@@ -48,7 +49,7 @@ public:
 	void debug( GLuint s );
 	bool debugProgram();
 	void setShader_type( int val );
-
+	
 	// Lights
 	void Setup_Lights( lsCamera *camera, lsObject *object );
 	// Changed to array to match shader uniform arrays
@@ -86,7 +87,7 @@ public:
 
 	void setName( const string& val )
 	{
-		name = val;
+		this->name = val;
 	}
 
 	int getShader_type() const
