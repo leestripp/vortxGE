@@ -14,6 +14,7 @@ include_directories(
     ${GLFW_INCLUDE_DIRS}
     ${GLEW_INCLUDE_DIRS}
     ${OPENGL_INCLUDE_DIRS}
+    ${OPENAL_INCLUDE_DIRS}
 )
 
 file(GLOB MySources
@@ -30,7 +31,8 @@ target_link_libraries(vortxGEdemo_glfw3
     ${BULLET_LIBRARIES}
     ${GLFW_LIBRARIES}
     ${GLEW_LIBRARIES}
-    OpenGL::EGL
+    OpenGL::GL
+    OpenAL::OpenAL
 )
 
 add_dependencies(vortxGEdemo_glfw3

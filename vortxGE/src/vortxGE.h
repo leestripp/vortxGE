@@ -1,5 +1,4 @@
-#ifndef vortxGE_vortxGE_h
-#define vortxGE_vortxGE_h
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -9,6 +8,7 @@ class lsOpenGL;
 class lsShaderManager;
 class lsControlManager;
 class lsAssetManager;
+class lsOpenAL;
 
 using namespace std;
 
@@ -59,15 +59,18 @@ public:
     {
         return opengl;
     }
+    
+    lsOpenAL* getOpenAL() const
+    {
+        return openal;
+    }
 
 private:
     // Managers
     lsOpenGL            *opengl;
+    lsOpenAL            *openal;
     lsShaderManager     *shadermanager;
     lsAssetManager      *assetmanager;
     lsControlManager    *controlmanager;
     lsStats             *stats;
-
 };
-
-#endif

@@ -58,6 +58,7 @@ lsNode_FirstPersonRig::~lsNode_FirstPersonRig()
 {
     // lsBulletObject is deleted by lsObject's destructor
     // m_standShapeAsset and m_crouchShapeAsset are managed by the AssetManager
+    // m_listener is a child node, so it will be deleted by lsNode's destructor hierarchy.
 }
 
 
@@ -134,9 +135,9 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
         updateCapsuleShape();
         m_wasCrouching = m_isCrouching;
     }
-
+	
     btRigidBody* body = m_bulletObject->getBody();
-
+	
     // 1. Update Rotation from Mouse Input
     // We apply yaw rotation directly to the rigid body's transform.
     btTransform trans = body->getWorldTransform();
@@ -147,7 +148,7 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
     // 2. Update Velocity
     btVector3 currentVelocity = body->getLinearVelocity();
     btVector3 desiredVelocity(0, currentVelocity.y(), 0); // Start with Y velocity preserved for gravity
-
+	
     bool is_on_ground = onGround();
 
     // Calculate desired horizontal velocity from input
@@ -158,7 +159,7 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
     if (m_moveBackward) moveDirection -= forwardDir;
     if (m_strafeLeft)   moveDirection += sideDir;
     if (m_strafeRight)  moveDirection -= sideDir;
-
+	
     float currentSpeed = m_isCrouching ? m_crouchSpeed : (m_isSprinting ? m_sprintSpeed : m_walkSpeed);
     
     btVector3 inputHorizontalVelocity(0,0,0);
@@ -190,7 +191,7 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
         desiredVelocity.setX(m_airborneHorizontalVelocity.getX());
         desiredVelocity.setZ(m_airborneHorizontalVelocity.getZ());
     }
-
+	
     m_wasOnGround = is_on_ground;
 
     body->setLinearVelocity(desiredVelocity);
@@ -222,3 +223,4 @@ const string& lsNode_FirstPersonRig::toString()
     save_str = "add_firstpersonrig";
     return save_str;
 }
+

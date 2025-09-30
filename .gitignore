@@ -2,5 +2,6 @@
 
 build/
 secrets/
+blender/
 
 prompt.txt

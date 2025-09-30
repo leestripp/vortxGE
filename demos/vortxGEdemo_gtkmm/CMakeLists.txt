@@ -23,6 +23,7 @@ include_directories(
     ${GLIBMM_INCLUDE_DIRS}
     ${GLEW_INCLUDE_DIRS}
     ${OPENGL_INCLUDE_DIRS}
+    ${OPENAL_INCLUDE_DIRS}
 )
 
 file(GLOB MySources
@@ -40,7 +41,8 @@ target_link_libraries(vortxGEdemo_gtkmm
     ${GTKMM_LIBRARIES}
     ${GLIBMM_LIBRARIES}
     ${GLEW_LIBRARIES}
-    OpenGL::EGL
+    OpenGL::GL
+    OpenAL::OpenAL
 )
 
 add_dependencies(vortxGEdemo_gtkmm

@@ -7,6 +7,9 @@
 // OpenGL
 #include "opengl/lsOpenGL.h"
 
+// OpenAL
+#include "openal/lsOpenAL.h" // Include lsOpenAL header
+
 // Controls
 #include "controls/lsControlManager.h"
 
@@ -29,19 +32,20 @@
  */
 vortxGE::vortxGE()
 {
-    // Display version
-    cout << "NEW instance : vortxGE v" << vortxGE_VERSION_MAJOR;
-    cout << "." << vortxGE_VERSION_MINOR;
-    cout << "." << vortxGE_VERSION_PATCH;
-    cout << " by Lee A. Stripp" << endl;
-
-    // Set some defaults, Must call Init() when a valid openGL context is ready.
-    opengl = NULL;
-    // Managers
-    shadermanager = NULL;
-    assetmanager = NULL;
-    controlmanager = NULL;
-    stats = NULL;
+	// Display version
+	cout << "NEW instance : vortxGE v" << vortxGE_VERSION_MAJOR;
+	cout << "." << vortxGE_VERSION_MINOR;
+	cout << "." << vortxGE_VERSION_PATCH;
+	cout << " by Lee A. Stripp" << endl;
+	
+	// Set some defaults, Must call Init() when a valid openGL context is ready.
+	opengl = NULL;
+	// Managers
+	shadermanager = NULL;
+	assetmanager = NULL;
+	controlmanager = NULL;
+	stats = NULL;
+	openal = NULL;
 }
 
 /*!
@@ -61,6 +65,7 @@ vortxGE::~vortxGE()
  *      lsShaderManager
  *      lsAssetManager
  *      lsControlManager
+ *      lsOpenAL
  *
  * Then links the instances of lsStats and lsShaderManager to lsOpenGL
  * Next it calls Init on both lsOpenGL and lsShaderManager
@@ -69,82 +74,97 @@ vortxGE::~vortxGE()
  */
 int vortxGE::Init()
 {
-    stats = new lsStats();
-    if( stats )
-    {
-        stats->Init();
-    } else
-    {
-        cout << "ERROR: vortxGE::Init() - Could not instance lsStats" << endl;
-        return 1;
-    }
+	stats = new lsStats();
+	if( stats )
+	{
+		stats->Init();
+	} else
+	{
+		cout << "ERROR: vortxGE::Init() - Could not instance lsStats" << endl;
+		return 1;
+	}
 
-    opengl = new lsOpenGL;
-    if(! opengl )
-    {
-        cout << "ERROR: vortxGE::Init() - Could not instance lsOpenGL" << endl;
-        delete stats;
-        return 1;
-    }
-
-    shadermanager = new lsShaderManager( opengl );
-    if(! shadermanager )
-    {
-        cout << "ERROR: vortxGE::Init() - Could not instance lsShaderManager" << endl;
-        delete stats;
-        delete opengl;
-        return 1;
-    }
-
-    assetmanager = new lsAssetManager( opengl );
-    if(! assetmanager )
-    {
-        cout << "ERROR: vortxGE::Init() - Could not instance lsAssetManager" << endl;
-        delete stats;
-        delete opengl;
-        delete shadermanager;
-        return 1;
-    }
-
-    controlmanager = new lsControlManager( opengl );
-    if(! controlmanager )
-    {
-        cout << "ERROR: vortxGE::Init() - Could not instance lsControlManager" << endl;
-        delete stats;
-        delete opengl;
-        delete shadermanager;
-        delete assetmanager;
-        return 1;
-    }
-
-    // shared info
-    opengl->setStats( stats );
-    opengl->setShaderManager( shadermanager );
-
-    // Init subsystems
-    opengl->Init();
-    shadermanager->Init();
-
-    opengl->StoreFBO();
-
-    return 0;
+	opengl = new lsOpenGL;
+	if(! opengl )
+	{
+		cout << "ERROR: vortxGE::Init() - Could not instance lsOpenGL" << endl;
+		delete stats;
+		return 1;
+	}
+	
+	shadermanager = new lsShaderManager( opengl );
+	if(! shadermanager )
+	{
+		cout << "ERROR: vortxGE::Init() - Could not instance lsShaderManager" << endl;
+		delete stats;
+		delete opengl;
+		return 1;
+	}
+	
+	assetmanager = new lsAssetManager( opengl );
+	if(! assetmanager )
+	{
+		cout << "ERROR: vortxGE::Init() - Could not instance lsAssetManager" << endl;
+		delete stats;
+		delete opengl;
+		delete shadermanager;
+		return 1;
+	}
+	
+	controlmanager = new lsControlManager( opengl );
+	if(! controlmanager )
+	{
+		cout << "ERROR: vortxGE::Init() - Could not instance lsControlManager" << endl;
+		delete stats;
+		delete opengl;
+		delete shadermanager;
+		delete assetmanager;
+		return 1;
+	}
+	
+	// OpenaL
+	openal = new lsOpenAL();
+	if(! openal || ! openal->Init())
+	{
+		cout << "ERROR: vortxGE::Init() - Could not instance or initialize lsOpenAL" << endl;
+		delete stats;
+		delete opengl;
+		delete shadermanager;
+		delete assetmanager;
+		if (openal) delete openal;
+		return 1;
+	}
+	
+	// shared info
+	opengl->setStats( stats );
+	opengl->setShaderManager( shadermanager );
+	
+	// Init subsystems
+	opengl->Init();
+	shadermanager->Init();
+	
+	opengl->StoreFBO();
+	
+	return 0;
 }
 
 void vortxGE::Cleanup()
 {
-    if( controlmanager ) delete controlmanager;
-    if( assetmanager ) delete assetmanager;
-    if( shadermanager ) delete shadermanager;
+	if( controlmanager ) delete controlmanager;
+	if( assetmanager ) delete assetmanager;
+	if( shadermanager ) delete shadermanager;
 
-    if( opengl ) delete opengl;
-    if( stats ) delete stats;
+	if( opengl ) delete opengl;
+	if( stats ) delete stats;
+	if( openal ) delete openal; // Delete OpenAL instance
 
-    controlmanager = NULL;
-    assetmanager = NULL;
-    shadermanager = NULL;
+	controlmanager = NULL;
+	assetmanager = NULL;
+	shadermanager = NULL;
 
-    opengl = NULL;
-    stats = NULL;
+	opengl = NULL;
+	stats = NULL;
+	openal = NULL;
 }
 
 /*!
@@ -156,10 +176,10 @@ void vortxGE::Cleanup()
  */
 void vortxGE::Update( double delta )
 {
-    stats->Loop_Start();
+	stats->Loop_Start();
 
-    // Move all active scene objects
-    if( controlmanager ) controlmanager->Update( delta );
+	// Move all active scene objects
+	if( controlmanager ) controlmanager->Update( delta );
 }
 
 /*!
@@ -169,22 +189,22 @@ void vortxGE::Update( double delta )
 void vortxGE::Render()
 {
 #ifdef VORTX_DEBUG_RENDER
-    cout << endl << "*************************" << endl;
-    cout << "vortxGE::Render() - START" << endl;
+	cout << endl << "*************************" << endl;
+	cout << "vortxGE::Render() - START" << endl;
 #endif
 
-    // render - all elements to screen
-    if( controlmanager ) controlmanager->Render();
+	// render - all elements to screen
+	if( controlmanager ) controlmanager->Render();
 
-    // reset framebuffer
-    opengl->RestoreFBO();
+	// reset framebuffer
+	opengl->RestoreFBO();
 
-    stats->Loop_Stop();
-    stats->Update();
+	stats->Loop_Stop();
+	stats->Update();
 
 #ifdef VORTX_DEBUG_RENDER
-    cout << "vortxGE::Render() - END" << endl;
-    cout << "*************************" << endl;
+	cout << "vortxGE::Render() - END" << endl;
+	cout << "*************************" << endl;
 #endif
 }
 
@@ -198,7 +218,6 @@ void vortxGE::Render()
  */
 void vortxGE::Resize( int x, int y, int width, int height )
 {
-    // pass resize up chain
-    if( controlmanager ) controlmanager->Resize( x, y, width, height );
+	// pass resize up chain
+	if( controlmanager ) controlmanager->Resize( x, y, width, height );
 }
-
