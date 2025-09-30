@@ -73,6 +73,7 @@
 #include <scene/lsLight_Point.h>
 #include <scene/lsLight_Direct.h>
 #include <scene/lsLightManager.h>
+#include <scene/lsSpeaker.h>
 
 // Animation
 #include <animation/lsAnimationManager.h>
@@ -113,6 +114,7 @@ DemoScene::DemoScene()
 	m_viewer_scene = nullptr;
 	
 	m_playerRig = nullptr;
+	m_speaker = nullptr; // Initialize m_speaker
 }
 
 DemoScene::~DemoScene()
@@ -122,6 +124,7 @@ DemoScene::~DemoScene()
 		m_vortxge->Cleanup();
 		delete m_vortxge;
 	}
+	// m_speaker is owned by the scene and will be deleted through the scene hierarchy
 }
 
 
@@ -402,6 +405,30 @@ void DemoScene::setupTestScene()
 		m_viewer->getSceneManager()->LinkLightsInScene(m_viewer_scene);
 	}
 	
+	// Add an audio speaker
+	m_speaker = new lsSpeaker(m_viewer_scene);
+	if (m_speaker)
+	{
+		m_speaker->setName("SceneSpeaker");
+		m_speaker->Set_Pos(0, 5, 0); // Position the speaker in the center of the world
+		m_speaker->setGain(0.5f);    // Half volume
+		m_speaker->setLooping(true); // Loop the sound
+		
+		// Load a WAV file from data/audio/sfx
+		if (m_speaker->LoadWav("data/audio/sfx/atmos_loop.wav"))
+		{
+			m_speaker->Play(); // Start playing the sound
+		} else
+		{
+			std::cerr << "WARNING: Could not load or play audio for SceneSpeaker. Make sure data/audio/sfx/atmos_loop.wav exists." << std::endl;
+		}
+		
+		m_viewer_scene->Add_Node(m_speaker); // Add the speaker to the scene
+	} else
+	{
+		std::cerr << "ERROR: Failed to create SceneSpeaker." << std::endl;
+	}
+	
 	// Setup shadowmaps.
 	setupShadows();
 }
@@ -521,3 +548,4 @@ void DemoScene::rotatePlayerView( double delta_x, double delta_y)
 		m_playerRig->handleMouseLook(delta_x, delta_y);
 	}
 }
+

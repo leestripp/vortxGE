@@ -1,6 +1,4 @@
-#ifndef vortxGE_lsOpenGL_h
-#define vortxGE_lsOpenGL_h
-
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -77,5 +75,3 @@ private:
     bool m_hasFBO;
     bool m_hasShaders;
 };
-
-#endif

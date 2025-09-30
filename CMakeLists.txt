@@ -19,6 +19,9 @@ find_package(Bullet REQUIRED)
 set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
 
+# OpenAL
+find_package(OpenAL REQUIRED)
+
 # GLEW used by vortxGE
 find_package(GLEW REQUIRED)
 

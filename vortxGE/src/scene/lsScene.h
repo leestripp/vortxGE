@@ -10,7 +10,7 @@ class lsEvent;
 class lsObject;
 class lsAssetManager;
 class lsLightManager;
-
+class lsListener; // Forward declaration for lsListener
 
 using namespace std;
 
@@ -82,6 +82,9 @@ public:
     // New: Skybox object
     lsObject* getSkyObject() const { return sky_object; }
     void setSkyObject(lsObject* val) { sky_object = val; }
+    
+    // Audio Listener
+    lsListener* getListener() const { return m_listener; }
 	
 private:
     lsObject* draw_list;
@@ -99,6 +102,9 @@ private:
 
     // Skybox object
     lsObject* sky_object;
+    
+    // Audio Listener
+    lsListener* m_listener; // Scene's audio listener
 	
     // Threads
     mutex m_mutex;

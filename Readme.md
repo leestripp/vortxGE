@@ -1,4 +1,4 @@
-# vortxGE v0.7.1
+# vortxGE v0.7.2
 
 ![image](screenshots/vortxGE.png)
 

@@ -18,6 +18,9 @@
 // Assets
 #include "../assets/lsAssetManager.h"
 
+// Audio
+#include "lsListener.h" // Include lsListener header
+
 #include "lsObject.h"
 #include "lsScene.h"
 
@@ -65,14 +68,24 @@ lsScene::lsScene( lsOpenGL* ogl, float world_size, int maxProxies ) : lsNode( NU
         cout << "ERROR : lsScene::lsScene - Could not instance lsEventManager" << endl;
     }
 
-    draw_list = NULL;
+    // Audio Listener
+    m_listener = new lsListener(this); // Create a default listener for the scene
+    if (!m_listener)
+    {
+        std::cerr << "ERROR: lsScene::lsScene - Could not instance lsListener" << std::endl;
+    } else
+    {
+        Add_Node(m_listener); // Add listener as a child of the scene
+    }
+	
+    draw_list = nullptr;
     sky_object = nullptr;
 }
 
 lsScene::~lsScene()
 {
     // Scene Manager cleans up nodes
-	// except the sky_object.
+	// But not the sky_object.
 	if(sky_object) delete sky_object;
 	
     // Physics
@@ -212,6 +225,7 @@ void lsScene::ClearScene()
         setNode_list( NULL );
     }
     sky_object = NULL; // Clear sky object pointer
+    m_listener = NULL; // Clear listener pointer (it's deleted as a child node)
 }
 
 /**
@@ -343,6 +357,11 @@ void lsScene::Del_Node( lsNode* node )
     if (node == sky_object) {
         sky_object = NULL;
     }
+    // If the deleted node was the listener, clear the pointer
+    if (node == m_listener) {
+        m_listener = NULL;
+    }
+
     delete node;
 
 }
