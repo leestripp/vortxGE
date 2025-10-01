@@ -336,7 +336,7 @@ void DemoScene::setupTestScene()
 		{
 			skyboxShader->Load_Shader("skybox");
 			// Set shader type. LSST_SKYBOX
-			skyboxShader->setShader_type(LSST_SKYBOX);
+			skyboxShader->setKind(ShaderKind::Skybox);
 			
 			m_vortxge->getShaderManager()->Add_Shader(skyboxShader);
 		} else

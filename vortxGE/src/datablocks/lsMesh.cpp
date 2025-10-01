@@ -1096,15 +1096,18 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 				if (!shader) {
 					shader = new lsShader(getOgl());
 					shader->Load_Shader(shader_name);
-					if (shader->getShader_type() != LSST_NONE) {
+					if(shader->getKind() != ShaderKind::None)
+					{
 						sm->Add_Shader(shader);
-					} else {
+					} else
+					{
 						delete shader;
 						shader = sm->Find_Shader("light_tex_none");
 					}
 				}
 				batch->setShader(shader);
-			} else {
+			} else
+			{
 				 lsShader* shader = sm->Find_Shader("light_tex_none");
 				 batch->setShader(shader);
 			}

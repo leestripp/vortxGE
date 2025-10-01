@@ -1,32 +1,20 @@
 #pragma once
 
 #include <iostream>
+#include <map>
+#include <string>
 
 // OpenGL
 #include "../opengl/lsOpenGL.h"
+
+// Shader kings.
+#include "lsShaderKinds.h"
 
 class lsObject;
 class lsCamera;
 class lsLight;
 class lsPass;
 class lsBatch;
-
-// Shader types
-const int LSST_NONE                 = 0;
-const int LSST_DEBUG                = 1;
-const int LSST_LIGHT_TEX_D          = 2;
-const int LSST_LIGHT_TEX_DN         = 3;
-const int LSST_LIGHT_TEX_DNS			= 4;
-const int LSST_OCCLUSION            = 5;
-const int LSST_SHADELESS_TEX_D		= 6;
-const int LSST_SHADELESS_TEX_NONE	= 7;
-const int LSST_COMP                 = 8;
-const int LSST_QUAD                 = 9;
-const int LSST_LIGHT_TEX_NONE		= 10;
-const int LSST_BLOOM                = 11;
-const int LSST_DEBUG_NORMALS        = 12;
-const int LSST_SHADOWMAP            = 13;
-const int LSST_SKYBOX               = 14; // New skybox shader type
 
 using namespace std;
 
@@ -40,78 +28,47 @@ class lsShader
 public:
 	lsShader( lsOpenGL *opengl );
 	virtual ~lsShader();
-
+	
 	// opengl
 	lsOpenGL *ogl;
-
+	
 	void UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch *batch );
 	void Load_Shader( const string& name );
 	void debug( GLuint s );
 	bool debugProgram();
-	void setShader_type( int val );
+	
+	void setKind( ShaderKind val );
+	ShaderKind getKind() const { return kind; }
 	
 	// Lights
 	void Setup_Lights( lsCamera *camera, lsObject *object );
-	// Changed to array to match shader uniform arrays
 	void Set_Light( int index, lsCamera *camera, lsLight *light, lsObject *object );
 	
-	
 	// Navi ---------------------------
-
-	lsShader* getNext_shader() const
-	{
-		return next_shader;
-	}
-
-	void setNext_shader( lsShader* val )
-	{
-		next_shader = val;
-	}
-
-	lsShader* getPrev_shader() const
-	{
-		return prev_shader;
-	}
-
-	void setPrev_shader( lsShader* val )
-	{
-		this->prev_shader = val;
-	}
-
+	lsShader* getNext_shader() const { return next_shader; }
+	void setNext_shader( lsShader* val ) { next_shader = val; }
+	lsShader* getPrev_shader() const { return prev_shader; }
+	void setPrev_shader( lsShader* val ) { prev_shader = val; }
+	
 	// Data ---------------------------
-
-	const string& getName()
-	{
-		return name;
-	}
-
-	void setName( const string& val )
-	{
-		this->name = val;
-	}
-
-	int getShader_type() const
-	{
-		return shader_type;
-	}
-
-	GLuint getProgram() const
-	{
-		return shader;
-	}
-
+	const string& getName() { return name; }
+	void setName( const string& val ) { this->name = val; }
+	
+	GLuint getProgram() const { return shader; }
+	
 private:
 	lsShader *next_shader;
 	lsShader *prev_shader;
+	
 	string name;
-	int shader_type;
-
-	// Shader names
+	ShaderKind kind;
+	
+	// Shader program
 	GLuint shader_v;
 	GLuint shader_f;
 	GLuint shader;
 	
-		// uniforms
+	// uniforms
 	GLint imvpMatrix;
 	GLint ipMatrix;         // Projection Matrix
 	GLint imvMatrix;        // Model View Matrix
@@ -121,9 +78,9 @@ private:
 	
 	// PBR Textures
 	GLint iTex_albedo;
-	GLint iTex_roughness_metallic;
+	GLint iTex_roughness_metallic;		// r = roughness, g = metallic, b = AO
 	GLint iTex_normal;
-
+	
 	// Shadowmap uniform arrays
 	GLint iTex_shadowmaps[3]; // Array for up to 3 Shadowmap textures
 	GLint iUse_shadowmap[3];  // Array for up to 3 use_shadowmap flags
