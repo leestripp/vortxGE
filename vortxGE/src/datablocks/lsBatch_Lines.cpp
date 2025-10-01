@@ -4,7 +4,7 @@
 #include "../vortx_debug.h"
 
 // opengl
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // shader
 #include "../shader/lsShader.h"

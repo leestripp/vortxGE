@@ -5,7 +5,7 @@
 #include <string>
 
 // OpenGL
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // Shader kings.
 #include "lsShaderKinds.h"

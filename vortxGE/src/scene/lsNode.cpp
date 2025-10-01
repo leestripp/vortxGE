@@ -4,7 +4,7 @@
 #include "../vortx_debug.h"
 
 // OpenGL
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // Events
 #include "../events/lsEventManager.h"

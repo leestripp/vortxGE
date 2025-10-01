@@ -4,7 +4,7 @@
 #include <string>
 
 // opengl
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // bullet
 #include <bullet/btBulletDynamicsCommon.h>

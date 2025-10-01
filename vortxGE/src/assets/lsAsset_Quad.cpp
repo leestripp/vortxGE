@@ -1,4 +1,4 @@
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // datablocks
 #include "../datablocks/lsBatch_Quad.h"

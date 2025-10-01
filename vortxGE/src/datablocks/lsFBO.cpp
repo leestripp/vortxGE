@@ -2,8 +2,6 @@
 // debug
 #include "../vortx_debug.h"
 
-#include "../opengl/lsOpenGL.h"
-
 #include "lsFBO.h"
 
 

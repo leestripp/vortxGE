@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 // opengl
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 class lsAsset;
 class lsAsset_Mesh;

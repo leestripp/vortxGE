@@ -5,7 +5,7 @@
 #include "config.h"
 
 // OpenGL
-#include "opengl/lsOpenGL.h"
+#include "render/lsOpenGL.h"
 
 // OpenAL
 #include "openal/lsOpenAL.h" // Include lsOpenAL header
@@ -143,7 +143,7 @@ int vortxGE::Init()
 	opengl->Init();
 	shadermanager->Init();
 	
-	opengl->StoreFBO();
+	opengl->StoreDefaultFramebuffer();
 	
 	return 0;
 }
@@ -153,15 +153,15 @@ void vortxGE::Cleanup()
 	if( controlmanager ) delete controlmanager;
 	if( assetmanager ) delete assetmanager;
 	if( shadermanager ) delete shadermanager;
-
+	
 	if( opengl ) delete opengl;
 	if( stats ) delete stats;
-	if( openal ) delete openal; // Delete OpenAL instance
-
+	if( openal ) delete openal;
+	
 	controlmanager = NULL;
 	assetmanager = NULL;
 	shadermanager = NULL;
-
+	
 	opengl = NULL;
 	stats = NULL;
 	openal = NULL;
@@ -195,10 +195,10 @@ void vortxGE::Render()
 
 	// render - all elements to screen
 	if( controlmanager ) controlmanager->Render();
-
+	
 	// reset framebuffer
-	opengl->RestoreFBO();
-
+	opengl->RestoreDefaultFramebuffer();
+	
 	stats->Loop_Stop();
 	stats->Update();
 

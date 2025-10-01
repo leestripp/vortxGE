@@ -1,5 +1,5 @@
 #include "../vortx_debug.h"
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 #include "../datablocks/lsStats.h"
 #include "../datablocks/lsFBO_Depth.h"
 #include "../scene/lsScene.h"
@@ -43,7 +43,7 @@ void lsPass_ShadowMap::Render()
 {
 	if (fbo && getLight())
 	{
-		getOgl()->StoreFBO();
+		getOgl()->StoreDefaultFramebuffer();
 		fbo->Enable();
 		
 		glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y);
@@ -65,7 +65,7 @@ void lsPass_ShadowMap::Render()
 		// Render scene from light's perspective
 		if (getScene()) getScene()->Draw(getLight(), this, NULL, getOgl());
 		
-		getOgl()->RestoreFBO();
+		getOgl()->RestoreDefaultFramebuffer();
 		
 		// Restore OpenGL state
 		glDisable(GL_POLYGON_OFFSET_FILL);

@@ -11,7 +11,7 @@
 #include <memory.h>
 
 // OpenGL
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 #pragma pack(push,1)
 /**

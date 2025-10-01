@@ -3,7 +3,7 @@
 #include "../vortx_debug.h"
 
 // OpenGL
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // datablocks
 #include "../datablocks/lsFBO_ColourDepth_8.h"
@@ -86,8 +86,8 @@ void lsPass_Occlusion::Render()
 
     if( fbo )
     {
-        getOgl()->StoreFBO();
-
+        getOgl()->StoreDefaultFramebuffer();
+		
 		// set viewport
 		glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );
 		
@@ -177,7 +177,7 @@ void lsPass_Occlusion::Render()
         }
 
         glDisable( GL_CULL_FACE );
-        getOgl()->RestoreFBO();
+        getOgl()->RestoreDefaultFramebuffer();
     }// if fbo
 
 #if defined(VORTX_DEBUG_OCCLUSION)

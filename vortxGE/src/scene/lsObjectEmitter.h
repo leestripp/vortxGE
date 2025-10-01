@@ -5,7 +5,7 @@
 #include <string>
 
 // opengl
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // timers
 #include "../timers/lsTimer.h"

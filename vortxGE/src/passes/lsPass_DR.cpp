@@ -1,7 +1,7 @@
 #include "../vortx_debug.h"
 
 // OpenGL
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // datablocks
 #include "../datablocks/lsStats.h"
@@ -68,7 +68,7 @@ void lsPass_DR::Render()
 #endif
 
     // TODO: workaround - how to find system FBO
-    getOgl()->RestoreFBO();
+    getOgl()->RestoreDefaultFramebuffer();
 
     // set viewport
     glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );

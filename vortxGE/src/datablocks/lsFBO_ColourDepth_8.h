@@ -1,7 +1,7 @@
 #ifndef LSFBO_COLOURDEPTH_8_H
 #define LSFBO_COLOURDEPTH_8_H
 
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 #include "lsFBO.h"
 

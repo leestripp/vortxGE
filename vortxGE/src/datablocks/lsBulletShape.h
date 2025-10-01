@@ -1,7 +1,7 @@
 #pragma once
 
 // opengl
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 #include "lsData.h"
 

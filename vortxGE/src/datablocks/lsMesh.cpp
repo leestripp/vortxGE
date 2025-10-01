@@ -3,7 +3,7 @@
 #include "../vortx_debug.h"
 
 // OpenGL
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // filesystem
 #include "../filesystem/lsFileIO.h"

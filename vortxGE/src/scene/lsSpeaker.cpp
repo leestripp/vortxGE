@@ -1,7 +1,7 @@
 #include "lsSpeaker.h"
 
 #include "lsScene.h"
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 #include "../filesystem/lsFileIO.h"
 #include "../filesystem/lsDir.h"
 #include <fstream>

@@ -1,7 +1,7 @@
 #pragma once
 
 // opengl
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // scene
 #include "../scene/lsAnimNode.h"

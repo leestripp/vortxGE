@@ -5,7 +5,7 @@
 #include "../vortxGE.h"
 
 // opengl
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // Assets
 #include "../assets/lsAssetManager.h"

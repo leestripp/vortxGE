@@ -3,7 +3,7 @@
 #include "../vortx_debug.h"
 
 // OpenGL
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // datablocks
 #include "../datablocks/lsStats.h"
@@ -77,8 +77,8 @@ void lsPass_FBO::Render()
     if( m_lsfbo )
     {
         // Store current FBO
-        getOgl()->StoreFBO();
-
+        getOgl()->StoreDefaultFramebuffer();
+		
         // use FBO
         m_lsfbo->Enable();
 		
@@ -98,7 +98,7 @@ void lsPass_FBO::Render()
         if( getScene() ) getScene()->Draw( getCamera(), this, NULL, getOgl() );
 
         // Make sure we are on the default framebuffer
-        getOgl()->RestoreFBO();
+        getOgl()->RestoreDefaultFramebuffer();
 
     } else
     {

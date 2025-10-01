@@ -2,7 +2,7 @@
 #include <bullet/btBulletDynamicsCommon.h>
 
 // opengl
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // filesystem
 #include "../filesystem/lsFileIO.h"

@@ -6,7 +6,7 @@
 #include <string>
 
 // openGL
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // Math
 #include "../math/lsBoundingSphere.h"

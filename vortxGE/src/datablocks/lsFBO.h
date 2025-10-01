@@ -2,7 +2,7 @@
 #define LSFBO_H
 
 // opengl
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 const int LSFT_NONE             = 0;
 const int LSFT_COLOURDEPTH_8	= 1;

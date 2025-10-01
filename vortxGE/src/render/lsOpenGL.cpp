@@ -5,24 +5,17 @@
 
 #include "lsOpenGL.h"
 
-lsOpenGL::lsOpenGL()
+lsOpenGL::lsOpenGL() : lsRender()
 {
-    shadermanager = NULL;
-    stats = NULL;
+	// Initialize OpenGL-specific members
+	m_defaultFBO = 0;
 }
 
 lsOpenGL::~lsOpenGL()
 {
 }
 
-/**
- * @brief Sets up openGL extensions and displays basic info.
- *
- * You should have an active context before calling this function.
- * Automaticlly called by vortxGE::Init().
- *
- * @return void
- */
+
 void lsOpenGL::Init()
 {
 #ifdef VORTX_DEBUG_RENDER
@@ -36,7 +29,7 @@ void lsOpenGL::Init()
     glInfo();
 }
 
-void lsOpenGL::CheckGLErrors( const string &name )
+void lsOpenGL::CheckErrors( const string &name )
 {
     GLenum err;
     while( (err = glGetError()) != GL_NO_ERROR )
@@ -73,14 +66,6 @@ void lsOpenGL::CheckGLErrors( const string &name )
 }
 
 
-/**
- * @brief Basic openGL information
- *
- * Called by lsOpenGL::Init(), so there is no deed to call it again.
- * You need a current context for this to work correctly.
- *
- * @return void
- */
 void lsOpenGL::glInfo()
 {
 #ifdef VORTX_DEBUG_INFO
@@ -108,33 +93,21 @@ void lsOpenGL::glInfo()
 #endif //VORTX_DEBUG_INFO
 }
 
-
-/**
- * @brief Convenience function for storing the current Frame Buffer object
- *
- * @return void
- */
-void lsOpenGL::StoreFBO()
+void lsOpenGL::StoreDefaultFramebuffer()
 {
     // Find out default FBO
-    glGetIntegerv( GL_FRAMEBUFFER_BINDING, &default_FBO );
+    glGetIntegerv( GL_FRAMEBUFFER_BINDING, &m_defaultFBO );
 
 #ifdef VORTX_DEBUG_RENDER
     cout << "lsOpenGL::StoreFBO : " << default_FBO << endl;
 #endif
 }
 
-/**
- * @brief Convenience function to restore a stored Frame Buffer object
- *
- * @return void
- */
-
-void lsOpenGL::RestoreFBO()
+void lsOpenGL::RestoreDefaultFramebuffer()
 {
 #ifdef VORTX_DEBUG_RENDER
     cout << "lsOpenGL::RestoreFBO : " << default_FBO << endl;
 #endif
-    glBindFramebuffer( GL_FRAMEBUFFER, default_FBO );
+    glBindFramebuffer( GL_FRAMEBUFFER, m_defaultFBO );
 }
 

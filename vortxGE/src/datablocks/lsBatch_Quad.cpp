@@ -2,9 +2,6 @@
 // debug
 #include "../vortx_debug.h"
 
-// opengl
-#include "../opengl/lsOpenGL.h"
-
 // shader
 #include "../shader/lsShader.h"
 

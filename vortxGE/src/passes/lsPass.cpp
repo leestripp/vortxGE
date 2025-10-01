@@ -3,7 +3,7 @@
 #include "../vortx_debug.h"
 
 // openGL
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // Properties
 #include "../properties/lsProperty_Vector4.h"

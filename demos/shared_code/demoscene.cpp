@@ -165,7 +165,7 @@ bool DemoScene::Init()
 	}
 	
 	// Check GL errors
-	m_vortxge->getOpenGL()->CheckGLErrors( "DemoScene::Init() END" );
+	m_vortxge->getOpenGL()->CheckErrors( "DemoScene::Init() END" );
 	
 	return true;
 }

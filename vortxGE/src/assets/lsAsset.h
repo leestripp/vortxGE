@@ -7,7 +7,7 @@
 #include "../vortx_debug.h"
 
 // opengl
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 
 // types
 const int LSAT_NONE                 = 0;

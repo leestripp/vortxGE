@@ -1,7 +1,8 @@
 #pragma once
 
 #include "lsBatch.h"
-#include "../opengl/lsOpenGL.h"
+
+#include "../render/lsOpenGL.h"
 
 // mmath
 #include "../math/lsVector2.h"

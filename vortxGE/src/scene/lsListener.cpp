@@ -1,7 +1,7 @@
 #include "lsListener.h"
 
 #include "lsScene.h"
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
 #include "../math/lsMatrix4x4.h"
 
 lsListener::lsListener(lsNode* parent) : lsAnimNode(parent)

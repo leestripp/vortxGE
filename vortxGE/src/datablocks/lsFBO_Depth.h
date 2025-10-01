@@ -1,7 +1,8 @@
 #ifndef LSFBO_DEPTH_H
 #define LSFBO_DEPTH_H
 
-#include "../opengl/lsOpenGL.h"
+#include "../render/lsOpenGL.h"
+
 #include "lsFBO.h"
 
 class lsFBO_Depth : public lsFBO

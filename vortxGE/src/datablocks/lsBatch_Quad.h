@@ -1,9 +1,6 @@
 #ifndef vortxGE_lsBatch_Quad_h
 #define vortxGE_lsBatch_Quad_h
 
-// OpenGL
-#include "../opengl/lsOpenGL.h"
-
 // math
 #include "../math/lsVector2.h"
 #include "../math/lsVector3.h"

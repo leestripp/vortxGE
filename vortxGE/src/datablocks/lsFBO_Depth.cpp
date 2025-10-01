@@ -1,6 +1,5 @@
 #include <iostream>
 #include "../vortx_debug.h"
-#include "../opengl/lsOpenGL.h"
 #include "lsFBO_Depth.h"
 
 lsFBO_Depth::lsFBO_Depth( double width, double height, lsOpenGL *opengl ) : lsFBO(opengl)
@@ -22,7 +21,7 @@ lsFBO_Depth::lsFBO_Depth( double width, double height, lsOpenGL *opengl ) : lsFB
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	opengl->StoreFBO();
+	opengl->StoreDefaultFramebuffer();
 
 	glGenFramebuffers( 1, &m_fbo );
 	glBindFramebuffer( GL_FRAMEBUFFER, m_fbo );
@@ -39,7 +38,7 @@ lsFBO_Depth::lsFBO_Depth( double width, double height, lsOpenGL *opengl ) : lsFB
 	  cout << "ERROR: Depth FBO creation failed *********************" << endl;
 	}
 
-	opengl->RestoreFBO();
+	opengl->RestoreDefaultFramebuffer();
 }
 
 lsFBO_Depth::~lsFBO_Depth()
