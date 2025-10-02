@@ -7,7 +7,7 @@ class vortxGE;
 class lsSceneManager;
 class lsPassManager;
 class lsAssetManager;
-class lsOpenGL;
+class lsRender;
 
 //! Final output
 /*!
@@ -20,7 +20,7 @@ class lsOpenGL;
 class lsViewer : public lsControl
 {
 public:
-    lsViewer( lsOpenGL *opengl, lsControl* p );
+    lsViewer( lsRender *render, lsControl* p );
     virtual ~lsViewer();
 
     int Init();

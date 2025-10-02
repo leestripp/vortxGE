@@ -5,7 +5,8 @@
 #include <cstdint>
 #include <string>
 
-// openGL
+// Render
+#include "../render/lsRender.h"
 #include "../render/lsOpenGL.h"
 
 // Math
@@ -37,7 +38,7 @@ using namespace std;
 class lsBatch : public lsData
 {
 public:
-    lsBatch( lsOpenGL *opengl );
+    lsBatch( lsRender *render );
     virtual ~lsBatch();
 
     virtual void Draw( lsCamera *cam, lsObject *object, lsPass *pass ) = 0;
@@ -101,8 +102,8 @@ public:
         shader = val;
     }
 	
-    lsOpenGL *getOgl() const;
-    void setOgl(lsOpenGL *value);
+    lsRender *getOgl() const;
+    void setOgl(lsRender *value);
 	
     int getVertex_count() const;
     void setVertex_count(int value);
@@ -111,8 +112,8 @@ private:
     lsBatch     *next_batch;
     lsBatch     *prev_batch;
 
-    // opengl functions
-    lsOpenGL *ogl;
+    // render functions
+    lsRender *m_render;
 
     int         batch_type;
     string      name;

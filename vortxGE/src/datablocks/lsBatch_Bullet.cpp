@@ -11,7 +11,7 @@
 #include "lsBatch_Bullet.h"
 
 
-lsBatch_Bullet::lsBatch_Bullet( lsOpenGL *opengl ) : lsBatch(opengl)
+lsBatch_Bullet::lsBatch_Bullet( lsRender *render ) : lsBatch(render)
 {
   setBatch_type( LSBT_BULLET );
   setName("Bullet Batch");

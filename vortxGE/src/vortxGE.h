@@ -4,7 +4,7 @@
 #include <string>
 
 class lsStats;
-class lsOpenGL;
+class lsRender;
 class lsShaderManager;
 class lsControlManager;
 class lsAssetManager;
@@ -15,13 +15,13 @@ using namespace std;
 //! Graphics Engine Core
 /*!
  * Create an instance of this class in your app.
- * You call Init() once you have a working openGL context.
+ * You call Init() once you have a working render context.
  * Then in a loop, call Update() and Render().
  *
  * Init sets up the following instances.
- * lsOpenGL
- * lsShaderManager  : also passed to lsOpenGL as ref
- * lsStats          : also passed to lsOpenGL
+ * lsRender
+ * lsShaderManager  : also passed to lsRender as ref
+ * lsStats          : also passed to lsRender
  * lsAssetManager   : All lsControls have their own Asset Manager, this one is only used for global assets.
  * lsControlManager : Viewer, Menus, Scene, Gameplay Controls
  *
@@ -29,48 +29,48 @@ using namespace std;
 class vortxGE
 {
 public:
-    vortxGE();
-    virtual ~vortxGE();
+	vortxGE();
+	virtual ~vortxGE();
+	
+	int Init();
+	void Cleanup();
+	void Resize( int x, int y, int width, int height );
+	
+	// Main loop
+	void Update( double delta );
+	void Render();
+	
+	lsControlManager* getControlManager() const
+	{
+		return controlmanager;
+	}
 
-    int Init();
-    void Cleanup();
-    void Resize( int x, int y, int width, int height );
+	lsShaderManager* getShaderManager() const
+	{
+		return shadermanager;
+	}
 
-    // Main loop
-    void Update( double delta );
-    void Render();
-
-    lsControlManager* getControlManager() const
-    {
-        return controlmanager;
-    }
-
-    lsShaderManager* getShaderManager() const
-    {
-        return shadermanager;
-    }
-
-    lsAssetManager* getAssetManager() const
-    {
-        return assetmanager;
-    }
-
-    lsOpenGL* getOpenGL() const
-    {
-        return opengl;
-    }
-    
-    lsOpenAL* getOpenAL() const
-    {
-        return openal;
-    }
-
+	lsAssetManager* getAssetManager() const
+	{
+		return assetmanager;
+	}
+	
+	lsRender* getRender() const
+	{
+		return render;
+	}
+	
+	lsOpenAL* getOpenAL() const
+	{
+		return openal;
+	}
+	
 private:
-    // Managers
-    lsOpenGL            *opengl;
-    lsOpenAL            *openal;
-    lsShaderManager     *shadermanager;
-    lsAssetManager      *assetmanager;
-    lsControlManager    *controlmanager;
-    lsStats             *stats;
+	// Managers
+	lsRender            *render;
+	lsOpenAL            *openal;
+	lsShaderManager     *shadermanager;
+	lsAssetManager      *assetmanager;
+	lsControlManager    *controlmanager;
+	lsStats             *stats;
 };

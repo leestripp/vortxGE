@@ -4,7 +4,8 @@
 #include <map>
 #include <string>
 
-// OpenGL
+// Render
+#include "../render/lsRender.h"
 #include "../render/lsOpenGL.h"
 
 // Shader kings.
@@ -26,11 +27,11 @@ using namespace std;
 class lsShader
 {
 public:
-	lsShader( lsOpenGL *opengl );
+	lsShader( lsRender *render );
 	virtual ~lsShader();
 	
-	// opengl
-	lsOpenGL *ogl;
+	// render
+	lsRender *m_render;
 	
 	void UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch *batch );
 	void Load_Shader( const string& name );
@@ -44,12 +45,6 @@ public:
 	void Setup_Lights( lsCamera *camera, lsObject *object );
 	void Set_Light( int index, lsCamera *camera, lsLight *light, lsObject *object );
 	
-	// Navi ---------------------------
-	lsShader* getNext_shader() const { return next_shader; }
-	void setNext_shader( lsShader* val ) { next_shader = val; }
-	lsShader* getPrev_shader() const { return prev_shader; }
-	void setPrev_shader( lsShader* val ) { prev_shader = val; }
-	
 	// Data ---------------------------
 	const string& getName() { return name; }
 	void setName( const string& val ) { this->name = val; }
@@ -57,9 +52,6 @@ public:
 	GLuint getProgram() const { return shader; }
 	
 private:
-	lsShader *next_shader;
-	lsShader *prev_shader;
-	
 	string name;
 	ShaderKind kind;
 	

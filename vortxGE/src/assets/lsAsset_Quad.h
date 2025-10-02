@@ -15,7 +15,7 @@ class lsBatch_Quad;
 class lsAsset_Quad : public lsAsset
 {
 public:
-    lsAsset_Quad( lsOpenGL *opengl );
+    lsAsset_Quad( lsRender *render );
     virtual ~lsAsset_Quad();
 
     // lsAsset

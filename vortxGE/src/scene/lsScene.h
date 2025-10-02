@@ -18,19 +18,18 @@ using namespace std;
 class lsScene : public lsNode
 {
 public:
-    lsScene( lsOpenGL* ogl, float world_size, int maxProxies );
+    lsScene( lsRender* m_render, float world_size, int maxProxies );
     virtual ~lsScene();
 	
     // from lsNode
-    void Move( lsScene* scn, lsOpenGL* opengl, double delta );
-    void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+    void Move( lsScene* scn, lsRender* render, double delta );
+    void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
     void InitDrawlist();
 	
     // Get the base Scene, every node has this func.
     lsScene *Get_Scene();
     lsEventManager *Get_EventManager();
 	
-    void Del_Node( lsNode* node );
     void ClearScene();
     void Add_DrawObject( lsObject* object );
 	
@@ -99,12 +98,11 @@ private:
     lsLightManager* m_lightManager;
     // Found node
     lsNode* found_node;
-
+	
     // Skybox object
     lsObject* sky_object;
-    
     // Audio Listener
-    lsListener* m_listener; // Scene's audio listener
+    lsListener* m_listener;
 	
     // Threads
     mutex m_mutex;

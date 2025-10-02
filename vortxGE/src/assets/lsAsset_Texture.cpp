@@ -5,7 +5,7 @@
 
 #include "lsAsset_Texture.h"
 
-lsAsset_Texture::lsAsset_Texture( lsOpenGL *opengl ) : lsAsset(opengl)
+lsAsset_Texture::lsAsset_Texture( lsRender *render ) : lsAsset(render)
 {
     setAsset_type( LSAT_TEXTURE );
 }

@@ -1,6 +1,7 @@
 #pragma once
 
-// OpenGL
+// Render
+#include "../render/lsRender.h"
 #include "../render/lsOpenGL.h"
 
 // math
@@ -23,7 +24,7 @@ public:
     virtual ~lsLight();
 
     // from lsCamera
-    virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+    virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
     // shadow map
     void buildShadowmap_matrix();
 	

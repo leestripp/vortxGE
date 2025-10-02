@@ -4,7 +4,8 @@
 #include <iostream>
 #include <string>
 
-// OpenGL
+// Render
+#include "../render/lsRender.h"
 #include "../render/lsOpenGL.h"
 
 #include "lsData.h"
@@ -29,7 +30,7 @@ using namespace std;
 class lsTexture : public lsData
 {
 public:
-    lsTexture( lsOpenGL *opengl );
+    lsTexture( lsRender *render );
     virtual ~lsTexture();
 
     // Modified to handle HDR
@@ -76,8 +77,8 @@ public:
         this->height = val;
     }
 
-    lsOpenGL *getOgl() const;
-    void setOgl(lsOpenGL *value);
+    lsRender *getOgl() const;
+    void setOgl(lsRender *value);
 
     // Add a method to get raw float data for HDR processing if needed elsewhere
     float* getFloatImageData() const { return float_image_data; }
@@ -94,6 +95,6 @@ private:
 
     float* float_image_data; // To store HDR float data
     
-    // opengl
-    lsOpenGL *ogl;
+    // render
+    lsRender *m_render;
 };

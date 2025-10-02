@@ -3,7 +3,7 @@
 #include "../vortx_debug.h"
 
 // openGL
-#include "../render/lsOpenGL.h"
+#include "../render/lsRender.h"
 
 // Properties
 #include "../properties/lsProperty_Vector4.h"
@@ -13,12 +13,12 @@
 
 #include "lsPass.h"
 
-lsPass::lsPass( lsOpenGL* opengl )
+lsPass::lsPass( lsRender* render )
 {
     pass_type = LSPT_NONE;
     name = "Pass";
-    // stor opengl
-    ogl = opengl;
+    // stor render
+    m_render = render;
 
     next_pass = NULL;
     prev_pass = NULL;
@@ -62,13 +62,13 @@ void lsPass::Add_Property( lsProperty* p )
     property_list = p;
 }
 
-lsOpenGL *lsPass::getOgl() const
+lsRender *lsPass::getOgl() const
 {
-    return ogl;
+    return m_render;
 }
 
-void lsPass::setOgl(lsOpenGL *value)
+void lsPass::setOgl(lsRender *value)
 {
-    ogl = value;
+    m_render = value;
 }
 

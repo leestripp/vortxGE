@@ -3,6 +3,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <memory>
 
 // math
 #include "../math/lsMatrix4x4.h"
@@ -39,7 +40,7 @@ class lsScene;
 class lsCamera;
 class lsLight;
 class lsPass;
-class lsOpenGL;
+class lsRender;
 class lsEventManager;
 
 using namespace std;
@@ -52,125 +53,100 @@ using namespace std;
 class lsNode
 {
 public:
-    lsNode( lsNode* parent );
-    virtual ~lsNode();
+	lsNode( lsNode* parent );
+	virtual ~lsNode();
 	
-    // Override functions
-    virtual void Move( lsScene* scn, lsOpenGL* opengl, double delta );
-    virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
-    virtual void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
-    virtual void InitDrawlist();
-    // Threads
-    void MoveThread( lsScene* scn, lsOpenGL* opengl, double delta );
-    void OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+	// Override functions
+	virtual void Move( lsScene* scn, lsRender* render, double delta );
+	virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	virtual void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	virtual void InitDrawlist();
+	// Threads
+	void MoveThread( lsScene* scn, lsRender* render, double delta );
+	void OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
 	
-    // Scene
-    virtual lsScene *Get_Scene();
-    virtual lsEventManager *Get_EventManager();
+	// Scene
+	virtual lsScene *Get_Scene();
+	virtual lsEventManager *Get_EventManager();
 
-    // Life
-    void checkLife( lsScene *scn );
-    void Set_Life( double val );
+	// Life
+	void checkLife( lsScene *scn );
+	void Set_Life( double val );
 	
-    // Node tree
-    void Add_Node( lsNode *node );
-    void Find_Node( lsScene* scn, const string& name );
-    void Del_AllChildren();
-    void Del_AllNodes();
+	// Node tree
+	void Add_Node( lsNode *node );
+	void Del_Node( lsNode *node );
+	void Find_Node( lsScene* scn, const string& name );
+	void Del_Children();
 	
-    // Transforms
-    virtual void Set_Pos(float x, float y, float z);
-    virtual void Set_Rot(float x, float y, float z);
-    virtual void Set_Scale(float x, float y, float z);
+	// Transforms
+	virtual void Set_Pos(float x, float y, float z);
+	virtual void Set_Rot(float x, float y, float z);
+	virtual void Set_Scale(float x, float y, float z);
 	
-    // Save data
-    void Save();
-    virtual const string& toString() = 0;
-    string save_str;
+	// Save data
+	void Save();
+	virtual const string& toString() = 0;
+	string save_str;
 	
-    // Navi --------------------------
+	// Navi --------------------------
 
-    lsNode* getNext_node() const
-    {
-        return next_node;
+	lsNode* getParent() const
+	{
+		return parent;
+	}
+
+	void setParent( lsNode* val )
+	{
+		parent = val;
+	}
+	
+    // Access to children
+    const vector<unique_ptr<lsNode>>& getChildren() const {
+        return m_children;
+    }
+    vector<unique_ptr<lsNode>>& getChildren() { // Non-const version for modification
+        return m_children;
     }
 
-    void setNext_node( lsNode* val )
-    {
-        next_node = val;
-    }
-
-    lsNode* getPrev_node() const
-    {
-        return prev_node;
-    }
-
-    void setPrev_node( lsNode* val )
-    {
-        prev_node = val;
-    }
-
-    lsNode* getParent() const
-    {
-        return parent;
-    }
-
-    void setParent( lsNode* val )
-    {
-        parent = val;
-    }
-
-    lsNode* getNode_list() const
-    {
-        return node_list;
-    }
-
-    void setNode_list( lsNode* val )
-    {
-        node_list = val;
-    }
-
-    // Data --------------------------
-
-    const string& getName()
-    {
-        return name;
-    }
-
-    void setName( const string& val )
-    {
-        name = val;
-    }
-
-    int getNode_type() const
-    {
-        return node_type;
-    }
-
-    void setNode_type( int val )
-    {
-        node_type = val;
-    }
-
-    // Public Data *****************************************************************
-    lsMatrix4x4 ModelMatrix;
-    lsVector3 position;
-    lsVector3 rotation;
-    lsVector3 scale;
-
+	// Data --------------------------
+	
+	const string& getName()
+	{
+		return name;
+	}
+	
+	void setName( const string& val )
+	{
+		name = val;
+	}
+	
+	int getNode_type() const
+	{
+		return node_type;
+	}
+	
+	void setNode_type( int val )
+	{
+		node_type = val;
+	}
+	
+	// Public Data *****************************************************************
+	lsMatrix4x4 ModelMatrix;
+	lsVector3 position;
+	lsVector3 rotation;
+	lsVector3 scale;
+	
 private:
-    lsNode  *next_node;
-    lsNode  *prev_node;
-    lsNode  *parent;
-    lsNode  *node_list;
-
-    // must be set.
-    string name;
-    int node_type;
-
-    // Life
-    lsTimer timer_life;
-    double life;
-
+	lsNode  *parent;
+	// Children : managed
+	vector<unique_ptr<lsNode>> m_children;
+	
+	// must be set.
+	string name;
+	int node_type;
+	
+	// Life
+	lsTimer timer_life;
+	double life;
 };
-

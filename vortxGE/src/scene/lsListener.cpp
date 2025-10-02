@@ -1,7 +1,7 @@
 #include "lsListener.h"
 
 #include "lsScene.h"
-#include "../render/lsOpenGL.h"
+#include "../render/lsRender.h"
 #include "../math/lsMatrix4x4.h"
 
 lsListener::lsListener(lsNode* parent) : lsAnimNode(parent)
@@ -19,10 +19,10 @@ lsListener::~lsListener()
 {
 }
 
-void lsListener::Move(lsScene* scn, lsOpenGL* opengl, double delta)
+void lsListener::Move(lsScene* scn, lsRender* render, double delta)
 {
     // First, call the base class Move to update the ModelMatrix
-    lsAnimNode::Move(scn, opengl, delta);
+    lsAnimNode::Move(scn, render, delta);
 
     // Now, update the OpenAL listener position and orientation based on the ModelMatrix
     

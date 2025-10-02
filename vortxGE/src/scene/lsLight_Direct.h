@@ -11,7 +11,7 @@ public:
     virtual ~lsLight_Direct();
     
 	// from lsNode
-	virtual void Move( lsScene* scn, lsOpenGL* opengl, double delta );
+	virtual void Move( lsScene* scn, lsRender* render, double delta );
 	
     // Save data
     const string& toString() override;

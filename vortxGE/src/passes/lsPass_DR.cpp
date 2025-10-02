@@ -1,6 +1,7 @@
 #include "../vortx_debug.h"
 
-// OpenGL
+// Render
+#include "../render/lsRender.h"
 #include "../render/lsOpenGL.h"
 
 // datablocks
@@ -12,7 +13,7 @@
 
 #include "lsPass_DR.h"
 
-lsPass_DR::lsPass_DR( lsOpenGL* opengl ) : lsPass(opengl)
+lsPass_DR::lsPass_DR( lsRender* render ) : lsPass(render)
 {
     setPass_type( LSPT_DIRECTRENDER );
     setName("Pass : Direct Render");

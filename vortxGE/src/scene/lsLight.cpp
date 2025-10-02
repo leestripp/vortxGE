@@ -60,7 +60,7 @@ lsLight::~lsLight()
 }
 
 
-void lsLight::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl )
+void lsLight::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
 {
     // If this light casts shadows, its shadow matrix needs to be calculated.
     // This should happen after its transform has been updated in the Move pass,

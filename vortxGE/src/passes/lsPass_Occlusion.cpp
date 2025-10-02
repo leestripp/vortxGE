@@ -3,7 +3,7 @@
 #include "../vortx_debug.h"
 
 // OpenGL
-#include "../render/lsOpenGL.h"
+#include "../render/lsRender.h"
 
 // datablocks
 #include "../datablocks/lsFBO_ColourDepth_8.h"
@@ -17,13 +17,13 @@
 #include "lsPass_Occlusion.h"
 
 
-lsPass_Occlusion::lsPass_Occlusion( int x, int y, int width, int height, lsOpenGL *opengl ) : lsPass(opengl)
+lsPass_Occlusion::lsPass_Occlusion( int x, int y, int width, int height, lsRender *render ) : lsPass(render)
 {
 	setPass_type( LSPT_OCCLUSION );
 	setName( "Occlusion Pass" );
 
 	// render to fbo
-	fbo = new lsFBO_ColourDepth_8( width, height, opengl );
+	fbo = new lsFBO_ColourDepth_8( width, height, render );
 	if(! fbo  )
 	{
 		cout << "lsPass_Occlusion::lsPass_Occlusion: ERROR - could not create lsFBO instance" << endl;

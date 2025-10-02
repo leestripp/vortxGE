@@ -13,7 +13,7 @@
 class lsAsset_Texture : public lsAsset
 {
 public:
-    lsAsset_Texture( lsOpenGL *opengl );
+    lsAsset_Texture( lsRender *render );
     virtual ~lsAsset_Texture();
 
     // lsAsset

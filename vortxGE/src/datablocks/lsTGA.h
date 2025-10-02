@@ -10,7 +10,8 @@
 #include <assert.h>
 #include <memory.h>
 
-// OpenGL
+// Render
+#include "../render/lsRender.h"
 #include "../render/lsOpenGL.h"
 
 #pragma pack(push,1)

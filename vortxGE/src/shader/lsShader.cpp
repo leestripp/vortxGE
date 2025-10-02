@@ -30,13 +30,10 @@
 #include "lsShader.h"
 
 
-lsShader::lsShader( lsOpenGL *opengl )
+lsShader::lsShader( lsRender *render )
 {
-    ogl = opengl;
-
-    next_shader = NULL;
-    prev_shader = NULL;
-
+    m_render = render;
+	
     name = "Not set";
     kind = ShaderKind::None; // Initialize to None
 
@@ -56,8 +53,9 @@ lsShader::lsShader( lsOpenGL *opengl )
     iTex_albedo = -1;
     iTex_roughness_metallic = -1;
     iTex_normal = -1;
-
-    for(int i = 0; i < 3; ++i) {
+	
+    for(int i = 0; i < 3; ++i)
+    {
         isMatrices[i] = -1;
         iTex_shadowmaps[i] = -1;
         iUse_shadowmap[i] = -1;
@@ -83,7 +81,7 @@ lsShader::~lsShader()
     glDetachShader( shader, shader_f );
     glDeleteShader( shader_v );
     glDeleteShader( shader_f );
-
+	
     glDeleteProgram( shader );
 }
 

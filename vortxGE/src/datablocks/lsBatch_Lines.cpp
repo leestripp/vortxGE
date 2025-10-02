@@ -3,8 +3,8 @@
 
 #include "../vortx_debug.h"
 
-// opengl
-#include "../render/lsOpenGL.h"
+// render
+#include "../render/lsRender.h"
 
 // shader
 #include "../shader/lsShader.h"
@@ -15,7 +15,7 @@
 #include "lsBatch_Lines.h"
 
 
-lsBatch_Lines::lsBatch_Lines( lsOpenGL *opengl ) : lsBatch(opengl)
+lsBatch_Lines::lsBatch_Lines( lsRender *render ) : lsBatch(render)
 {
     setBatch_type( LSBT_LINE );
     setName("Batch Lines");

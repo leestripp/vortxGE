@@ -10,7 +10,7 @@
 
 #include "lsAsset_MeshGuide_Grid.h"
 
-lsAsset_MeshGuide_Grid::lsAsset_MeshGuide_Grid( lsOpenGL *opengl ) : lsAsset(opengl)
+lsAsset_MeshGuide_Grid::lsAsset_MeshGuide_Grid( lsRender *render ) : lsAsset(render)
 {
     setAsset_type( LSAT_MESHGUIDE_GRID );
 }

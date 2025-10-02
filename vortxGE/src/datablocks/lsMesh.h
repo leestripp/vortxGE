@@ -12,7 +12,7 @@ class lsBatch;
 class lsObject;
 class lsCamera;
 class lsPass;
-class lsOpenGL;
+class lsRender;
 class lsAssetManager;
 class lsShaderManager;
 
@@ -28,7 +28,7 @@ using namespace std;
 class lsMesh : public lsData
 {
 public:
-	lsMesh( lsOpenGL *opengl );
+	lsMesh( lsRender *render );
 	virtual ~lsMesh();
 
 	void Draw( lsCamera *cam, lsPass *pass, lsObject *object );
@@ -48,15 +48,15 @@ public:
 		return batch_list;
 	}
 
-	lsOpenGL *getOgl() const;
-	void setOgl(lsOpenGL *value);
+	lsRender *getOgl() const;
+	void setOgl(lsRender *value);
 
 private:
 	lsBatch* batch_list;
 
 	// Overall around all batches : Needs implementing
 	lsBoundingSphere bSphere;
-	// opengl
-	lsOpenGL *ogl;
+	// render
+	lsRender *m_render;
 
 };

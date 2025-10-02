@@ -17,7 +17,7 @@ class lsShaderManager;
 class lsAsset_MeshGuide_Empty : public lsAsset
 {
 public:
-    lsAsset_MeshGuide_Empty( lsOpenGL *opengl );
+    lsAsset_MeshGuide_Empty( lsRender *render );
     virtual ~lsAsset_MeshGuide_Empty();
     
     // lsAsset

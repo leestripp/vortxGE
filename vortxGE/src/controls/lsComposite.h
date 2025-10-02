@@ -6,7 +6,7 @@
 class lsSceneManager;
 class lsPassManager;
 class lsAssetManager;
-class lsOpenGL;
+class lsRender;
 
 //! Layered renders
 /**
@@ -19,7 +19,7 @@ class lsOpenGL;
 class lsComposite : public lsControl
 {
 public:
-    lsComposite( lsOpenGL *opengl, lsControl* p );
+    lsComposite( lsRender *render, lsControl* p );
     virtual ~lsComposite();
 
     int Init();

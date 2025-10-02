@@ -34,7 +34,7 @@ GLubyte indices[] = {
 
 // code ***********************************
 
-lsBatch_Quad::lsBatch_Quad( lsOpenGL *opengl ) : lsBatch(opengl)
+lsBatch_Quad::lsBatch_Quad( lsRender *render ) : lsBatch(render)
 {
 	setBatch_type( LSBT_QUAD );
 	setName( "Batch Quad" );

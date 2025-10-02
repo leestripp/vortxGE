@@ -1,7 +1,7 @@
 #ifndef LSFBO_COLOURDEPTH_8_H
 #define LSFBO_COLOURDEPTH_8_H
 
-#include "../render/lsOpenGL.h"
+#include "../render/lsRender.h"
 
 #include "lsFBO.h"
 
@@ -14,7 +14,7 @@
 class lsFBO_ColourDepth_8 : public lsFBO
 {
 public:
-	lsFBO_ColourDepth_8( double width, double height, lsOpenGL *opengl );
+	lsFBO_ColourDepth_8( double width, double height, lsRender *render );
 	virtual ~lsFBO_ColourDepth_8();
 
     // Form lsFBO

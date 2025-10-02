@@ -11,7 +11,7 @@
 /*! Mesh Asset
  * Asset Manager sould creat this instance.
  * */
-lsAsset_Mesh::lsAsset_Mesh( lsOpenGL *opengl ) : lsAsset(opengl)
+lsAsset_Mesh::lsAsset_Mesh( lsRender *render ) : lsAsset(render)
 {
 	setAsset_type( LSAT_MESH );
 	setAsset_name( "Mesh" );
@@ -30,9 +30,9 @@ void lsAsset_Mesh::AllocAsset()
 #ifdef VORTX_DEBUG_ASSETS
 	cout << "lsAsset_Mesh::AllocAsset() for file: " << filename << endl;
 #endif
-
+	
 	lsMesh *mesh;
-
+	
 	// Clear old data
 	if( getData() )
 	{
@@ -40,7 +40,7 @@ void lsAsset_Mesh::AllocAsset()
 		setData( NULL );
 	}
 	if(! getOpenGL() ) return;
-
+	
 	mesh = new lsMesh( getOpenGL() );
 	if( mesh )
 	{
@@ -50,24 +50,22 @@ void lsAsset_Mesh::AllocAsset()
 		if (pos != std::string::npos) {
 			ext = filename.substr(pos + 1);
 		}
-
-		std::cout << "DEBUG: Loading mesh '" << filename << "' with extension '" << ext << "'" << std::endl;
-
+		
+		std::cout << "INFO: Loading mesh '" << filename << "' with extension '" << ext << "'" << std::endl;
+		
 		if (ext == "vbm")
 		{
 			mesh->LoadVBM( filename, getAssetManager(), getOpenGL()->getShaderManager() );
-		}
-		else if (ext == "gltf" || ext == "glb")
+		} else if (ext == "gltf" || ext == "glb")
 		{
 			mesh->LoadGLTF( filename, getAssetManager(), getOpenGL()->getShaderManager() );
-		}
-		else
+		} else
 		{
 			cout << "ERROR: lsAsset_Mesh::AllocAsset() - Unsupported mesh format: " << ext << endl;
 			delete mesh;
 			return;
 		}
-
+		
 		setData( mesh );
 		// memory used
 		getOpenGL()->getStats()->addUsed_mem( mesh->getMem_used() );

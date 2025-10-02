@@ -3,7 +3,7 @@
 #include "../vortx_debug.h"
 
 // OpenGL
-#include "../render/lsOpenGL.h"
+#include "../render/lsRender.h"
 
 // filesystem
 #include "../filesystem/lsFileIO.h"
@@ -89,9 +89,9 @@ namespace {
 } // anonymous namespace
 
 
-lsMesh::lsMesh( lsOpenGL *opengl ) : lsData()
+lsMesh::lsMesh( lsRender *render ) : lsData()
 {
-	ogl = opengl;
+	m_render = render;
 	batch_list = nullptr;
 }
 
@@ -117,14 +117,14 @@ void lsMesh::Add_Batch( lsBatch *batch )
 	batch_list = batch;
 }
 
-lsOpenGL *lsMesh::getOgl() const
+lsRender *lsMesh::getOgl() const
 {
-	return ogl;
+	return m_render;
 }
 
-void lsMesh::setOgl(lsOpenGL *value)
+void lsMesh::setOgl(lsRender *value)
 {
-	ogl = value;
+	m_render = value;
 }
 
 void lsMesh::Update_Animation()

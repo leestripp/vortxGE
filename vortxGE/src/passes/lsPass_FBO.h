@@ -11,7 +11,7 @@ class lsFBO;
 class lsPass_FBO : public lsPass
 {
 public:
-    lsPass_FBO( lsOpenGL* opengl );
+    lsPass_FBO( lsRender* render );
     virtual ~lsPass_FBO();
 
     void Update();

@@ -1,9 +1,10 @@
+
 #pragma once
 
 #include "lsObject.h"
 
-#include <algorithm> // For std::clamp
-#include <LinearMath/btVector3.h> // For btVector3
+#include <algorithm>
+#include <LinearMath/btVector3.h>
 
 // Forward declarations
 class lsCamera;
@@ -16,26 +17,27 @@ class lsNode_FirstPersonRig : public lsObject
 public:
 	lsNode_FirstPersonRig(lsNode* parent);
 	virtual ~lsNode_FirstPersonRig();
-
-	void Move(lsScene* scn, lsOpenGL* opengl, double delta) override;
-	void Optimize(lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl) override;
+	
+	void Move(lsScene* scn, lsRender* render, double delta) override;
+	void Optimize(lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render) override;
 	const string& toString() override;
-
+	
 	void handleInput(bool forward, bool backward, bool left, bool right, bool jump, bool sprint, bool crouch);
 	void handleMouseLook(float deltaYaw, float deltaPitch);
-
+	
 	lsCamera* getCamera() const { return m_camera; }
-
+    lsListener* getListener() const { return m_listener; }
+	
 private:
 	bool onGround();
 	void updateCapsuleShape();
 
 	lsCamera* m_camera;
+	lsListener* m_listener; // Audio listener attached to the rig
 	lsBulletObject* m_bulletObject;
 	lsAsset_BulletShape_Pill* m_standShapeAsset;
 	lsAsset_BulletShape_Pill* m_crouchShapeAsset;
-	lsListener* m_listener; // Audio listener attached to the rig
-
+	
 	float m_yaw = 0.0f;
 	float m_pitch = 0.0f;
 	

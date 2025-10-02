@@ -7,7 +7,7 @@
 /**
   Store and display live game information.
   \n
- Created in vortxGE class, linked in lsOpenGL class for easy access.
+ Created in vortxGE class, linked in lsRender class for easy access.
 
 */
 class lsStats

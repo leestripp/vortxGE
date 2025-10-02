@@ -12,7 +12,7 @@
 class lsScene;
 class lsCamera;
 class lsLight;
-class lsOpenGL;
+class lsRender;
 class lsProperty;
 
 const int LSPT_NONE             = 0;
@@ -30,7 +30,7 @@ using namespace std;
 class lsPass
 {
 public:
-    lsPass( lsOpenGL* opengl );
+    lsPass( lsRender* render );
     virtual ~lsPass();
 
     virtual void Update() = 0;
@@ -185,15 +185,15 @@ public:
         save_string = val;
     }
 
-    lsOpenGL *getOgl() const;
-    void setOgl(lsOpenGL *value);
+    lsRender *getOgl() const;
+    void setOgl(lsRender *value);
 
 private:
     lsPass  *next_pass;
     lsPass  *prev_pass;
 
-    // opengl
-    lsOpenGL *ogl;
+    // render
+    lsRender *m_render;
 
     string name;
     int pass_type;

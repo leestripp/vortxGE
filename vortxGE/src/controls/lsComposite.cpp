@@ -16,7 +16,7 @@
  * \brief lsComposite::lsComposite
  * \param p
  */
-lsComposite::lsComposite( lsOpenGL *opengl, lsControl* p ) : lsControl(opengl,p)
+lsComposite::lsComposite( lsRender *render, lsControl* p ) : lsControl(render,p)
 {
     setControl_type( LSCT_COMPOSITE );
     setName("Composite");
@@ -45,7 +45,7 @@ lsComposite::~lsComposite()
  * lsPassManager\n
  * \n
  *
- * \param opengl - link to the lsOpenGL instance created in vortxGE
+ * \param render - link to the lsRender instance created in vortxGE
  * \return - error code: not implemented yet.
  */
 int lsComposite::Init()

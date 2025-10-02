@@ -8,13 +8,13 @@
 
 #include "lsBatch.h"
 
-class lsOpenGL;
+class lsRender;
 
 
 class lsBatch_Lines : public lsBatch
 {
 public:
-    lsBatch_Lines( lsOpenGL *opengl );
+    lsBatch_Lines( lsRender *render );
     virtual ~lsBatch_Lines();
 
     void Draw( lsCamera *cam, lsObject *object, lsPass *pass );

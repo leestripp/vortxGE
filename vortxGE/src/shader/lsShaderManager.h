@@ -8,7 +8,7 @@
 #include "lsShaderKinds.h"
 
 class lsShader;
-class lsOpenGL;
+class lsRender;
 
 using namespace std;
 
@@ -20,25 +20,25 @@ using namespace std;
 class lsShaderManager
 {
 public:
-    lsShaderManager( lsOpenGL *opengl );
+    lsShaderManager( lsRender *render );
     virtual ~lsShaderManager();
-    // opengl
-    lsOpenGL *ogl;
-
+    
     void Init();
     void Add_Shader( lsShader* shader );
     void Del_Shader( lsShader* shader );
-
+	
     lsShader* Find_Shader( const string& name );
-
-    lsShader* getShaderList() const { return shader_list; }
-
+    lsShader* getShaderList() const { return nullptr; } // Not used anymore
+	
     // New method to map shader names to kinds
     ShaderKind getShaderKindByName(const string& name) const;
-
+	
 private:
-    lsShader *shader_list;
-    
+    // Changed from linked list to map for fast lookup
+    std::map<std::string, lsShader*> shader_map;
     // Map to store shader name -> kind mapping
     std::map<std::string, ShaderKind> shaderNameToKindMap;
+    
+    // render
+    lsRender *m_render;
 };

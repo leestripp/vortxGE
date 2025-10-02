@@ -1,4 +1,4 @@
-#include "../render/lsOpenGL.h"
+#include "../render/lsRender.h"
 
 // datablocks
 #include "../datablocks/lsBatch_Quad.h"
@@ -10,7 +10,7 @@
 
 #include "lsAsset_Quad.h"
 
-lsAsset_Quad::lsAsset_Quad( lsOpenGL *opengl ) : lsAsset(opengl)
+lsAsset_Quad::lsAsset_Quad( lsRender *render ) : lsAsset(render)
 {
     setAsset_type( LSAT_QUAD );
     setAsset_name( "Quad Mesh" );

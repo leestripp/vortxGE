@@ -49,7 +49,7 @@ lsObjectEmitter::~lsObjectEmitter()
 {
 }
 
-void lsObjectEmitter::EmitObject( lsScene *scn, lsOpenGL *opengl )
+void lsObjectEmitter::EmitObject( lsScene *scn, lsRender *render )
 {
     lsObject *object;
     lsBulletObject *bulletobject;
@@ -94,7 +94,7 @@ void lsObjectEmitter::EmitObject( lsScene *scn, lsOpenGL *opengl )
 
             default:
                 cout << "Warning: Wrong Asset attached as bullet shape to : " << getName() << ", adding default sphere shape" << endl;
-				bulletshape = new lsBulletShape( opengl );
+				bulletshape = new lsBulletShape( render );
 				bulletshape->Make_Sphere( 1.0 );
                 break;
             }
@@ -143,7 +143,7 @@ void lsObjectEmitter::EmitObject( lsScene *scn, lsOpenGL *opengl )
 }
 
 
-void lsObjectEmitter::Move( lsScene *scn, lsOpenGL *opengl, double delta )
+void lsObjectEmitter::Move( lsScene *scn, lsRender *render, double delta )
 {
     // apply animation
     if( getAnimationManager() ) getAnimationManager()->UpdateAll( delta );
@@ -167,7 +167,7 @@ void lsObjectEmitter::Move( lsScene *scn, lsOpenGL *opengl, double delta )
     ModelMatrix = ModelMatrix * transmat * rotmat * scalemat;
 	
     // Emit Object
-    EmitObject( scn, opengl );
+    EmitObject( scn, render );
     // Life
     checkLife( scn );
 }

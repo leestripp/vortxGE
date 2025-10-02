@@ -10,9 +10,9 @@
 // tinygltf includes stb_image, ensure it's implemented.
 #include "tinygltf/stb_image.h" // Only include the header.
 
-lsTexture::lsTexture( lsOpenGL *opengl ) : lsData()
+lsTexture::lsTexture( lsRender *render ) : lsData()
 {
-    ogl = opengl;
+    m_render = render;
     texture = 0;
     float_image_data = NULL; // Initialize new member
 }
@@ -213,12 +213,12 @@ int lsTexture::Get_ImageType( const string& filename )
     return result;
 }
 
-lsOpenGL *lsTexture::getOgl() const
+lsRender *lsTexture::getOgl() const
 {
-    return ogl;
+    return m_render;
 }
 
-void lsTexture::setOgl(lsOpenGL *value)
+void lsTexture::setOgl(lsRender *value)
 {
-    ogl = value;
+    m_render = value;
 }

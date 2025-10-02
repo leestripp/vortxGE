@@ -3,8 +3,8 @@
 
 #include "../vortx_debug.h"
 
-// OpenGL
-#include "../render/lsOpenGL.h"
+// Render
+#include "../render/lsRender.h"
 
 // Events
 #include "../events/lsEventManager.h"
@@ -16,56 +16,52 @@
 
 lsNode::lsNode( lsNode* parent )
 {
-    name = "Node";
-    node_type = LSNT_NODE;
-
-    next_node = NULL;
-    prev_node = NULL;
-    this->parent = parent;
-    node_list = NULL;
-
-    // defaults
-    ModelMatrix.LoadIdentity();
-    Set_Pos( 0, 0, 0 );
-    Set_Rot( 0, 0, 0 );
-    Set_Scale( 1.0, 1.0, 1.0 );
-
-    // Life
-    life = 0.0;
-    timer_life.start_Timer();
-
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::lsNode() - Name: " << getName() << "  *******************" << endl;
+	cout << "lsNode::lsNode() START - Name: " << getName() << endl;
 #endif
+	
+	name = "Node";
+	node_type = LSNT_NODE;
+
+	this->parent = parent;
+
+	// defaults
+	ModelMatrix.LoadIdentity();
+	Set_Pos( 0, 0, 0 );
+	Set_Rot( 0, 0, 0 );
+	Set_Scale( 1.0, 1.0, 1.0 );
+
+	// Life
+	life = 0.0;
+	timer_life.start_Timer();
 }
 
 lsNode::~lsNode()
 {
 #ifdef VORTX_DEBUG_NODES
-    // debug
-    cout << "lsNode::~lsNode()" << endl;
+	cout << "lsNode::~lsNode() - Name: " << getName() << endl;
 #endif
-    // Nodes never self deletes
+	// Nodes never self deletes
 }
 
-void lsNode::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl, __attribute__((unused)) double delta )
+void lsNode::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render, __attribute__((unused)) double delta )
 {
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::Move()" << endl;
+	cout << "lsNode::Move()" << endl;
 #endif
 	
-    // Set transform
-    lsMatrix4x4 transmat;
-    lsMatrix4x4 rotmat;
-    lsMatrix4x4 scalemat;
+	// Set transform
+	lsMatrix4x4 transmat;
+	lsMatrix4x4 rotmat;
+	lsMatrix4x4 scalemat;
 	
-    transmat.TranslateMatrix( position.x, position.y, position.z );
-    rotmat.RotateMatrix( rotation.x, 1, 0, 0 );
-    rotmat.RotateMatrix( rotation.y, 0, 1, 0 );
-    rotmat.RotateMatrix( rotation.z, 0, 0, 1 );
-    scalemat.ScaleMatrix( scale.x, scale.y, scale.z );
+	transmat.TranslateMatrix( position.x, position.y, position.z );
+	rotmat.RotateMatrix( rotation.x, 1, 0, 0 );
+	rotmat.RotateMatrix( rotation.y, 0, 1, 0 );
+	rotmat.RotateMatrix( rotation.z, 0, 0, 1 );
+	scalemat.ScaleMatrix( scale.x, scale.y, scale.z );
 	
-    if( parent )
+	if( parent )
 	{
 		ModelMatrix = parent->ModelMatrix;
 	} else
@@ -76,12 +72,12 @@ void lsNode::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused))
 	ModelMatrix = ModelMatrix * transmat * rotmat * scalemat;
 	
 #ifdef VORTX_DEBUG_NODES
-    // debug
-    ModelMatrix.debug( "lsNode ModelMatrix: " + getName() );
+	// debug
+	ModelMatrix.debug( "lsNode ModelMatrix: " + getName() );
 #endif
 	
-    // time to die
-    // checkLife( scn );
+	// time to die
+	// checkLife( scn );
 }
 
 /*!
@@ -91,54 +87,51 @@ void lsNode::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused))
  * Thread count can be set in the base lsScene, if not set then the system default is used.\n
  *
  * \param scn
- * \param opengl
+ * \param render
  * \param delta
  */
-void lsNode::MoveThread( lsScene* scn, lsOpenGL* opengl, double delta )
+void lsNode::MoveThread( lsScene* scn, lsRender* render, double delta )
 {
 #ifdef VORTX_DEBUG_NODETHREADS
-    cout << "lsNode::MoveThred()" << endl;
+	cout << "lsNode::MoveThred()" << endl;
 #endif
 	
-    vector<thread> th;
-    lsNode *ptr;
-    int threads = 1;
-    int tc = 0;
+	vector<thread> th;
+	int threads = 1;
+	int tc = 0;
 	
-    // Threads
-    threads = thread::hardware_concurrency();
+	// Threads
+	threads = thread::hardware_concurrency();
 	
 #ifdef VORTX_DEBUG_NODETHREADS
-    cout << "lsNode::MoveThread - Thread count : " << threads << endl;
+	cout << "lsNode::MoveThread - Thread count : " << threads << endl;
 #endif
 	
-    // cycle through children nodes.
-    // Parents Matrix has been set.
-    ptr = getNode_list();
-    while( ptr )
-    {
-        // Add thread
-        th.push_back( thread( &lsNode::Move, ptr, scn, opengl, delta ) );
-        tc++;
+	// cycle through children nodes.
+	// Parents Matrix has been set.
+	for (auto& child : m_children)
+	{
+		// Add thread
+		th.push_back( thread( &lsNode::Move, child.get(), scn, render, delta ) );
+		tc++;
 
-        // check our thread count
-        if(( tc >= threads )||( ptr->getNext_node() == NULL ))
-        {
+		// check our thread count
+		if(( tc >= threads )||( &(*child) == &(*m_children.back()) ))
+		{
 #ifdef VORTX_DEBUG_NODETHREADS
-            // debug
-            cout << "lsNode::MoveThread - Threads pushed : " << tc << endl;
+			// debug
+			cout << "lsNode::MoveThread - Threads pushed : " << tc << endl;
 #endif
-            // Join and wait
-            for( auto &t : th )
-            {
-                t.join();
-            }
-            // clean up
-            th.clear();
-            tc = 0;
-        }
-        ptr = ptr->getNext_node();
-    }
+			// Join and wait
+			for( auto &t : th )
+			{
+				t.join();
+			}
+			// clean up
+			th.clear();
+			tc = 0;
+		}
+	}
 	// Join last threads.
 	if(! th.empty() )
 	{
@@ -148,70 +141,69 @@ void lsNode::MoveThread( lsScene* scn, lsOpenGL* opengl, double delta )
 		}
 	}
 	
-    // pass it on
-    if( getNode_list() ) getNode_list()->MoveThread( scn, opengl, delta );
-    if( getNext_node() ) getNext_node()->MoveThread( scn, opengl, delta );
+	// pass it on
+	for (auto& child : m_children)
+	{
+		child->MoveThread( scn, render, delta );
+	}
 }
 
 // used by lsScene nose
 void lsNode::InitDrawlist()
 {
-    // Do nothing
+	// Do nothing
 }
 
 // used by Threading
-void lsNode::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl )
+void lsNode::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
 {
-    // Do nothing
+	// Do nothing
 }
 
-void lsNode::OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl )
+void lsNode::OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render )
 {
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::OptimizeThread()" << endl;
+	cout << "lsNode::OptimizeThread()" << endl;
 #endif
 
-    vector<thread> th;
-    lsNode *ptr;
-    int threads = 1;
-    int tc = 0;
+	vector<thread> th;
+	int threads = 1;
+	int tc = 0;
 
-    // Threads
-    threads = thread::hardware_concurrency();
+	// Threads
+	threads = thread::hardware_concurrency();
 
 #ifdef VORTX_DEBUG_NODETHREADS
-    stringstream msg;
-    msg << "lsNode::OptimizeThread - Thread count : " << threads << endl;
-    cout << msg.str();
+	stringstream msg;
+	msg << "lsNode::OptimizeThread - Thread count : " << threads << endl;
+	cout << msg.str();
 #endif
 
-    // cycle through child and its next nodes
-    ptr = getNode_list();
-    while( ptr )
-    {
-        // Add thread
-        th.push_back( thread( &lsNode::Optimize, ptr, cam, pass, scn, opengl ) );
-        tc++;
-
-        // check our thread count
-        if(( tc >= threads )||( ptr->getNext_node() == NULL ))
-        {
+	// cycle through child and its next nodes
+	for (auto& child : m_children)
+	{
+		// Add thread
+		th.push_back( thread( &lsNode::Optimize, child.get(), cam, pass, scn, render ) );
+		tc++;
+		
+		// check our thread count
+		if(( tc >= threads )||( &(*child) == &(*m_children.back()) ))
+		{
 #ifdef VORTX_DEBUG_NODETHREADS
-            stringstream msg;
-            msg << "lsNode::OptimizeThread - Threads pushed : " << tc << endl;
-            cout << msg.str();
+			stringstream msg;
+			msg << "lsNode::OptimizeThread - Threads pushed : " << tc << endl;
+			cout << msg.str();
 #endif
-            // Join and wait
-            for( auto &t : th )
-            {
-                t.join();
-            }
-            // clean up
-            th.clear();
-            tc = 0;
-        }
-        ptr = ptr->getNext_node();
-    }
+			// Join and wait
+			for( auto &t : th )
+			{
+				t.join();
+			}
+			// clean up
+			th.clear();
+			tc = 0;
+		}
+	}
 	// Join last threads.
 	if(! th.empty() )
 	{
@@ -221,17 +213,19 @@ void lsNode::OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL
 		}
 	}
 	
-    // Pass it on
-    if( getNode_list() ) getNode_list()->OptimizeThread( cam, pass, scn, opengl );
-    if( getNext_node() ) getNext_node()->OptimizeThread( cam, pass, scn, opengl );
+	// Pass it on
+	for (auto& child : m_children)
+	{
+		child->OptimizeThread( cam, pass, scn, render );
+	}
 }
 
-void lsNode::Draw( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl )
+void lsNode::Draw( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
 {
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::Draw() - Name: " << getName() << endl;
+	cout << "lsNode::Draw() - Name: " << getName() << endl;
 #endif
-    // Reimplement
+	// Reimplement
 }
 
 // ########################
@@ -240,137 +234,128 @@ void lsNode::Draw( __attribute__((unused)) lsCamera* cam, __attribute__((unused)
 lsScene* lsNode::Get_Scene()
 {
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::Get_Scene() - Name: " << getName() << endl;
+	cout << "lsNode::Get_Scene() - Name: " << getName() << endl;
 #endif
-    if( parent ) return parent->Get_Scene();
-    return NULL;
+	if( parent ) return parent->Get_Scene();
+	return NULL;
 }
 
 lsEventManager* lsNode::Get_EventManager()
 {
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::Get_EventManager() - Name: " << getName() << endl;
+	cout << "lsNode::Get_EventManager() - Name: " << getName() << endl;
 #endif
-    if( parent ) return parent->Get_EventManager();
-    return NULL;
+	if( parent ) return parent->Get_EventManager();
+	return NULL;
 }
-
 
 void lsNode::checkLife( lsScene *scn )
 {
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::checkLife() - Name: " << getName() << endl;
+	cout << "lsNode::checkLife() - Name: " << getName() << endl;
 #endif
-    if( life == 0.0 ) return;
+	if( life == 0.0 ) return;
 
-    if( timer_life.get_ElapsedTime() > life )
-    {
-        // Dont fire again
-        life = 0.0;
-
-        if( scn )
-        {
-            lsEvent_DelNode* e = new lsEvent_DelNode();
-            e->setNode( this );
-            scn->Add_Event( e );
-        } else
-        {
-            // Error
-            cout << "ERROR: lsNode::checkLife() Scene pte is NULL : " << getName() << endl;
-        }
-    }
+	if( timer_life.get_ElapsedTime() > life )
+	{
+		// Dont fire again
+		life = 0.0;
+		
+		if( scn )
+		{
+			lsEvent_DelNode* e = new lsEvent_DelNode();
+			e->setNode( this );
+			scn->Add_Event( e );
+		} else
+		{
+			// Error
+			cout << "ERROR: lsNode::checkLife() Scene pte is NULL : " << getName() << endl;
+		}
+	}
 }
 
 void lsNode::Set_Life( double val )
 {
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::Set_Life() - Name: " << getName() << endl;
+	cout << "lsNode::Set_Life() - Name: " << getName() << endl;
 #endif
-    timer_life.start_Timer();
-    life = val;
+	timer_life.start_Timer();
+	life = val;
 }
 
 
 void lsNode::Add_Node( lsNode *node )
 {
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::Add_Node() - Name: " << node->getName() << "  to Node : " << getName() << endl;
+	cout << "lsNode::Add_Node() - Name: " << node->getName() << "  to Node : " << getName() << endl;
 #endif
-    if( node_list ) node_list->setPrev_node( node );
-    node->setNext_node( node_list );
-    node_list = node;
+	// Set parent pointer for the new child
+	node->setParent(this);
+	
+	// Add to children vector
+	m_children.push_back(unique_ptr<lsNode>(node));
+}
+
+void lsNode::Del_Node(lsNode* node)
+{
+#ifdef VORTX_DEBUG_NODES
+	cout << "lsNode::Del_Node() - Removing child: " << node->getName() << " from parent: " << getName() << endl;
+#endif
+	
+	if(! node) return;
+	
+	// Find and remove the node from m_children
+	for (auto it = m_children.begin(); it != m_children.end(); ++it)
+	{
+		if (it->get() == node)
+		{
+			// Set parent to nullptr to prevent dangling pointer
+			node->setParent(nullptr);
+			// Remove the unique_ptr from vector
+			m_children.erase(it);
+			break;
+		}
+	}
 }
 
 void lsNode::Find_Node( lsScene* scn, const string& name )
 {
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::Find_Node() - Name: " << name << endl;
+	cout << "lsNode::Find_Node() - Name: " << name << endl;
 #endif
-    if( this->name == name )
-    {
-        scn->setFound_node( this );
-    } else
-    {
-        // pass it one
-        if( node_list ) node_list->Find_Node( scn, name );
-        if( next_node ) next_node->Find_Node( scn, name );
-    }
+	if( this->name == name )
+	{
+		scn->setFound_node( this );
+	} else
+	{
+		// pass it one
+		for (auto& child : m_children)
+		{
+			child->Find_Node( scn, name );
+		}
+	}
 }
 
-void lsNode::Del_AllChildren()
+void lsNode::Del_Children()
 {
-#ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::Del_AllChildren() - Parent: " << getName() << endl;
-#endif
-    if( node_list )
-    {
-        node_list->Del_AllNodes();
-        delete node_list;
-        node_list = NULL;
-    }
-}
-
-void lsNode::Del_AllNodes()
-{
-#ifdef VORTX_DEBUG_NODES
-    cout << "lsNode::Del_AllNodes() - Parent: " << getName() << endl;
-#endif
-    if( node_list )
-    {
-        node_list->Del_AllNodes();
-#ifdef VORTX_DEBUG_NODES
-        cout << "Delete Child: " << node_list->getName() << endl;
-#endif
-        delete node_list;
-        node_list = NULL;
-    }
-
-    if( next_node )
-    {
-        next_node->Del_AllNodes();
-#ifdef VORTX_DEBUG_NODES
-        cout << "Del_AllNodes() Pass it on - Name: " << next_node->getName() << endl;
-#endif
-        delete next_node;
-        next_node = NULL;
-    }
+	m_children.clear();
 }
 
 // Transforms
 
 void lsNode::Set_Pos(float x, float y, float z)
 {
-    position = lsVector3( x, y, z );
+	position = lsVector3( x, y, z );
 }
 
 void lsNode::Set_Rot(float x, float y, float z)
 {
-    rotation = lsVector3( x, y, z );
+	rotation = lsVector3( x, y, z );
 }
 
 void lsNode::Set_Scale(float x, float y, float z)
 {
-    scale = lsVector3( x, y, z );
+	scale = lsVector3( x, y, z );
 }
 
 //###################
@@ -378,10 +363,12 @@ void lsNode::Set_Scale(float x, float y, float z)
 
 void lsNode::Save()
 {
-    cout << toString() << endl;
+	cout << toString() << endl;
 
-    // Pass it on
-    if( getNode_list() ) getNode_list()->Save();
-    if( getNext_node() ) getNext_node()->Save();
+	// Pass it on to children
+	for (auto& child : m_children)
+	{
+		child->Save();
+	}
 }
 

@@ -11,7 +11,7 @@ class lsShaderManager;
 class lsAsset_Mesh : public lsAsset
 {
 public:
-    lsAsset_Mesh( lsOpenGL *opengl );
+    lsAsset_Mesh( lsRender *render );
     virtual ~lsAsset_Mesh();
 
     // lsAsset

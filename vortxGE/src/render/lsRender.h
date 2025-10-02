@@ -3,6 +3,9 @@
 #include <iostream>
 #include <string>
 
+// Types
+#include "lsRenderTypes.h"
+
 // Forward declarations to avoid circular dependencies
 class lsStats;
 class lsShaderManager;
@@ -31,7 +34,12 @@ public:
 	lsShaderManager* getShaderManager() const { return m_shaderManager; }
 	void setShaderManager(lsShaderManager* val) { m_shaderManager = val; }
 	
+	void setType( RenderType val ) { m_type = val; }
+	RenderType getType() const { return m_type; }
+	
 protected:
+	RenderType m_type;
+	
 	lsStats* m_stats;
 	lsShaderManager* m_shaderManager;
 };

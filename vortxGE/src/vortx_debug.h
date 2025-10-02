@@ -1,7 +1,7 @@
 #pragma once
 
 // Stats
-#define VORTX_DEBUG_STATS
+// #define VORTX_DEBUG_STATS
 
 // Rendering
 // #define VORTX_DEBUG_OCCLUSION
@@ -32,8 +32,6 @@
 // #define VORTX_DEBUG_NODES
 // #define VORTX_DEBUG_NODETHREADS
 
-// WAV
+// datablocks
 // #define VORTX_DEBUG_WAV
-
-// TGA
 // #define VORTX_DEBUG_TGA

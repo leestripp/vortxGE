@@ -12,7 +12,7 @@
 class lsPass_DR : public lsPass
 {
 public:
-    lsPass_DR( lsOpenGL* opengl );
+    lsPass_DR( lsRender* render );
     virtual ~lsPass_DR();
 
     void Update();

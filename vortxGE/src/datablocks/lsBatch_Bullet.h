@@ -2,7 +2,7 @@
 
 #include "lsBatch.h"
 
-#include "../render/lsOpenGL.h"
+#include "../render/lsRender.h"
 
 // mmath
 #include "../math/lsVector2.h"
@@ -22,7 +22,7 @@ class btConvexHullShape;
 class lsBatch_Bullet : public lsBatch
 {
 public:
-	lsBatch_Bullet( lsOpenGL *opengl );
+	lsBatch_Bullet( lsRender *render );
 	virtual ~lsBatch_Bullet();
 
     // lsBatch

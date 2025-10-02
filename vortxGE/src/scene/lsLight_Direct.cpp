@@ -29,7 +29,7 @@ lsLight_Direct::~lsLight_Direct()
 {
 }
 
-void lsLight_Direct::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl, __attribute__((unused)) double delta )
+void lsLight_Direct::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render, __attribute__((unused)) double delta )
 {
 	// Auto update
 	update_counter++;

@@ -5,7 +5,7 @@
 
 class lsPassManager;
 class lsNode;
-class lsOpenGL;
+class lsRender;
 class lsFBO_ColourDepth_8;
 
 
@@ -17,7 +17,7 @@ class lsFBO_ColourDepth_8;
 class lsPass_Occlusion : public lsPass
 {
 public:
-	lsPass_Occlusion( int x, int y, int width, int height, lsOpenGL *opengl );
+	lsPass_Occlusion( int x, int y, int width, int height, lsRender *render );
 	virtual ~lsPass_Occlusion();
 
 	// from lsPass

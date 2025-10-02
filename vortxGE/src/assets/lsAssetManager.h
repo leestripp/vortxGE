@@ -2,8 +2,8 @@
 
 #include <iostream>
 #include <string>
-// opengl
-#include "../render/lsOpenGL.h"
+// render
+#include "../render/lsRender.h"
 
 class lsAsset;
 class lsAsset_Mesh;
@@ -24,7 +24,7 @@ using namespace std;
 class lsAssetManager
 {
 public:
-    lsAssetManager( lsOpenGL *opengl );
+    lsAssetManager( lsRender *render );
     virtual ~lsAssetManager();
 
 	// Shared Assets
@@ -55,14 +55,14 @@ public:
         return asset_list;
     }
 
-    void setOpenGL( lsOpenGL *opengl )
+    void setOpenGL( lsRender *render )
     {
-        ogl = opengl;
+        m_render = render;
     }
 
-    lsOpenGL *getOpenGL() const
+    lsRender *getOpenGL() const
     {
-        return ogl;
+        return m_render;
     }
 
 private:
@@ -73,7 +73,7 @@ private:
     lsAsset         *asset_list;
     unsigned int 	asset_count;
 
-    // Link to the opengl instance
-    lsOpenGL *ogl;
+    // Link to the render instance
+    lsRender *m_render;
 
 };

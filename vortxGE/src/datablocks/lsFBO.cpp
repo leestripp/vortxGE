@@ -5,9 +5,9 @@
 #include "lsFBO.h"
 
 
-lsFBO::lsFBO( lsOpenGL *opengl )
+lsFBO::lsFBO( lsRender *render )
 {
-  ogl = opengl;
+  m_render = render;
   fbo_type = LSFT_NONE;
 
 }
@@ -16,16 +16,16 @@ lsFBO::~lsFBO()
 {
   // cleanup
   if( m_fbo ) glDeleteFramebuffers( 1, &m_fbo );
-  // never delete ogl;
+  // never delete m_render;
 }
 
-lsOpenGL *lsFBO::getOgl() const
+lsRender *lsFBO::getOgl() const
 {
-    return ogl;
+    return m_render;
 }
 
-void lsFBO::setOgl(lsOpenGL *value)
+void lsFBO::setOgl(lsRender *value)
 {
-    ogl = value;
+    m_render = value;
 }
 

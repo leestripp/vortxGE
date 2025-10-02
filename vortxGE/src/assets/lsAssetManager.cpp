@@ -26,10 +26,10 @@
 #include "lsAsset_MeshGuide_Grid.h"
 
 
-lsAssetManager::lsAssetManager( lsOpenGL *opengl )
+lsAssetManager::lsAssetManager( lsRender *render )
 {
-    // store link to opengl and shader manager thats part of lsOpenGL
-    ogl = opengl;
+    // store link to render and shader manager thats part of lsRender
+    m_render = render;
 
     asset_list = NULL;
     asset_count = 0;
@@ -105,7 +105,7 @@ lsAsset_Mesh* lsAssetManager::CreateAsset_Mesh( const string& filename )
 {
     lsAsset_Mesh *asset;
 
-    asset = new lsAsset_Mesh( ogl );
+    asset = new lsAsset_Mesh( m_render );
     if( asset )
     {
         asset->setAssetManager( this );
@@ -123,7 +123,7 @@ lsAsset_Quad* lsAssetManager::CreateAsset_Quad()
 {
     lsAsset_Quad *asset;
 
-    asset = new lsAsset_Quad( ogl );
+    asset = new lsAsset_Quad( m_render );
     if( asset )
     {
         asset->setAssetManager( this );
@@ -137,7 +137,7 @@ lsAsset_Texture* lsAssetManager::CreateAsset_Texture( const string& filename )
 {
     lsAsset_Texture *asset;
 
-    asset = new lsAsset_Texture( ogl );
+    asset = new lsAsset_Texture( m_render );
     if( asset )
     {
         asset->setAssetManager( this );
@@ -232,7 +232,7 @@ lsAsset_MeshGuide_Empty* lsAssetManager::CreateAsset_MeshGuide_Empty()
 {
     lsAsset_MeshGuide_Empty *asset;
 
-    asset = new lsAsset_MeshGuide_Empty( ogl );
+    asset = new lsAsset_MeshGuide_Empty( m_render );
     if( asset )
     {
         asset->setAssetManager( this );
@@ -247,7 +247,7 @@ lsAsset_MeshGuide_Grid* lsAssetManager::CreateAsset_MeshGuide_Grid()
 {
     lsAsset_MeshGuide_Grid *asset;
 
-    asset = new lsAsset_MeshGuide_Grid( ogl );
+    asset = new lsAsset_MeshGuide_Grid( m_render );
     if( asset )
     {
         asset->setAssetManager( this );

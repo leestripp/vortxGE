@@ -165,7 +165,7 @@ bool DemoScene::Init()
 	}
 	
 	// Check GL errors
-	m_vortxge->getOpenGL()->CheckErrors( "DemoScene::Init() END" );
+	m_vortxge->getRender()->CheckErrors( "DemoScene::Init() END" );
 	
 	return true;
 }
@@ -190,7 +190,7 @@ void DemoScene::setupControls()
 	lsAsset_Quad *asset_quad = NULL;
 	
 	// Add quad viewer control
-	m_quad_viewer = new lsViewer( m_vortxge->getOpenGL(), NULL );
+	m_quad_viewer = new lsViewer( m_vortxge->getRender(), nullptr );
 	if( m_quad_viewer )
 	{
 		m_quad_viewer->setName( "Quad Viewer" );
@@ -200,9 +200,12 @@ void DemoScene::setupControls()
 		m_vortxge->getControlManager()->Add_Control( m_quad_viewer );
 		
 		// Create quad scene
-		m_quad_scene = new lsScene( m_vortxge->getOpenGL(), 100.0, 1 );
+		m_quad_scene = new lsScene( m_vortxge->getRender(), 100.0, 1 );
 		if( m_quad_scene )
 		{
+			// Give our scene a name.
+			m_quad_scene->setName("Quad Scene");
+			
 			m_quad_viewer->getSceneManager()->Add_Scene( m_quad_scene );
 			
 			// Add Camera
@@ -231,7 +234,7 @@ void DemoScene::setupControls()
 			}
 
 			// Create Direct render Pass
-			lsPass_DR *pass_dr = new lsPass_DR( m_vortxge->getOpenGL() );
+			lsPass_DR *pass_dr = new lsPass_DR( m_vortxge->getRender() );
 			if( pass_dr )
 			{
 				// If the user see's this colour, Quad could be backwards, not rendering.
@@ -247,7 +250,7 @@ void DemoScene::setupControls()
 	
 	
 	// Add demoscene viewer control
-	m_viewer = new lsViewer( m_vortxge->getOpenGL(), NULL );
+	m_viewer = new lsViewer( m_vortxge->getRender(), NULL );
 	if( m_viewer )
 	{
 		m_viewer->setName( "Demo Scene Viewer" );
@@ -259,7 +262,7 @@ void DemoScene::setupControls()
 		// Create viewer scene
 		// World size 1000 meters
 		// maxProxies - Set this high enough for your physics objects or they wont be added to the sim.
-		m_viewer_scene = new lsScene( m_vortxge->getOpenGL(), 1000.0, 1000 );
+		m_viewer_scene = new lsScene( m_vortxge->getRender(), 1000.0, 1000 );
 		if( m_viewer_scene )
 		{
 			m_viewer->getSceneManager()->Add_Scene( m_viewer_scene );
@@ -275,11 +278,11 @@ void DemoScene::setupControls()
 			
 			// create FBO pass to render main scene too.
 			// This gets applied to the Quad.
-			lsPass_FBO *pass_fbo = new lsPass_FBO( m_vortxge->getOpenGL() );
+			lsPass_FBO *pass_fbo = new lsPass_FBO( m_vortxge->getRender() );
 			if( pass_fbo )
 			{
 				// Create FBO textures at FHD 1920x1080 8bpp
-				lsFBO_ColourDepth_8 *lsfbo = new lsFBO_ColourDepth_8( 1920, 1080, m_vortxge->getOpenGL() );
+				lsFBO_ColourDepth_8 *lsfbo = new lsFBO_ColourDepth_8( 1920, 1080, m_vortxge->getRender() );
 				if( lsfbo )
 				{
 					pass_fbo->setFBO( lsfbo );
@@ -331,7 +334,7 @@ void DemoScene::setupTestScene()
 	lsShader* skyboxShader = m_vortxge->getShaderManager()->Find_Shader("skybox");
 	if(! skyboxShader)
 	{
-		skyboxShader = new lsShader(m_vortxge->getOpenGL());
+		skyboxShader = new lsShader(m_vortxge->getRender());
 		if(skyboxShader)
 		{
 			skyboxShader->Load_Shader("skybox");
@@ -398,8 +401,8 @@ void DemoScene::setupTestScene()
 		
 		// Manually trigger a single Move pass to update ModelMatrix for all nodes
 		// This is necessary so that nodes have their correct world positions for light linking.
-		m_viewer_scene->Move(m_viewer_scene, m_vortxge->getOpenGL(), 0.0); // Update scene's own matrix
-		m_viewer_scene->MoveThread(m_viewer_scene, m_vortxge->getOpenGL(), 0.0); // Update all children recursively
+		m_viewer_scene->Move(m_viewer_scene, m_vortxge->getRender(), 0.0); // Update scene's own matrix
+		m_viewer_scene->MoveThread(m_viewer_scene, m_vortxge->getRender(), 0.0); // Update all children recursively
 		
 		// After loading and updating transforms, link lights to objects
 		m_viewer->getSceneManager()->LinkLightsInScene(m_viewer_scene);
@@ -450,12 +453,12 @@ void DemoScene::setupShadows()
 		if( light->getLight_type() == LSLT_DIRECT)
 		{
 			// Create the shadow map pass (which creates its own FBO)
-			shadowPass = new lsPass_ShadowMap(0, 0, 4096, 4096, m_vortxge->getOpenGL());
+			shadowPass = new lsPass_ShadowMap(0, 0, 4096, 4096, m_vortxge->getRender());
 		}
 		if (light->getLight_type() == LSLT_SPOT)
 		{
 			// Create the shadow map pass (which creates its own FBO)
-			shadowPass = new lsPass_ShadowMap(0, 0, 2048, 2048, m_vortxge->getOpenGL());
+			shadowPass = new lsPass_ShadowMap(0, 0, 2048, 2048, m_vortxge->getRender());
 		}
 		if(! shadowPass)
 		{

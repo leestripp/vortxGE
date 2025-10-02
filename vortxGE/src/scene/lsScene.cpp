@@ -1,7 +1,7 @@
 #include "../vortx_debug.h"
 
 // OpenGL
-#include "../render/lsOpenGL.h"
+#include "../render/lsRender.h"
 
 // datablocks
 #include "../datablocks/lsStats.h"
@@ -25,80 +25,84 @@
 #include "lsScene.h"
 
 
-lsScene::lsScene( lsOpenGL* ogl, float world_size, int maxProxies ) : lsNode( NULL )
+lsScene::lsScene( lsRender* m_render, float world_size, int maxProxies ) : lsNode( NULL )
 {
-    setNode_type( LSNT_SCENE );
-    setName( "Scene" );
+	setNode_type( LSNT_SCENE );
+	setName( "Scene" );
 
-    // Assets
-    m_assetManager = new lsAssetManager(ogl);
-    if (!m_assetManager)
-    {
-        // ERROR
-        cout << "ERROR: lsScene::lsScene - Could not instance lsAssetManager" << endl;
-    }
+	// Assets
+	m_assetManager = new lsAssetManager(m_render);
+	if (!m_assetManager)
+	{
+		// ERROR
+		cout << "ERROR: lsScene::lsScene - Could not instance lsAssetManager" << endl;
+	}
 	
-    // Lights : used for fast lookup of lights.
-    m_lightManager = new lsLightManager();
-    if(! m_lightManager)
-    {
-        cout << "ERROR: lsScene::lsScene - Could not instance lsLightManager" << endl;
-    }
+	// Lights : used for fast lookup of lights.
+	m_lightManager = new lsLightManager();
+	if(! m_lightManager)
+	{
+		cout << "ERROR: lsScene::lsScene - Could not instance lsLightManager" << endl;
+	}
 	
-    // Physics
-    bulletworld = new lsBulletWorld( this );
-    if(! bulletworld )
-    {
-        // ERROR
-        cout << "ERROR: lsScene::lsScene - Could not instance lsBulletWorld" << endl;
-    } else
-    {
-        // Set world size
-        bulletworld->setWorld_size( world_size );
-        bulletworld->setMax_proxies( maxProxies );
+	// Physics
+	bulletworld = new lsBulletWorld( this );
+	if(! bulletworld )
+	{
+		// ERROR
+		cout << "ERROR: lsScene::lsScene - Could not instance lsBulletWorld" << endl;
+	} else
+	{
+		// Set world size
+		bulletworld->setWorld_size( world_size );
+		bulletworld->setMax_proxies( maxProxies );
 
-        bulletworld->Init();
-    }
+		bulletworld->Init();
+	}
 
-    // Events
-    root_eventmanager = new lsEventManager();
-    if(! root_eventmanager )
-    {
-        // ERROR
-        cout << "ERROR : lsScene::lsScene - Could not instance lsEventManager" << endl;
-    }
+	// Events
+	root_eventmanager = new lsEventManager();
+	if(! root_eventmanager )
+	{
+		// ERROR
+		cout << "ERROR : lsScene::lsScene - Could not instance lsEventManager" << endl;
+	}
 
-    // Audio Listener
-    m_listener = new lsListener(this); // Create a default listener for the scene
-    if (!m_listener)
-    {
-        std::cerr << "ERROR: lsScene::lsScene - Could not instance lsListener" << std::endl;
-    } else
-    {
-        Add_Node(m_listener); // Add listener as a child of the scene
-    }
+	// Audio Listener
+	m_listener = new lsListener(this); // Create a default listener for the scene
+	if (!m_listener)
+	{
+		std::cerr << "ERROR: lsScene::lsScene - Could not instance lsListener" << std::endl;
+	} else
+	{
+		Add_Node(m_listener); // Add listener as a child of the scene
+	}
 	
-    draw_list = nullptr;
-    sky_object = nullptr;
+	draw_list = nullptr;
+	sky_object = nullptr;
 }
 
 lsScene::~lsScene()
 {
-    // Scene Manager cleans up nodes
-	// But not the sky_object.
+#ifdef VORTX_DEBUG_NODES
+	cout << "lsScene::~lsScene() START - Name: " << getName() << endl;
+#endif
+	
+	// Scene Manager cleans up nodes
+	// But not the sky_object
 	if(sky_object) delete sky_object;
 	
-    // Physics
-    if( bulletworld ) delete bulletworld;
+	// Physics
+	if( bulletworld ) delete bulletworld;
 	
-    // Lights
-    if (m_lightManager) delete m_lightManager;
+	// Lights
+	if (m_lightManager) delete m_lightManager;
 	
-    // Assets
-    if (m_assetManager) delete m_assetManager;
+	// Assets
+	if (m_assetManager) delete m_assetManager;
 	
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsScene::~lsScene() - Name: " << getName() << endl;
+	cout << "lsScene::~lsScene() END - Name: " << getName() << endl;
 #endif
 }
 
@@ -106,25 +110,25 @@ lsScene::~lsScene()
  * Poll scene events, Update physics and Init Identity Matrix
  *
  * \param scn
- * \param opengl
+ * \param render
  * \param delta
  */
-void lsScene::Move( __attribute__((unused)) lsScene* scn, lsOpenGL* opengl, double delta )
+void lsScene::Move( __attribute__((unused)) lsScene* scn, lsRender* render, double delta )
 {
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsScene::Move : Process events, Physics Step, Init ModelMatrix" << endl;
+	cout << "lsScene::Move : Process events, Physics Step, Init ModelMatrix" << endl;
 #endif
 
-    // Base Matrix
-    ModelMatrix.LoadIdentity();
+	// Base Matrix
+	ModelMatrix.LoadIdentity();
 	
-    // Update physics engine
-    if( opengl->getStats() ) opengl->getStats()->Physics_Start();
-    if( bulletworld ) bulletworld->BulletStep( 10, delta ); // Fixed: BulletStep
-    if( opengl->getStats() ) opengl->getStats()->Physics_Stop();
+	// Update physics engine
+	if( render->getStats() ) render->getStats()->Physics_Start();
+	if( bulletworld ) bulletworld->BulletStep( 10, delta ); // Fixed: BulletStep
+	if( render->getStats() ) render->getStats()->Physics_Stop();
 
 #ifdef VORTX_DEBUG_NODES
-    ModelMatrix.debug( "lsScene ModelMatrix: " + getName() );
+	ModelMatrix.debug( "lsScene ModelMatrix: " + getName() );
 #endif
 }
 
@@ -137,17 +141,17 @@ void lsScene::Move( __attribute__((unused)) lsScene* scn, lsOpenGL* opengl, doub
  * \param cam
  * \param pass
  * \param scn
- * \param opengl
+ * \param render
  */
-void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene* scn, lsOpenGL* opengl )
+void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene* scn, lsRender* render )
 {
 #ifdef VORTX_DEBUG_RENDER
-    cout << "lsScene::Draw" << endl;
+	cout << "lsScene::Draw" << endl;
 #endif
-    // Draw stats
-    if( opengl->getStats() ) opengl->getStats()->Draw_Start();
-    
-    // Draw Skybox first
+	// Draw stats
+	if( render->getStats() ) render->getStats()->Draw_Start();
+	
+	// Draw Skybox first
 	if(sky_object)
 	{
 		// Set depth function to draw the skybox (which is fixed at max depth 1.0)
@@ -160,7 +164,7 @@ void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene
 		// Disable culling for skybox geometry (so we see the inside of the cube/sphere)
 		glDisable(GL_CULL_FACE); 
 		
-		sky_object->Draw(cam, pass, this, opengl);
+		sky_object->Draw(cam, pass, this, render);
 
 		// 4. Restore state after drawing skybox
 		glEnable(GL_CULL_FACE); 
@@ -169,11 +173,11 @@ void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene
 		// Restore the default depth function for the rest of the scene
 		glDepthFunc(GL_LESS); 
 	}
-    
-    // Draw remaining scene objects
-    if( draw_list ) draw_list->Draw( cam, pass, this, opengl );
 	
-    if( opengl->getStats() ) opengl->getStats()->Draw_Stop();
+	// Draw remaining scene objects
+	if( draw_list ) draw_list->Draw( cam, pass, this, render );
+	
+	if( render->getStats() ) render->getStats()->Draw_Stop();
 }
 
 /*!
@@ -186,7 +190,7 @@ void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene
  */
 lsScene* lsScene::Get_Scene()
 {
-    return this;
+	return this;
 }
 
 /*!
@@ -199,7 +203,7 @@ lsScene* lsScene::Get_Scene()
  */
 lsEventManager* lsScene::Get_EventManager()
 {
-    return root_eventmanager;
+	return root_eventmanager;
 }
 
 /*!
@@ -212,20 +216,14 @@ lsEventManager* lsScene::Get_EventManager()
 void lsScene::ClearScene()
 {
 #ifdef VORTX_DEBUG_NODES
-    cout << "lsScene::ClearScene() - Scene Name: " << getName() << "  *******************" << endl;
+	cout << "lsScene::ClearScene() - Scene Name: " << getName() << "  *******************" << endl;
 #endif
-
-    if( getNode_list() )
-    {
-        getNode_list()->Del_AllNodes();
-#ifdef VORTX_DEBUG_NODES
-        cout << "lsScene::ClearScene() - Last node : " << getNode_list()->getName() << endl;
-#endif
-        delete getNode_list();
-        setNode_list( NULL );
-    }
-    sky_object = NULL; // Clear sky object pointer
-    m_listener = NULL; // Clear listener pointer (it's deleted as a child node)
+	
+	// nodes are unique so this will clear the entire scene.
+	Del_Children();
+	// But not the sky_object its not part of the scene directly.
+	if(sky_object) delete sky_object;
+	sky_object = nullptr;
 }
 
 /**
@@ -235,9 +233,9 @@ void lsScene::ClearScene()
 void lsScene::InitDrawlist()
 {
 #ifdef VORTX_DEBUG_RENDER
-    cout << "lsScene::InitDrawlist : Draw List set to NULL" << endl;
+	cout << "lsScene::InitDrawlist : Draw List set to NULL" << endl;
 #endif
-    draw_list = NULL;
+	draw_list = NULL;
 }
 
 /*!
@@ -254,13 +252,13 @@ void lsScene::InitDrawlist()
  */
 void lsScene::Add_DrawObject( lsObject *object )
 {
-    object->setPrev_drawobject( NULL );
+	object->setPrev_drawobject( NULL );
 
-    m_mutex.lock();
-    object->setNext_drawobject( draw_list );
-    if( draw_list ) draw_list->setPrev_drawobject( object );
-    draw_list = object;
-    m_mutex.unlock();
+	m_mutex.lock();
+	object->setNext_drawobject( draw_list );
+	if( draw_list ) draw_list->setPrev_drawobject( object );
+	draw_list = object;
+	m_mutex.unlock();
 }
 
 /*! Add event
@@ -268,9 +266,9 @@ void lsScene::Add_DrawObject( lsObject *object )
  */
 void lsScene::Add_Event( lsEvent *event )
 {
-    m_mutex.lock();
-    Get_EventManager()->Add_Event( event );
-    m_mutex.unlock();
+	m_mutex.lock();
+	Get_EventManager()->Add_Event( event );
+	m_mutex.unlock();
 }
 
 /*!
@@ -283,106 +281,56 @@ void lsScene::Add_Event( lsEvent *event )
  */
 lsEvent* lsScene::Poll_Event()
 {
-    lsEvent* event = NULL;
-    lsEvent* delnode = NULL;
+	lsEvent* event = NULL;
+	lsEvent* delnode = NULL;
 
-    if( Get_EventManager() )
-    {
-    	event = Get_EventManager()->Poll_Event();
-        while(  event )
-        {
-            switch( event->getEvent_type() )
-            {
-            case LSET_DEL_NODE:
-                delnode = (lsEvent_DelNode*)event;
-                Del_Node( delnode->getNode() );
-                break;
+	if( Get_EventManager() )
+	{
+		event = Get_EventManager()->Poll_Event();
+		while(  event )
+		{
+			switch( event->getEvent_type() )
+			{
+			case LSET_DEL_NODE:
+				delnode = (lsEvent_DelNode*)event;
+				Del_Node( delnode->getNode() );
+				break;
 
-                // User events
-            case LSET_HIT_POINT:
-                return event;
-                break;
+				// User events
+			case LSET_HIT_POINT:
+				return event;
+				break;
 
-            default:
-                cout << "ERROR: Unknown scene event" << endl;
-                break;
-            }
-            // get next event
-            event = Get_EventManager()->Poll_Event();
-        } // while loop
-    }
+			default:
+				cout << "ERROR: Unknown scene event" << endl;
+				break;
+			}
+			// get next event
+			event = Get_EventManager()->Poll_Event();
+		} // while loop
+	}
 
-    return event;
+	return event;
 }
 
-/** Delete node
- Delets a single node
- */
-void lsScene::Del_Node( lsNode* node )
-{
-#if defined(VORTX_DEBUG_NODES)
-    cout << "lsScene::Del_Node()" << endl;
-#endif
-
-    // Do recursive delete of attached nodes
-    if( node->getNode_list() )
-    {
-        node->getNode_list()->Del_AllNodes();
-        // delete base node
-        delete node->getNode_list();
-        node->setNode_list( NULL );
-    }
-
-    // Remove node from its parent
-    lsNode* prev;
-    lsNode* next;
-    lsNode* par;
-
-    par = node->getParent();
-    prev = node->getPrev_node();
-    next = node->getNext_node();
-    // close gap
-    if( prev )
-    {
-        prev->setNext_node( next );
-        if( next ) next->setPrev_node( prev );
-
-    } else
-    {
-        par->setNode_list( next );
-        if( next ) next->setPrev_node( 0 );
-    }
-
-    // If the deleted node was the sky object, clear the pointer
-    if (node == sky_object) {
-        sky_object = NULL;
-    }
-    // If the deleted node was the listener, clear the pointer
-    if (node == m_listener) {
-        m_listener = NULL;
-    }
-
-    delete node;
-
-}
 
 // ####################
 // Save data
 
 const string& lsScene::toString()
 {
-    string tmp;
+	string tmp;
 
-    save_str = "add_scene ";
-    if( getName() != "" )
-    {
-    	save_str += "`";
-        save_str += getName();
-        save_str += "`";
-    } else
-    {
-        save_str += "Scene";
-    }
+	save_str = "add_scene ";
+	if( getName() != "" )
+	{
+		save_str += "`";
+		save_str += getName();
+		save_str += "`";
+	} else
+	{
+		save_str += "Scene";
+	}
 
-    return save_str;
+	return save_str;
 }

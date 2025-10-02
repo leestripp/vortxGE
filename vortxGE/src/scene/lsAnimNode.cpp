@@ -19,7 +19,7 @@ lsAnimNode::lsAnimNode( lsNode* p ) : lsNode(p)
     setName("lsAnimNode");
 
     // properties
-    property_list = NULL;
+    property_list = nullptr; // Changed from NULL
 
     // Create animation manager
     animationmanager = new lsAnimationManager();
@@ -59,7 +59,7 @@ lsAnimNode::~lsAnimNode()
 }
 
 
-void lsAnimNode::Move( lsScene* scn, __attribute__((unused)) lsOpenGL* opengl, double delta )
+void lsAnimNode::Move( lsScene* scn, __attribute__((unused)) lsRender* render, double delta )
 {
     // apply animation
     if( getAnimationManager() ) getAnimationManager()->UpdateAll( delta );
@@ -86,11 +86,11 @@ void lsAnimNode::Move( lsScene* scn, __attribute__((unused)) lsOpenGL* opengl, d
     checkLife( scn );
 }
 
-void lsAnimNode::Optimize( __attribute__((unused)) lsCamera *cam, __attribute__((unused)) lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsOpenGL *opengl)
+void lsAnimNode::Optimize( __attribute__((unused)) lsCamera *cam, __attribute__((unused)) lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsRender *render)
 {
 }
 
-void lsAnimNode::Draw( __attribute__((unused)) lsCamera *cam, __attribute__((unused)) lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsOpenGL *opengl)
+void lsAnimNode::Draw( __attribute__((unused)) lsCamera *cam, __attribute__((unused)) lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsRender *render)
 {
 }
 
@@ -143,13 +143,12 @@ lsScene* lsAnimNode::Get_Scene()
 {
     if( getParent() ) return getParent()->Get_Scene();
 
-    return NULL;
+    return nullptr; // Changed from NULL
 }
 
 lsEventManager* lsAnimNode::Get_EventManager()
 {
     if( getParent() ) return getParent()->Get_EventManager();
 
-    return NULL;
+    return nullptr; // Changed from NULL
 }
-

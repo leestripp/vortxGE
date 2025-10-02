@@ -71,7 +71,7 @@ lsObject::~lsObject()
 }
 
 
-void lsObject::Move( lsScene* scn, __attribute__((unused)) lsOpenGL* opengl, double delta )
+void lsObject::Move( lsScene* scn, __attribute__((unused)) lsRender* render, double delta )
 {
     if( bulletobject )
     {
@@ -122,7 +122,7 @@ void lsObject::Move( lsScene* scn, __attribute__((unused)) lsOpenGL* opengl, dou
     checkLife( scn );
 }
 
-void lsObject::Optimize( __attribute__((unused)) lsCamera *cam, lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsOpenGL *opengl )
+void lsObject::Optimize( __attribute__((unused)) lsCamera *cam, lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsRender *render )
 {
     switch( pass->getPass_type() )
     {
@@ -160,7 +160,7 @@ void lsObject::Optimize( __attribute__((unused)) lsCamera *cam, lsPass *pass, __
     }
 }
 
-void lsObject::Draw( lsCamera *cam, lsPass *pass, lsScene *scn, lsOpenGL *opengl )
+void lsObject::Draw( lsCamera *cam, lsPass *pass, lsScene *scn, lsRender *render )
 {
     lsMesh *mesh = NULL;
 
@@ -222,10 +222,10 @@ void lsObject::Draw( lsCamera *cam, lsPass *pass, lsScene *scn, lsOpenGL *opengl
     }// if pass
 	
     // Pass it on
-    if( getNext_drawobject() ) getNext_drawobject()->Draw( cam, pass, scn, opengl );
+    if( getNext_drawobject() ) getNext_drawobject()->Draw( cam, pass, scn, render );
 }
 
-void lsObject::DrawSingle( lsCamera *cam, lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsOpenGL *opengl )
+void lsObject::DrawSingle( lsCamera *cam, lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsRender *render )
 {
 #ifdef VORTX_DEBUG_RENDER
     cout << "lsObject::DrawSingle" << endl;

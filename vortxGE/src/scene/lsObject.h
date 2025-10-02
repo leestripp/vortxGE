@@ -1,6 +1,7 @@
 #pragma once
 
-// opengl
+// Render
+#include "../render/lsRender.h"
 #include "../render/lsOpenGL.h"
 
 // scene
@@ -29,12 +30,12 @@ public:
 	lsObject( lsNode* parent );
 	virtual ~lsObject();
 	
-	virtual void Move( lsScene* scn, lsOpenGL* opengl, double delta );
-	virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
-	virtual void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+	virtual void Move( lsScene* scn, lsRender* render, double delta );
+	virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	virtual void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
 	
 	// Occlusion
-	void DrawSingle( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+	void DrawSingle( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
 	
 	// Transforms : override lsNode
 	void Set_Pos(float x, float y, float z);

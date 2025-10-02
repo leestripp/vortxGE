@@ -83,7 +83,7 @@ lsCamera::~lsCamera()
 {
 }
 
-void lsCamera::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl, __attribute__((unused)) double delta )
+void lsCamera::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render, __attribute__((unused)) double delta )
 {
 	// Auto update
 	update_counter++;
@@ -130,7 +130,7 @@ void lsCamera::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused
 	Update_Camera();
 }
 
-void lsCamera::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsOpenGL* opengl )
+void lsCamera::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
 {
 	// Do nothing
 }

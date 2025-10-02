@@ -21,8 +21,8 @@ public:
 	virtual ~lsCamera();
 
 	// from lsNode
-	virtual void Move( lsScene* scn, lsOpenGL* opengl, double delta );
-	virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
+	virtual void Move( lsScene* scn, lsRender* render, double delta );
+	virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
 	
 	void Set_Perspective( float view_angle, float width_ratio, float nplane, float fplane );
 	void Set_ViewRatio( float vr );

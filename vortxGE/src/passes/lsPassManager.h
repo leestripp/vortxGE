@@ -2,14 +2,14 @@
 #define vortxGE_lsPassManager_h
 
 class lsPass;
-class lsOpenGL;
+class lsRender;
 
 using namespace std;
 
 class lsPassManager
 {
 public:
-    lsPassManager( lsOpenGL* opengl );
+    lsPassManager( lsRender* render );
     virtual ~lsPassManager();
 
     void Render();
@@ -28,13 +28,13 @@ public:
         pass_list = val;
     }
 
-    lsOpenGL *getOgl() const;
-    void setOgl(lsOpenGL *value);
+    lsRender *getOgl() const;
+    void setOgl(lsRender *value);
 
 private:
     lsPass      *pass_list;
 
-    lsOpenGL *ogl;
+    lsRender *m_render;
 
 };
 

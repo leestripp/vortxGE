@@ -21,7 +21,7 @@ class lsTexture;
 class lsBatch_Quad : public lsBatch
 {
 public:
-    lsBatch_Quad( lsOpenGL *opengl );
+    lsBatch_Quad( lsRender *render );
     virtual ~lsBatch_Quad();
 
     void Draw( lsCamera *cam, lsObject *object, lsPass *pass );

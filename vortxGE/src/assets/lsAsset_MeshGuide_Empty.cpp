@@ -12,7 +12,7 @@
 #include "lsAsset_MeshGuide_Empty.h"
 
 
-lsAsset_MeshGuide_Empty::lsAsset_MeshGuide_Empty( lsOpenGL *opengl ) : lsAsset(opengl)
+lsAsset_MeshGuide_Empty::lsAsset_MeshGuide_Empty( lsRender *render ) : lsAsset(render)
 {
     setAsset_type( LSAT_MESHGUIDE_EMPTY );
 }

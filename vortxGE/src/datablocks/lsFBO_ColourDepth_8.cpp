@@ -6,7 +6,7 @@
 #include "lsFBO_ColourDepth_8.h"
 
 
-lsFBO_ColourDepth_8::lsFBO_ColourDepth_8( double width, double height, lsOpenGL *opengl ) : lsFBO(opengl)
+lsFBO_ColourDepth_8::lsFBO_ColourDepth_8( double width, double height, lsRender *render ) : lsFBO(render)
 {
 	setFBO_type( LSFT_COLOURDEPTH_8 );
 	setWidth( width );
@@ -37,7 +37,7 @@ lsFBO_ColourDepth_8::lsFBO_ColourDepth_8( double width, double height, lsOpenGL 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	// Make sure default frame buffer is stored
-	opengl->StoreDefaultFramebuffer();
+	render->StoreDefaultFramebuffer();
 	
 	// Create FBO
 	glGenFramebuffers( 1, &m_fbo );
@@ -57,7 +57,7 @@ lsFBO_ColourDepth_8::lsFBO_ColourDepth_8( double width, double height, lsOpenGL 
 	}
 
 	// Make sure default frame buffer is restored
-	opengl->RestoreDefaultFramebuffer();
+	render->RestoreDefaultFramebuffer();
 }
 
 lsFBO_ColourDepth_8::~lsFBO_ColourDepth_8()

@@ -16,7 +16,7 @@ class lsShaderManager;
 class lsAsset_MeshGuide_Grid : public lsAsset
 {
 public:
-    lsAsset_MeshGuide_Grid( lsOpenGL *opengl );
+    lsAsset_MeshGuide_Grid( lsRender *render );
     virtual ~lsAsset_MeshGuide_Grid();
 
     // lsAsset

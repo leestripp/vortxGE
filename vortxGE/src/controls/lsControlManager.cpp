@@ -11,10 +11,10 @@
 /*!
  * \brief lsControlManager::lsControlManager
  */
-lsControlManager::lsControlManager( lsOpenGL *opengl )
+lsControlManager::lsControlManager( lsRender *render )
 {
     control_list = NULL;
-    ogl = opengl;
+    m_render = render;
 }
 
 lsControlManager::~lsControlManager()
@@ -93,13 +93,13 @@ void lsControlManager::Del_Control( lsControl* control )
     delete control;
 }
 
-lsOpenGL *lsControlManager::getOgl() const
+lsRender *lsControlManager::getOgl() const
 {
-    return ogl;
+    return m_render;
 }
 
-void lsControlManager::setOgl(lsOpenGL *value)
+void lsControlManager::setOgl(lsRender *value)
 {
-    ogl = value;
+    m_render = value;
 }
 

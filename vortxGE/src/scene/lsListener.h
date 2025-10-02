@@ -10,7 +10,7 @@ public:
     virtual ~lsListener();
 	
     // Override from lsAnimNode
-    void Move(lsScene* scn, lsOpenGL* opengl, double delta) override;
+    void Move(lsScene* scn, lsRender* render, double delta) override;
     
     // Set OpenAL listener properties
     void setGain(float gain);

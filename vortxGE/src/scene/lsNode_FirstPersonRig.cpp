@@ -2,6 +2,7 @@
 
 #include "lsScene.h"
 #include "lsCamera.h"
+#include "lsListener.h" // Added for lsListener
 #include "../physics/lsBulletObject.h"
 #include "../physics/lsBulletWorld.h"
 #include "../assets/lsAssetManager.h"
@@ -52,13 +53,19 @@ lsNode_FirstPersonRig::lsNode_FirstPersonRig(lsNode* parent)
     m_camera->setName("RigCamera");
     m_camera->Set_Pos(0, m_standingCamHeight, 0); // Initial camera height
     Add_Node(m_camera);
+
+    // 5. Create and attach the listener (ears for the player)
+    m_listener = new lsListener(this);
+    m_listener->setName("RigListener");
+    m_listener->Set_Pos(0, m_standingCamHeight, 0); // Match camera initial height
+    Add_Node(m_listener);
 }
 
 lsNode_FirstPersonRig::~lsNode_FirstPersonRig()
 {
     // lsBulletObject is deleted by lsObject's destructor
     // m_standShapeAsset and m_crouchShapeAsset are managed by the AssetManager
-    // m_listener is a child node, so it will be deleted by lsNode's destructor hierarchy.
+    // m_camera and m_listener are child nodes, so they will be deleted by lsNode's destructor hierarchy.
 }
 
 
@@ -123,10 +130,10 @@ bool lsNode_FirstPersonRig::onGround()
     return rayCallback.hasHit();
 }
 
-void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
+void lsNode_FirstPersonRig::Move(lsScene* scn, lsRender* render, double delta)
 {
     if (!m_bulletObject || !m_bulletObject->getBody()) {
-        lsObject::Move(scn, opengl, delta); // Fallback to base behavior if no physics
+        lsObject::Move(scn, render, delta); // Fallback to base behavior if no physics
         return;
     }
 
@@ -197,25 +204,29 @@ void lsNode_FirstPersonRig::Move(lsScene* scn, lsOpenGL* opengl, double delta)
     body->setLinearVelocity(desiredVelocity);
     body->activate(true); // Ensure the body doesn't go to sleep
 
-    // --- 3. Update Camera ---
-    // Adjust camera height for crouching
+    // --- 3. Update Camera and Listener ---
+    // Adjust height for crouching for both camera and listener
     float targetCamHeight = m_isCrouching ? m_crouchedCamHeight : m_standingCamHeight;
     // Simple lerp for smooth transition
     m_camera->position.y = m_camera->position.y * 0.9f + targetCamHeight * 0.1f;
     m_camera->Set_Rot(m_pitch, 0, 0);
 
+    // Listener moves with the camera for positional audio
+    if (m_listener) {
+        m_listener->position.y = m_camera->position.y;
+        m_listener->Set_Rot(m_pitch, 0, 0);
+    }
+
+
     // --- 4. Update Node Transform ---
     // Let the base lsObject::Move handle applying the physics transform back to this node's ModelMatrix
-    lsObject::Move(scn, opengl, delta);
+    lsObject::Move(scn, render, delta);
 }
 
-void lsNode_FirstPersonRig::Optimize(lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl)
+void lsNode_FirstPersonRig::Optimize(lsCamera* /* cam */, lsPass* /* pass */, lsScene* /* scn */, lsRender* /* render */)
 {
     // This node is not directly rendered, so it doesn't need to be added to the draw list.
-    // We still pass the call down to its children (like the camera).
-    if (getNode_list()) {
-        getNode_list()->Optimize(cam, pass, scn, opengl);
-    }
+    // OptimizeThread handles the tree calls.
 }
 
 const string& lsNode_FirstPersonRig::toString()

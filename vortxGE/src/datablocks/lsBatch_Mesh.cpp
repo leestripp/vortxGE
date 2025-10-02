@@ -33,7 +33,7 @@
 #include "lsBatch_Mesh.h"
 
 
-lsBatch_Mesh::lsBatch_Mesh( lsOpenGL *opengl ) : lsBatch(opengl)
+lsBatch_Mesh::lsBatch_Mesh( lsRender *render ) : lsBatch(render)
 {
 	setBatch_type( LSBT_MESH );
 	setName( "Batch: Mesh" );

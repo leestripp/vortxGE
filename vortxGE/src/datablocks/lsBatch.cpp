@@ -4,9 +4,9 @@
 
 #include "lsBatch.h"
 
-lsBatch::lsBatch( lsOpenGL *opengl )
+lsBatch::lsBatch( lsRender *render )
 {
-    ogl = opengl;
+    m_render = render;
 	
     next_batch = NULL;
     prev_batch = NULL;
@@ -28,14 +28,14 @@ lsBatch::~lsBatch()
     if( next_batch ) delete next_batch;
 }
 
-lsOpenGL *lsBatch::getOgl() const
+lsRender *lsBatch::getOgl() const
 {
-    return ogl;
+    return m_render;
 }
 
-void lsBatch::setOgl(lsOpenGL *value)
+void lsBatch::setOgl(lsRender *value)
 {
-    ogl = value;
+    m_render = value;
 }
 
 int lsBatch::getVertex_count() const

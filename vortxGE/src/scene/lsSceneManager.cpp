@@ -1,14 +1,14 @@
 #include "../vortx_debug.h"
 
 // OpenGL
-#include "../render/lsOpenGL.h"
+#include "../render/lsRender.h"
 
 #include <map>
 #include <vector>
 #include <algorithm>
 #include <string>
 #include <cctype>
-#include <functional>
+#include <functional> // Added for std::function
 
 // datablocks
 #include "../datablocks/lsStats.h"
@@ -48,76 +48,69 @@
 
 lsSceneManager::lsSceneManager()
 {
-	scene_list = nullptr;
+	// scene_list was removed, m_scenes is default-constructed
 }
 
 lsSceneManager::~lsSceneManager()
 {
-	// Delete all scenes
-	lsScene *scene, *nextscene;
-
-	scene = scene_list;
-	while( scene )
-	{
-		nextscene = (lsScene*)scene->getNext_node();
-
-		// We must clear the scene before deletion
-		scene->ClearScene();
-		delete scene;
-
-		scene = nextscene;
-	}
-	scene_list = NULL;
+	// std::vector<std::unique_ptr<lsScene>> automatically handles deletion of owned scenes.
+	// No manual iteration or deletion needed here.
+	m_scenes.clear(); // Ensure all unique_ptrs are released and destructors called
+#ifdef VORTX_DEBUG_NODES
+	cout << "lsSceneManager::~lsSceneManager() - All scenes deleted via unique_ptr." << endl;
+#endif
 }
 
 // Move all scene objects
 
-void lsSceneManager::Update( lsOpenGL* opengl, double delta )
+void lsSceneManager::Update( lsRender* render, double delta )
 {
 #ifdef VORTX_DEBUG_NODES
 	cout << "lsSceneManager::Update" << endl;
 #endif
-	lsScene *scene = scene_list;
 	
 	// Move stats
-	if( opengl->getStats() ) opengl->getStats()->Move_Start();
-	while( scene )
+	if( render->getStats() ) render->getStats()->Move_Start();
+	
+	// Iterate through the vector of unique_ptrs to scenes
+	for (const auto& scene_ptr : m_scenes)
 	{
-		// Init base matrix
-		scene->Move( scene, opengl, delta );
+		lsScene* scene = scene_ptr.get();
+		if (scene)
+		{
+			// Init base matrix
+			scene->Move( scene, render, delta );
 
-		// Move nodes threaded
-		scene->MoveThread( scene, opengl, delta );
-
-		// Next scene
-		scene = (lsScene*)scene->getNext_node();
+			// Move nodes threaded
+			scene->MoveThread( scene, render, delta );
+		}
 	}
-	if( opengl->getStats() ) opengl->getStats()->Move_Stop();
+	if( render->getStats() ) render->getStats()->Move_Stop();
 }
 
-void lsSceneManager::Add_Scene( lsScene *scene )
+void lsSceneManager::Add_Scene( lsScene* scene )
 {
 #ifdef VORTX_DEBUG_NODES
-	cout << "lsSceneManager::Add_Scene : " << scene->getName() << endl;
+	if (scene) {
+		cout << "lsSceneManager::Add_Scene : " << scene->getName() << endl;
+	} else {
+		cout << "lsSceneManager::Add_Scene : Attempted to add a null scene." << endl;
+		return;
+	}
 #endif
-
-	if( scene_list ) scene_list->setPrev_node( scene );
-	scene->setNext_node( scene_list );
-	scene_list = scene;
+	m_scenes.push_back(unique_ptr<lsScene>(scene));
 }
 
 lsScene* lsSceneManager::FindScene( const string& name )
 {
-	lsScene *scene = scene_list;
-	while( scene )
+	for (const auto& scene_ptr : m_scenes)
 	{
-		if( scene->getName() == name )
+		if (scene_ptr && scene_ptr->getName() == name)
 		{
-			return scene;
+			return scene_ptr.get();
 		}
-		scene = (lsScene*)scene->getNext_node();
 	}
-	return NULL;
+	return nullptr;
 }
 
 // Helper to parse (x,y,z) from string like "(1.0,2.0,3.0)"
@@ -209,17 +202,17 @@ static std::vector<std::string> tokenize_vgs(const std::string& input)
 void lsSceneManager::SaveScenes( const string& path )
 {
 	cout << "Save scenes to path : " << path << endl;
-	lsScene *scene = scene_list;
-
-	while( scene )
+	
+	// Iterate through the vector of unique_ptrs to scenes
+	for (const auto& scene_ptr : m_scenes)
 	{
-		// open a file per scene
-
-		// pass file on
-		scene->Save();
-
-		// Next scene
-		scene = (lsScene*)scene->getNext_node();
+		lsScene* scene = scene_ptr.get();
+		if (scene)
+		{
+			// open a file per scene
+			// pass file on
+			scene->Save();
+		}
 	}
 }
 
@@ -387,6 +380,7 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
 				
 				lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
 				bulletObject->Init(mass);
+				obj->setBulletObject(bulletObject); // Set bullet object to the object
 			} else
 			{
 				std::cout << "WARNING: Object '" << objectName << "' not found for bullet box shape attachment." << std::endl;
@@ -410,6 +404,7 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
 				
 				lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
 				bulletObject->Init(mass);
+				obj->setBulletObject(bulletObject); // Set bullet object to the object
 			} else
 			{
 				std::cout << "WARNING: Object '" << objectName << "' not found for bullet pill shape attachment." << std::endl;
@@ -432,6 +427,7 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
 
 				lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
 				bulletObject->Init(mass);
+				obj->setBulletObject(bulletObject); // Set bullet object to the object
 			} else
 			{
 				 std::cout << "WARNING: Object '" << objectName << "' not found or has no mesh for convex hull shape." << std::endl;
@@ -454,6 +450,7 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
 
 				lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
 				bulletObject->Init(mass);
+				obj->setBulletObject(bulletObject); // Set bullet object to the object
 			} else
 			{
 				 std::cout << "WARNING: Object '" << objectName << "' not found or has no mesh for trimesh shape." << std::endl;
@@ -555,21 +552,16 @@ void lsSceneManager::LinkLightsInScene(lsScene* scene, int maxLightsPerObject)
 			all_objects.push_back(obj);
 		}
 		
-		// Recurse for children
-		if (node->getNode_list()) {
-			collectObjects(node->getNode_list());
-		}
-		
-		// Recurse for siblings (this handles traversing the top-level nodes in the scene)
-		if (node->getNext_node() && node->getParent() == nullptr) {
-			collectObjects(node->getNext_node());
-		} else if (node->getNext_node() && node->getParent()) { // For non-root nodes, just iterate siblings
-			collectObjects(node->getNext_node());
+		// Recurse for children using the correct getChildren() method
+		for (const auto& child_ptr : node->getChildren()) {
+			collectObjects(child_ptr.get());
 		}
 	};
 	
-	// Start collection from the scene's root children
-	collectObjects(scene->getNode_list());
+	// Start collection from the scene's children (scene itself is a lsNode)
+	for (const auto& child_ptr : scene->getChildren()) {
+		collectObjects(child_ptr.get());
+	}
 	
 	std::cout << "INFO: Found " << all_objects.size() << " objects and " << all_lights.size() << " lights to process for linking." << std::endl;
 	

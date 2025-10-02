@@ -14,13 +14,13 @@
 #include "lsAsset.h"
 
 
-lsAsset::lsAsset( lsOpenGL *ogl )
+lsAsset::lsAsset( lsRender *m_render )
 {
     // Managers MUST be set by Asset Manager
     assetmanager = NULL;
 
-    // Make sure we have access to opengl
-    opengl = ogl;
+    // Make sure we have access to render
+    render = m_render;
 
     // Ser our pointers
     next_asset = NULL;

@@ -3,8 +3,8 @@
 #include <iostream>
 #include <string>
 
-// opengl
-#include "../render/lsOpenGL.h"
+// render
+#include "../render/lsRender.h"
 
 // bullet
 #include <bullet/btBulletDynamicsCommon.h>

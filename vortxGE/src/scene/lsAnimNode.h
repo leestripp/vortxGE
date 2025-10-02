@@ -1,5 +1,4 @@
-#ifndef vortxGE_lsAnimNode_h
-#define vortxGE_lsAnimNode_h
+#pragma once
 
 // prototypes
 class lsAnimationManager;
@@ -15,45 +14,41 @@ class lsProperty;
 class lsAnimNode : public lsNode
 {
 public:
-    lsAnimNode( lsNode* p );
-    virtual ~lsAnimNode();
-
+	lsAnimNode( lsNode* p );
+	virtual ~lsAnimNode();
+	
 	// Override functions
-	virtual void Move( lsScene* scn, lsOpenGL* opengl, double delta );
-	virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
-	virtual void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsOpenGL* opengl );
-    // Scene
-    virtual lsScene *Get_Scene();
-    virtual lsEventManager *Get_EventManager();
-
+	virtual void Move( lsScene* scn, lsRender* render, double delta );
+	virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	virtual void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	// Scene
+	virtual lsScene *Get_Scene();
+	virtual lsEventManager *Get_EventManager();
+	
 	// animation
-    void Init_Animation( double fps );
-    void Play_Animation( bool loop );
-    void Stop_Animation();
-
+	void Init_Animation( double fps );
+	void Play_Animation( bool loop );
+	void Stop_Animation();
+	
 	// Properties
 	void Add_Property( lsProperty *p );
-
-    // Save data
-    virtual const string& toString();
-
-    lsAnimationManager* getAnimationManager() const
-    {
-        return animationmanager;
-    }
-
-    lsProperty* getProperty_list() const
-    {
-        return property_list;
-    }
-
+	
+	// Save data
+	virtual const string& toString();
+	
+	lsAnimationManager* getAnimationManager() const
+	{
+		return animationmanager;
+	}
+	
+	lsProperty* getProperty_list() const
+	{
+		return property_list;
+	}
+	
 private:
-    lsAnimationManager  *animationmanager;
-
-    // Properties
-    lsProperty          *property_list;
-
+	lsAnimationManager  *animationmanager;
+	
+	// Properties
+	lsProperty          *property_list;
 };
-
-
-#endif

@@ -7,7 +7,7 @@ class lsFBO_Depth;
 class lsPass_ShadowMap : public lsPass
 {
 public:
-    lsPass_ShadowMap( int x, int y, int width, int height, lsOpenGL *opengl );
+    lsPass_ShadowMap( int x, int y, int width, int height, lsRender *render );
     virtual ~lsPass_ShadowMap();
 
     void Update();

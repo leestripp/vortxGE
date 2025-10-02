@@ -9,7 +9,7 @@
 class lsBatch_Normals : public lsBatch_Lines
 {
 public:
-    lsBatch_Normals( lsOpenGL *opengl );
+    lsBatch_Normals( lsRender *render );
     virtual ~lsBatch_Normals();
 
 private:

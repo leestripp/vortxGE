@@ -4,7 +4,8 @@
 #include "vortx_debug.h"
 #include "config.h"
 
-// OpenGL
+// Render
+#include "render/lsRender.h"
 #include "render/lsOpenGL.h"
 
 // OpenAL
@@ -26,8 +27,8 @@
 
 //! Core class of the library
 /*!
- * After creating an instance of vortxGE you must create a valid openGL context for output,
- * once openGL is ready then call Init() on the vortxGE instance.
+ * After creating an instance of vortxGE you must create a valid render context for output,
+ * once render instance is ready then call Init() on the vortxGE instance.
  *
  */
 vortxGE::vortxGE()
@@ -38,10 +39,10 @@ vortxGE::vortxGE()
 	cout << "." << vortxGE_VERSION_PATCH;
 	cout << " by Lee A. Stripp" << endl;
 	
-	// Set some defaults, Must call Init() when a valid openGL context is ready.
-	opengl = NULL;
+	// Set some defaults, Must call Init() when a valid render context is ready.
+	render = nullptr;
 	// Managers
-	shadermanager = NULL;
+	shadermanager = nullptr;
 	assetmanager = NULL;
 	controlmanager = NULL;
 	stats = NULL;
@@ -61,14 +62,14 @@ vortxGE::~vortxGE()
  * Init creates instances of :
  *
  *      lsStats
- *      lsOpenGL
+ *      lsRender
  *      lsShaderManager
  *      lsAssetManager
  *      lsControlManager
  *      lsOpenAL
  *
- * Then links the instances of lsStats and lsShaderManager to lsOpenGL
- * Next it calls Init on both lsOpenGL and lsShaderManager
+ * Then links the instances of lsStats and lsShaderManager to lsRender
+ * Next it calls Init on both lsRender and lsShaderManager
  *
  * @returns 1 = error, 0 = no errors.
  */
@@ -83,40 +84,42 @@ int vortxGE::Init()
 		cout << "ERROR: vortxGE::Init() - Could not instance lsStats" << endl;
 		return 1;
 	}
-
-	opengl = new lsOpenGL;
-	if(! opengl )
+	
+	// TODO: Support more render libries.
+	// Currently vortxGE only support OpenGL
+	render = new lsOpenGL;
+	if(! render )
 	{
-		cout << "ERROR: vortxGE::Init() - Could not instance lsOpenGL" << endl;
+		cout << "ERROR: vortxGE::Init() - Could not instance lsRender" << endl;
 		delete stats;
 		return 1;
 	}
 	
-	shadermanager = new lsShaderManager( opengl );
+	shadermanager = new lsShaderManager( render );
 	if(! shadermanager )
 	{
 		cout << "ERROR: vortxGE::Init() - Could not instance lsShaderManager" << endl;
 		delete stats;
-		delete opengl;
+		delete render;
 		return 1;
 	}
 	
-	assetmanager = new lsAssetManager( opengl );
+	assetmanager = new lsAssetManager( render );
 	if(! assetmanager )
 	{
 		cout << "ERROR: vortxGE::Init() - Could not instance lsAssetManager" << endl;
 		delete stats;
-		delete opengl;
+		delete render;
 		delete shadermanager;
 		return 1;
 	}
 	
-	controlmanager = new lsControlManager( opengl );
+	controlmanager = new lsControlManager( render );
 	if(! controlmanager )
 	{
 		cout << "ERROR: vortxGE::Init() - Could not instance lsControlManager" << endl;
 		delete stats;
-		delete opengl;
+		delete render;
 		delete shadermanager;
 		delete assetmanager;
 		return 1;
@@ -128,7 +131,7 @@ int vortxGE::Init()
 	{
 		cout << "ERROR: vortxGE::Init() - Could not instance or initialize lsOpenAL" << endl;
 		delete stats;
-		delete opengl;
+		delete render;
 		delete shadermanager;
 		delete assetmanager;
 		if (openal) delete openal;
@@ -136,14 +139,15 @@ int vortxGE::Init()
 	}
 	
 	// shared info
-	opengl->setStats( stats );
-	opengl->setShaderManager( shadermanager );
+	render->setStats( stats );
+	render->setShaderManager( shadermanager );
 	
 	// Init subsystems
-	opengl->Init();
+	render->Init();
 	shadermanager->Init();
 	
-	opengl->StoreDefaultFramebuffer();
+	// Desktops Framebuffer
+	render->StoreDefaultFramebuffer();
 	
 	return 0;
 }
@@ -154,7 +158,7 @@ void vortxGE::Cleanup()
 	if( assetmanager ) delete assetmanager;
 	if( shadermanager ) delete shadermanager;
 	
-	if( opengl ) delete opengl;
+	if( render ) delete render;
 	if( stats ) delete stats;
 	if( openal ) delete openal;
 	
@@ -162,7 +166,7 @@ void vortxGE::Cleanup()
 	assetmanager = NULL;
 	shadermanager = NULL;
 	
-	opengl = NULL;
+	render = NULL;
 	stats = NULL;
 	openal = NULL;
 }
@@ -197,7 +201,7 @@ void vortxGE::Render()
 	if( controlmanager ) controlmanager->Render();
 	
 	// reset framebuffer
-	opengl->RestoreDefaultFramebuffer();
+	render->RestoreDefaultFramebuffer();
 	
 	stats->Loop_Stop();
 	stats->Update();

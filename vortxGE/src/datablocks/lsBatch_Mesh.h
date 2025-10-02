@@ -15,7 +15,7 @@ const int TANGENT_DATA		= 3;
 const int UV_DATA		    = 4;
 const int INDEX_DATA			= 5;
 
-class lsOpenGL;
+class lsRender;
 class lsObject;
 class lsPass;
 class lsCamera;
@@ -27,7 +27,7 @@ class lsListItem_vertexdata;
 class lsBatch_Mesh : public lsBatch
 {
 public:
-	lsBatch_Mesh( lsOpenGL *opengl );
+	lsBatch_Mesh( lsRender *render );
 	virtual ~lsBatch_Mesh();
 
 	// lsBatch

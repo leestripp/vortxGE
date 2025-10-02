@@ -1,7 +1,7 @@
 #include "lsSpeaker.h"
 
 #include "lsScene.h"
-#include "../render/lsOpenGL.h"
+#include "../render/lsRender.h"
 #include "../filesystem/lsFileIO.h"
 #include "../filesystem/lsDir.h"
 #include <fstream>
@@ -55,10 +55,10 @@ lsSpeaker::~lsSpeaker()
     Cleanup();
 }
 
-void lsSpeaker::Move(lsScene* scn, lsOpenGL* opengl, double delta)
+void lsSpeaker::Move(lsScene* scn, lsRender* render, double delta)
 {
     // First, call the base class Move to update the ModelMatrix
-    lsAnimNode::Move(scn, opengl, delta);
+    lsAnimNode::Move(scn, render, delta);
 
     // Update OpenAL source position based on the ModelMatrix
     if (m_sourceId != 0) {

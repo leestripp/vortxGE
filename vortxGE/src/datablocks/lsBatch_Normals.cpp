@@ -4,7 +4,7 @@
 
 #include "lsBatch_Normals.h"
 
-lsBatch_Normals::lsBatch_Normals( lsOpenGL *opengl ) : lsBatch_Lines(opengl)
+lsBatch_Normals::lsBatch_Normals( lsRender *render ) : lsBatch_Lines(render)
 {
     setBatch_type( LSBT_NORMALS );
     setName("Batch Normals");

@@ -1,7 +1,8 @@
 #ifndef LSFBO_H
 #define LSFBO_H
 
-// opengl
+// Render
+#include "../render/lsRender.h"
 #include "../render/lsOpenGL.h"
 
 const int LSFT_NONE             = 0;
@@ -18,7 +19,7 @@ using namespace std;
 class lsFBO
 {
 public:
-    lsFBO( lsOpenGL *opengl );
+    lsFBO( lsRender *render );
     virtual ~lsFBO();
 
     // Subclass
@@ -58,8 +59,8 @@ public:
         return height;
     }
 
-    lsOpenGL *getOgl() const;
-    void setOgl(lsOpenGL *value);
+    lsRender *getOgl() const;
+    void setOgl(lsRender *value);
 
     // public fbo object
 	GLuint m_fbo;
@@ -70,7 +71,7 @@ private:
     double height;
 
     // store link
-    lsOpenGL *ogl;
+    lsRender *m_render;
 };
 
 #endif // LSFBO_H

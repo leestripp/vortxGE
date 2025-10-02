@@ -4,8 +4,8 @@
 #include <iostream>
 #include <string>
 
-// opengl
-#include "../render/lsOpenGL.h"
+// render
+#include "../render/lsRender.h"
 
 // timers
 #include "../timers/lsTimer.h"
@@ -42,10 +42,10 @@ public:
 	virtual ~lsObjectEmitter();
 
 	// Emit
-	void EmitObject( lsScene *scn, lsOpenGL *opengl );
+	void EmitObject( lsScene *scn, lsRender *render );
 
 	// Override functions
-	virtual void Move( lsScene* scn, lsOpenGL* opengl, double delta );
+	virtual void Move( lsScene* scn, lsRender* render, double delta );
 
 	// Get Set
 	double getEmittime() const;

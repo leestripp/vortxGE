@@ -1,6 +1,7 @@
 #include "lsRender.h"
 
 lsRender::lsRender() :
+	m_type(RenderType::None),
 	m_stats(nullptr),
 	m_shaderManager(nullptr)
 {

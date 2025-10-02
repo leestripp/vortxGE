@@ -1,26 +1,26 @@
 // core
 #include "../vortx_debug.h"
 
-// opengl
-#include "../render/lsOpenGL.h"
+// render
+#include "../render/lsRender.h"
 
 #include "lsShaderManager.h"
 #include "lsShader.h"
 
 
-lsShaderManager::lsShaderManager( lsOpenGL *opengl )
+lsShaderManager::lsShaderManager( lsRender *render )
 {
-    ogl = opengl;
-
-    shader_list = NULL;
+    m_render = render;
 }
 
 lsShaderManager::~lsShaderManager()
 {
-    while( shader_list )
+    // Delete all shaders in the map
+    for (auto& pair : shader_map)
     {
-        Del_Shader(shader_list);
+        delete pair.second;
     }
+    shader_map.clear();
 }
 
 void lsShaderManager::Init()
@@ -28,26 +28,26 @@ void lsShaderManager::Init()
 #ifdef VORTX_DEBUG_SHADERS
     cout << "lsShaderManager::Init()" << endl;
 #endif
-
+	
     // load built-in shaders
     lsShader *shd;
-
+	
     // Default Shadeless
-    shd = new lsShader( ogl );
-    if (shd)
+    shd = new lsShader( m_render );
+    if(shd)
     {
         shd->Load_Shader("debug");
         Add_Shader( shd );
     }
-
-    shd = new lsShader( ogl );
+	
+    shd = new lsShader( m_render );
     if (shd)
     {
         shd->Load_Shader("quad");
         Add_Shader( shd );
     }
-
-    shd = new lsShader( ogl );
+	
+    shd = new lsShader( m_render );
     if (shd)
     {
         shd->Load_Shader("shadowmap");
@@ -61,31 +61,22 @@ void lsShaderManager::Add_Shader( lsShader* shader )
     cout << "lsShaderManager::Add_Shader() - Name: " << shader->getName() << endl;
 #endif
 
-    shader->setNext_shader( shader_list );
-    if( shader_list ) shader_list->setPrev_shader( shader );
-    shader_list = shader;
+    // Store in map with name as key
+    shader_map[shader->getName()] = shader;
 }
 
 void lsShaderManager::Del_Shader( lsShader* shader )
 {
 #ifdef VORTX_DEBUG_SHADERS
-    cout << "sShaderManager::Del_Shader() - Name: " << shader->getName() << endl;
+    cout << "lsShaderManager::Del_Shader() - Name: " << shader->getName() << endl;
 #endif
 
-    if( shader->getPrev_shader() == NULL )
-    {
-        // first in list
-        shader_list = shader->getNext_shader();
-        if( shader_list ) shader_list->setPrev_shader( NULL );
-    } else
-    {
-        // Close the gap
-        shader->getPrev_shader()->setNext_shader( shader->getNext_shader() );
-        if( shader->getNext_shader() )
-        {
-            shader->getNext_shader()->setPrev_shader( shader->getPrev_shader() );
-        }
+    // Remove from map
+    auto it = shader_map.find(shader->getName());
+    if (it != shader_map.end()) {
+        shader_map.erase(it);
     }
+    
     delete shader;
 }
 
@@ -95,20 +86,24 @@ lsShader* lsShaderManager::Find_Shader( const string &name )
     cout << "lsShaderManager::Find_Shader() - Name: " << name << endl;
 #endif
 
-    lsShader* shader;
-
-    shader = shader_list;
-    while( shader )
-    {
-        if( shader->getName() == name ) break;
-        shader = shader->getNext_shader();
+    auto it = shader_map.find(name);
+    if (it != shader_map.end()) {
+#ifdef VORTX_DEBUG_SHADERS
+        cout << "lsShaderManager::Find_Shader() - Shader Found: " << it->second->getName() << endl;
+#endif
+        return it->second;
     }
 
-#ifdef VORTX_DEBUG_SHADERS
-    if( shader )
-      cout << "lsShaderManager::Find_Shader() - Shader Found: " << shader->getName() << endl;
-#endif
-
-    return shader;
+    return nullptr;
 }
 
+ShaderKind lsShaderManager::getShaderKindByName(const string& name) const
+{
+    auto it = shaderNameToKindMap.find(name);
+    if (it != shaderNameToKindMap.end()) {
+        return it->second;
+    }
+    
+    // Default fallback
+    return ShaderKind::None;
+}

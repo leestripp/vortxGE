@@ -11,7 +11,7 @@
 
 #include "lsViewer.h"
 
-lsViewer::lsViewer( lsOpenGL *opengl, lsControl *p ) : lsControl(opengl,p)
+lsViewer::lsViewer( lsRender *render, lsControl *p ) : lsControl(render,p)
 {
     setControl_type( LSCT_VIEWER );
     setName("Viewer");
@@ -40,7 +40,7 @@ lsViewer::~lsViewer()
  * lsPassManager\n
  * \n
  *
- * \param opengl - link to the lsOpenGL instance created in vortxGE
+ * \param render - link to the lsRender instance created in vortxGE
  * \return - error code: not implemented yet.
  */
 int lsViewer::Init()
@@ -79,7 +79,7 @@ int lsViewer::Init()
  * Call our lsSceneManagers Update() function.
  * Then passes Update() along to the Hierarchy.
  *
- * \param opengl
+ * \param render
  * \param delta
  */
 void lsViewer::Update( double delta )

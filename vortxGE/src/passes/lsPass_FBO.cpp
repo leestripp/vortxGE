@@ -3,7 +3,7 @@
 #include "../vortx_debug.h"
 
 // OpenGL
-#include "../render/lsOpenGL.h"
+#include "../render/lsRender.h"
 
 // datablocks
 #include "../datablocks/lsStats.h"
@@ -15,7 +15,7 @@
 
 #include "lsPass_FBO.h"
 
-lsPass_FBO::lsPass_FBO( lsOpenGL* opengl ) : lsPass(opengl)
+lsPass_FBO::lsPass_FBO( lsRender* render ) : lsPass(render)
 {
     setPass_type( LSPT_FBO );
     setName("Pass : FBO");

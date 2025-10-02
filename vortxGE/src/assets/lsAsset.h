@@ -6,7 +6,8 @@
 // vortxGE
 #include "../vortx_debug.h"
 
-// opengl
+// Render
+#include "../render/lsRender.h"
 #include "../render/lsOpenGL.h"
 
 // types
@@ -34,7 +35,7 @@ using namespace std;
 class lsAsset
 {
 public:
-    lsAsset( lsOpenGL *ogl );
+    lsAsset( lsRender *m_render );
     virtual ~lsAsset();
 
     // User count
@@ -115,15 +116,15 @@ public:
         assetmanager = val;
     }
 
-    // opengl
-    lsOpenGL* getOpenGL() const
+    // render
+    lsRender* getOpenGL() const
     {
-        return opengl;
+        return render;
     }
 
-    void setOpenGL( lsOpenGL* val )
+    void setOpenGL( lsRender* val )
     {
-        opengl = val;
+        render = val;
     }
 
 private:
@@ -131,7 +132,7 @@ private:
     lsAsset* prev_asset;
     // Managers
     lsAssetManager *assetmanager;
-    lsOpenGL *opengl;
+    lsRender *render;
 
     // Data
     int asset_type;

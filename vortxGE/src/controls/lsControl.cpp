@@ -4,8 +4,8 @@
 // core
 #include "../vortxGE.h"
 
-// opengl
-#include "../render/lsOpenGL.h"
+// render
+#include "../render/lsRender.h"
 
 // Assets
 #include "../assets/lsAssetManager.h"
@@ -23,16 +23,16 @@
  *
  * \param p - link to parent control.
  */
-lsControl::lsControl( lsOpenGL *opengl, lsControl* p )
+lsControl::lsControl( lsRender *render, lsControl* p )
 {
     control_type = LSCT_NONE;
     parent = p;
 
-    // store opengl
-    ogl = opengl;
+    // store render
+    m_render = render;
 
     // Control hierarchy
-    controlmanager = new lsControlManager( opengl );
+    controlmanager = new lsControlManager( render );
     if(! controlmanager )
     {
         // ERROR
@@ -64,7 +64,7 @@ lsControl::~lsControl()
 
 /*!
  * \brief lsControl::Update
- * \param opengl
+ * \param render
  * \param delta
  */
 void lsControl::Update( double delta )
@@ -76,7 +76,7 @@ void lsControl::Update( double delta )
 
 /*!
  * \brief lsControl::Render
- * \param opengl
+ * \param render
  */
 void lsControl::Render()
 {
@@ -110,13 +110,13 @@ void lsControl::Add_Control( lsControl* val )
     }
 }
 
-lsOpenGL *lsControl::getOgl() const
+lsRender *lsControl::getOgl() const
 {
-    return ogl;
+    return m_render;
 }
 
-void lsControl::setOgl(lsOpenGL *value)
+void lsControl::setOgl(lsRender *value)
 {
-    ogl = value;
+    m_render = value;
 }
 

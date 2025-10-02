@@ -13,7 +13,7 @@ public:
     virtual ~lsSpeaker();
 
     // Override from lsAnimNode
-    void Move(lsScene* scn, lsOpenGL* opengl, double delta) override;
+    void Move(lsScene* scn, lsRender* render, double delta) override;
 
     // Load WAV file into OpenAL buffer
     bool LoadWav(const std::string& filename);

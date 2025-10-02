@@ -1,8 +1,8 @@
 // bullet
 #include <bullet/btBulletDynamicsCommon.h>
 
-// opengl
-#include "../render/lsOpenGL.h"
+// render
+#include "../render/lsRender.h"
 
 // filesystem
 #include "../filesystem/lsFileIO.h"
@@ -15,9 +15,9 @@
 
 #include "lsBulletShape.h"
 
-lsBulletShape::lsBulletShape( lsOpenGL *opengl ) : lsData()
+lsBulletShape::lsBulletShape( lsRender *render ) : lsData()
 {
-  ogl = opengl;
+  m_render = render;
   shape = NULL;
 }
 
@@ -65,7 +65,7 @@ void lsBulletShape::Make_Pill( float radius, float height )
 // ###########################
 // From file
 
-void lsBulletShape::Make_ConvexHull( const string& filename, lsOpenGL *opengl )
+void lsBulletShape::Make_ConvexHull( const string& filename, lsRender *render )
 {
 	lsBatch_Bullet *batch = NULL;
 	int i;
@@ -94,7 +94,7 @@ void lsBulletShape::Make_ConvexHull( const string& filename, lsOpenGL *opengl )
 						break;
 					} else
 					{
-						batch = new lsBatch_Bullet(opengl);
+						batch = new lsBatch_Bullet(render);
 						if( batch )
 						{
 							i = convert.toInt( list[1] );
@@ -166,7 +166,7 @@ void lsBulletShape::Make_TriMesh( const string& filename, float size )
 						break;
 					} else
 					{
-						batch = new lsBatch_Bullet( ogl );
+						batch = new lsBatch_Bullet( m_render );
 						if( batch )
 						{
 							i = convert.toInt( list[1] );
@@ -207,7 +207,7 @@ void lsBulletShape::Make_ConvexHull_FromMesh( lsMesh* mesh )
 {
     if (!mesh) return;
 
-    lsBatch_Bullet* batch = new lsBatch_Bullet(ogl);
+    lsBatch_Bullet* batch = new lsBatch_Bullet(m_render);
     if (!batch) return;
 
     // Estimate total vertices to pre-allocate
@@ -244,7 +244,7 @@ void lsBulletShape::Make_TriMesh_FromMesh( lsMesh* mesh )
 {
     if (!mesh) return;
 
-    lsBatch_Bullet* batch = new lsBatch_Bullet(ogl);
+    lsBatch_Bullet* batch = new lsBatch_Bullet(m_render);
     if (!batch) return;
 
     // Estimate total vertices and indices

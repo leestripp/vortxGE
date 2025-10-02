@@ -7,10 +7,10 @@
 #include "lsPassManager.h"
 
 
-lsPassManager::lsPassManager( lsOpenGL* opengl )
+lsPassManager::lsPassManager( lsRender* render )
 {
     pass_list = NULL;
-    ogl = opengl;
+    m_render = render;
 }
 
 lsPassManager::~lsPassManager()
@@ -93,13 +93,13 @@ void lsPassManager::Del_Pass( lsPass *pass )
 	delete pass;
 }
 
-lsOpenGL *lsPassManager::getOgl() const
+lsRender *lsPassManager::getOgl() const
 {
-    return ogl;
+    return m_render;
 }
 
-void lsPassManager::setOgl(lsOpenGL *value)
+void lsPassManager::setOgl(lsRender *value)
 {
-    ogl = value;
+    m_render = value;
 }
 

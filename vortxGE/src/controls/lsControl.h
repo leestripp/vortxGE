@@ -5,7 +5,7 @@
 #include <string>
 
 class vortxGE;
-class lsOpenGL;
+class lsRender;
 class lsControlManager;
 class lsShaderManager;
 class lsAssetManager;
@@ -35,7 +35,7 @@ using namespace std;
 class lsControl
 {
 public:
-    lsControl( lsOpenGL *opengl, lsControl* p );
+    lsControl( lsRender *render, lsControl* p );
     virtual ~lsControl();
 
     // Inti
@@ -121,8 +121,8 @@ public:
         return parent;
     }
 
-    lsOpenGL *getOgl() const;
-    void setOgl(lsOpenGL *value);
+    lsRender *getOgl() const;
+    void setOgl(lsRender *value);
 
 private:
     lsControl   *next_control;
@@ -131,8 +131,8 @@ private:
     lsControlManager *controlmanager;
     lsControl *parent;
 
-    // opengl
-    lsOpenGL *ogl;
+    // render
+    lsRender *m_render;
 
     int         control_type;
     string      name;

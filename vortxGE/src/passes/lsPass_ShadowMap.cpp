@@ -1,5 +1,5 @@
 #include "../vortx_debug.h"
-#include "../render/lsOpenGL.h"
+#include "../render/lsRender.h"
 #include "../datablocks/lsStats.h"
 #include "../datablocks/lsFBO_Depth.h"
 #include "../scene/lsScene.h"
@@ -7,12 +7,12 @@
 #include "../scene/lsLight.h"
 #include "lsPass_ShadowMap.h"
 
-lsPass_ShadowMap::lsPass_ShadowMap( int x, int y, int width, int height, lsOpenGL *opengl ) : lsPass(opengl)
+lsPass_ShadowMap::lsPass_ShadowMap( int x, int y, int width, int height, lsRender *render ) : lsPass(render)
 {
 	setPass_type( LSPT_SHADOWMAP );
 	setName("Pass : Shadow Map");
 
-	fbo = new lsFBO_Depth( width, height, opengl );
+	fbo = new lsFBO_Depth( width, height, render );
 	if (!fbo)
 	{
 		cout << "lsPass_ShadowMap::lsPass_ShadowMap: ERROR - could not create lsFBO_Depth instance" << endl;

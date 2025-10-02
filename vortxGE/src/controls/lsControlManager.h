@@ -4,7 +4,7 @@
 #include <iostream>
 
 class lsControl;
-class lsOpenGL;
+class lsRender;
 
 using namespace std;
 
@@ -23,7 +23,7 @@ using namespace std;
 class lsControlManager
 {
 public:
-    lsControlManager( lsOpenGL* opengl );
+    lsControlManager( lsRender* render );
     virtual ~lsControlManager();
 
     void Update( double delta );
@@ -38,13 +38,13 @@ public:
         return control_list;
     }
 
-    lsOpenGL *getOgl() const;
-    void setOgl(lsOpenGL *value);
+    lsRender *getOgl() const;
+    void setOgl(lsRender *value);
 
 private:
     lsControl *control_list;
 
-    lsOpenGL *ogl;
+    lsRender *m_render;
 
 };
 
