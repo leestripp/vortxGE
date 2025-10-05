@@ -110,7 +110,7 @@ void lsControl::Add_Control( lsControl* val )
     }
 }
 
-lsRender *lsControl::getOgl() const
+lsRender *lsControl::getRender() const
 {
     return m_render;
 }

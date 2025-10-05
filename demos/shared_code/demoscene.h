@@ -1,4 +1,3 @@
-
 #pragma once
 
 // math
@@ -11,7 +10,7 @@ class lsViewer;
 class lsObject;
 class lsCamera;
 class lsEvent;
-class lsNode_FirstPersonRig;
+class lsFirstPersonRig;
 class lsSpeaker;
 
 using namespace std;
@@ -51,8 +50,8 @@ private:
     lsViewer *m_viewer;
 	
     // Player Rig
-    lsNode_FirstPersonRig* m_playerRig;
-
+    lsFirstPersonRig* m_playerRig; // Changed type to lsFirstPersonRig
+    
     // Audio Speaker
     lsSpeaker* m_speaker; // Add a speaker object to the scene
 };

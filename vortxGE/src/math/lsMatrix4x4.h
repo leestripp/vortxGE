@@ -4,9 +4,6 @@
 #include <string>
 #include <memory>
 
-// array types
-typedef float	Matrix44f[16];
-
 class lsVector3;
 class lsQuaternion;
 
@@ -39,18 +36,20 @@ public:
 	float Cotangent(float angle);
 	void LookAt( const lsVector3& eyePosition, const lsVector3& lookAt, const lsVector3& upVector );
 	lsMatrix4x4& transpose( const lsMatrix4x4& m );
-	// New: Extract only the rotation component of the matrix.
-	lsMatrix4x4 extractRotation() const;
-	// checks
+	// New: Extract only the rotation component of the matrix (no translation/scale)
+	lsMatrix4x4 extractRotation();
+	
+	// Static utility for Euler angle conversion
+	static lsVector3 ToEulerZYX(const lsMatrix4x4& m);
+	
+	// Tests
 	bool isEqual( const lsMatrix4x4& mat );
 	bool isIdentity();
 	
-	// Debug
-	void debug( const string& str );
-	
+    // Debug method declaration
+    void debug( const string& str );
+
 	// Data
 	float matrix[16];
-	
-private:
-	float moe;
+	float moe; // margin of error
 };

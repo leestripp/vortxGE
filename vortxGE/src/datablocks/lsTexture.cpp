@@ -213,7 +213,7 @@ int lsTexture::Get_ImageType( const string& filename )
     return result;
 }
 
-lsRender *lsTexture::getOgl() const
+lsRender *lsTexture::getRender() const
 {
     return m_render;
 }

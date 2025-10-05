@@ -59,7 +59,7 @@ public:
         return height;
     }
 
-    lsRender *getOgl() const;
+    lsRender *getRender() const;
     void setOgl(lsRender *value);
 
     // public fbo object

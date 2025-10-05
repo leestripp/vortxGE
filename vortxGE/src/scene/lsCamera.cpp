@@ -1,4 +1,3 @@
-// Threads
 #include <mutex>
 
 // core
@@ -186,19 +185,26 @@ void lsCamera::Set_Orthographic( float cube )
 
 void lsCamera::Update_Camera()
 {
-	lsVector3 eye, lookat, vup;
+	lsVector3 eye, lookat_target, up_vector;
 	
 	eye = lsVector3( ModelMatrix.matrix[12], ModelMatrix.matrix[13], ModelMatrix.matrix[14] );
-	// The camera/light's forward direction is its local -Z axis.
-	// The 3rd column of the model matrix (indices 8,9,10) is the transformed +Z axis.
-	// We subtract this from the eye position to get the look-at point.
-	lookat = lsVector3( ModelMatrix.matrix[12] - ModelMatrix.matrix[8], 
-						ModelMatrix.matrix[13] - ModelMatrix.matrix[9], 
-						ModelMatrix.matrix[14] - ModelMatrix.matrix[10] );
-	vup = lsVector3( ModelMatrix.matrix[4], ModelMatrix.matrix[5], ModelMatrix.matrix[6] );
+	
+	// The camera's local -Z axis (forward) transformed to world space.
+	// ModelMatrix.matrix[8], ModelMatrix.matrix[9], ModelMatrix.matrix[10] is the local +Z axis in world space (3rd column, 0-indexed).
+	// So, the forward vector is the negative of this.
+	lsVector3 forward_world(-ModelMatrix.matrix[8], -ModelMatrix.matrix[9], -ModelMatrix.matrix[10]);
+	forward_world.normalize();
+
+	// The point the camera is looking at is its position plus its forward vector.
+	lookat_target = eye + forward_world;
+
+	// The camera's local +Y axis (up) transformed to world space.
+	// ModelMatrix.matrix[4], ModelMatrix.matrix[5], ModelMatrix.matrix[6] is the local +Y axis in world space (2nd column, 0-indexed).
+	up_vector = lsVector3(ModelMatrix.matrix[4], ModelMatrix.matrix[5], ModelMatrix.matrix[6]);
+	up_vector.normalize();
 
 	ViewMatrix.LoadIdentity();
-	ViewMatrix.LookAt( eye, lookat, vup );
+	ViewMatrix.LookAt( eye, lookat_target, up_vector );
 
 #ifdef VORTX_DEBUG_NODES
 	// debug : use stringstream for threads.
@@ -213,7 +219,7 @@ void lsCamera::Update_Camera()
 #endif
 
 	/* Frustum */
-	frustum.Build_CullPlanes( eye, lookat, vup );
+	frustum.Build_CullPlanes( eye, lookat_target, up_vector );
 }
 
 // Save data

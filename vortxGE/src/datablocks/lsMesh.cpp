@@ -117,7 +117,7 @@ void lsMesh::Add_Batch( lsBatch *batch )
 	batch_list = batch;
 }
 
-lsRender *lsMesh::getOgl() const
+lsRender *lsMesh::getRender() const
 {
 	return m_render;
 }
@@ -204,7 +204,7 @@ void lsMesh::LoadVBM(const string& filename, lsAssetManager *am, lsShaderManager
 			{
 				if( list[1] == "start" )
 				{
-					batch = new lsBatch_Mesh( getOgl() );
+					batch = new lsBatch_Mesh( getRender() );
 					if( batch )
 					{
 						Add_Batch( batch );
@@ -858,7 +858,7 @@ void lsMesh::LoadVBM(const string& filename, lsAssetManager *am, lsShaderManager
 				} else
 				{
 					// Load a shader
-					shader = new lsShader( getOgl() );
+					shader = new lsShader( getRender() );
 					if( shader )
 					{
 						shader->Load_Shader( list[1] );
@@ -914,7 +914,7 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 
 	for (const auto& mesh : model.meshes) {
 		for (const auto& primitive : mesh.primitives) {
-			lsBatch_Mesh* batch = new lsBatch_Mesh(getOgl());
+			lsBatch_Mesh* batch = new lsBatch_Mesh(getRender());
 			if (!batch) continue;
 
 			// Attributes
@@ -1094,7 +1094,7 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 				
 				lsShader* shader = sm->Find_Shader(shader_name);
 				if (!shader) {
-					shader = new lsShader(getOgl());
+					shader = new lsShader(getRender());
 					shader->Load_Shader(shader_name);
 					if(shader->getKind() != ShaderKind::None)
 					{

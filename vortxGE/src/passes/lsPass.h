@@ -185,7 +185,7 @@ public:
         save_string = val;
     }
 
-    lsRender *getOgl() const;
+    lsRender *getRender() const;
     void setOgl(lsRender *value);
 
 private:

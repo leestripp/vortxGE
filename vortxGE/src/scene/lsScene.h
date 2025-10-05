@@ -57,7 +57,7 @@ public:
     }
 
     // physics
-
+	
     lsBulletWorld* getBulletworld() const
     {
         return bulletworld;

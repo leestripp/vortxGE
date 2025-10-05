@@ -48,7 +48,7 @@ public:
 		return batch_list;
 	}
 
-	lsRender *getOgl() const;
+	lsRender *getRender() const;
 	void setOgl(lsRender *value);
 
 private:

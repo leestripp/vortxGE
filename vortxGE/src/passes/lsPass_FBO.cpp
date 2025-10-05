@@ -52,17 +52,17 @@ void lsPass_FBO::Update()
                 if( getPrev_pass()->getCull_camera() != getCull_camera() )
                 {
                     // Optimize stats
-                    if( getOgl()->getStats() ) getOgl()->getStats()->Optimize_Start();
-                    getScene()->OptimizeThread( getCull_camera(), this, getScene(), getOgl() );
-                    if( getOgl()->getStats() ) getOgl()->getStats()->Optimize_Stop();
+                    if( getRender()->getStats() ) getRender()->getStats()->Optimize_Start();
+                    getScene()->OptimizeThread( getCull_camera(), this, getScene(), getRender() );
+                    if( getRender()->getStats() ) getRender()->getStats()->Optimize_Stop();
                 }
             }
         } else
         {
             // Optimize stats
-            if( getOgl()->getStats() ) getOgl()->getStats()->Optimize_Start();
-            getScene()->OptimizeThread( getCull_camera(), this, getScene(), getOgl() );
-            if( getOgl()->getStats() ) getOgl()->getStats()->Optimize_Stop();
+            if( getRender()->getStats() ) getRender()->getStats()->Optimize_Start();
+            getScene()->OptimizeThread( getCull_camera(), this, getScene(), getRender() );
+            if( getRender()->getStats() ) getRender()->getStats()->Optimize_Stop();
         }
     }// if scene
 }
@@ -77,7 +77,7 @@ void lsPass_FBO::Render()
     if( m_lsfbo )
     {
         // Store current FBO
-        getOgl()->StoreDefaultFramebuffer();
+        getRender()->StoreDefaultFramebuffer();
 		
         // use FBO
         m_lsfbo->Enable();
@@ -95,10 +95,10 @@ void lsPass_FBO::Render()
         m_lsfbo->ClearBuffers();
 		
         // Draw
-        if( getScene() ) getScene()->Draw( getCamera(), this, NULL, getOgl() );
+        if( getScene() ) getScene()->Draw( getCamera(), this, NULL, getRender() );
 
         // Make sure we are on the default framebuffer
-        getOgl()->RestoreDefaultFramebuffer();
+        getRender()->RestoreDefaultFramebuffer();
 
     } else
     {

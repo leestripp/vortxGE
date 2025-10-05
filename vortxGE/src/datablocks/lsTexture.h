@@ -77,7 +77,7 @@ public:
         this->height = val;
     }
 
-    lsRender *getOgl() const;
+    lsRender *getRender() const;
     void setOgl(lsRender *value);
 
     // Add a method to get raw float data for HDR processing if needed elsewhere

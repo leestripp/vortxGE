@@ -33,9 +33,9 @@ void lsPass_ShadowMap::Update()
 	if (getScene() && getCull_camera())
 	{
 		// We use the light as the cull camera for the shadow pass
-		if (getOgl()->getStats()) getOgl()->getStats()->Optimize_Start();
-		getScene()->OptimizeThread(getCull_camera(), this, getScene(), getOgl());
-		if (getOgl()->getStats()) getOgl()->getStats()->Optimize_Stop();
+		if (getRender()->getStats()) getRender()->getStats()->Optimize_Start();
+		getScene()->OptimizeThread(getCull_camera(), this, getScene(), getRender());
+		if (getRender()->getStats()) getRender()->getStats()->Optimize_Stop();
 	}
 }
 
@@ -43,7 +43,7 @@ void lsPass_ShadowMap::Render()
 {
 	if (fbo && getLight())
 	{
-		getOgl()->StoreDefaultFramebuffer();
+		getRender()->StoreDefaultFramebuffer();
 		fbo->Enable();
 		
 		glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y);
@@ -63,9 +63,9 @@ void lsPass_ShadowMap::Render()
 		fbo->ClearBuffers();
 		
 		// Render scene from light's perspective
-		if (getScene()) getScene()->Draw(getLight(), this, NULL, getOgl());
+		if (getScene()) getScene()->Draw(getLight(), this, NULL, getRender());
 		
-		getOgl()->RestoreDefaultFramebuffer();
+		getRender()->RestoreDefaultFramebuffer();
 		
 		// Restore OpenGL state
 		glDisable(GL_POLYGON_OFFSET_FILL);

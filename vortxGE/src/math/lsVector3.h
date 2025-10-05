@@ -28,7 +28,13 @@ public:
     lsVector3 operator*(const lsVector3 &v) const;
     lsVector3 operator/(float t) const;
     lsVector3 operator-() const;
-
+    lsVector3& operator+=(const lsVector3 &v);
+    lsVector3& operator-=(const lsVector3 &v);
+	
+    // Function for calculating the cross product of two vectors (A x B)
+    lsVector3 Cross(const lsVector3 &v) const;
+	float Dot(const lsVector3 &v) const;
+	
     lsVector3& RotateAboutX(float angle);
     lsVector3& RotateAboutY(float angle);
     lsVector3& RotateAboutZ(float angle);
@@ -87,3 +93,4 @@ private:
     string output;
 
 };
+

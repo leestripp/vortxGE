@@ -67,7 +67,7 @@
 #include <scene/lsObject.h>
 #include <scene/lsObjectEmitter.h>
 #include <scene/lsCamera.h>
-#include <scene/lsNode_FirstPersonRig.h> // Include the new rig
+#include <scene/lsFirstPersonRig.h> // Changed include to lsFirstPersonRig.h
 #include <scene/lsLight.h>
 #include <scene/lsLight_Spot.h>
 #include <scene/lsLight_Point.h>
@@ -267,9 +267,9 @@ void DemoScene::setupControls()
 		{
 			m_viewer->getSceneManager()->Add_Scene( m_viewer_scene );
 			
-			//*****************
-			// Add Player Rig
-			m_playerRig = new lsNode_FirstPersonRig(m_viewer_scene);
+			//***********************************************
+			// Add Player Rig - instantiate lsFirstPersonRig
+			m_playerRig = new lsFirstPersonRig(m_viewer_scene, m_viewer_scene->getBulletworld()->getDynamicsWorld());
 			m_playerRig->Set_Pos(0, 5, 8); // Position camera to look at the scene from +Z
 			m_viewer_scene->Add_Node(m_playerRig);
 			
@@ -541,14 +541,15 @@ void DemoScene::processEvent( lsEvent* event )
 void DemoScene::movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch)
 {
 	if (m_playerRig) {
-		m_playerRig->handleInput(f, b, l, r, jump, sprint, crouch);
+		m_playerRig->HandleKeyboardInput(1.0f / 60.0f, f, b, l, r, crouch, jump); // Assuming 60 FPS, passing delta time
 	}
 }
 
 void DemoScene::rotatePlayerView( double delta_x, double delta_y)
 {
 	if (m_playerRig) {
-		m_playerRig->handleMouseLook(delta_x, delta_y);
+		m_playerRig->HandleMouseLook(1.0f / 60.0f, static_cast<float>(delta_x), static_cast<float>(delta_y)); // Assuming 60 FPS
 	}
 }
+
 

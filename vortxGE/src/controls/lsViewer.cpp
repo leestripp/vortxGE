@@ -46,7 +46,7 @@ lsViewer::~lsViewer()
 int lsViewer::Init()
 {
     // Asset Manager
-    assetmanager = new lsAssetManager( getOgl() );
+    assetmanager = new lsAssetManager( getRender() );
     if(! assetmanager )
     {
         // ERROR
@@ -60,7 +60,7 @@ int lsViewer::Init()
         cout << "ERROR: lsViewer::Init - Could not create Scene Manager instance" << endl;
     }
 
-    passmanager = new lsPassManager( getOgl() );
+    passmanager = new lsPassManager( getRender() );
     if(! passmanager )
     {
         // ERROR
@@ -92,7 +92,7 @@ void lsViewer::Update( double delta )
 
     if( scenemanager )
     {
-        scenemanager->Update( getOgl(), delta );
+        scenemanager->Update( getRender(), delta );
     }
 
     // Pass it on

@@ -102,7 +102,7 @@ public:
         shader = val;
     }
 	
-    lsRender *getOgl() const;
+    lsRender *getRender() const;
     void setOgl(lsRender *value);
 	
     int getVertex_count() const;

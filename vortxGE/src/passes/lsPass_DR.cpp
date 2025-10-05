@@ -47,17 +47,17 @@ void lsPass_DR::Update()
                 if( getPrev_pass()->getCull_camera() != getCull_camera() )
                 {
                     // Optimize stats
-                    if( getOgl()->getStats() ) getOgl()->getStats()->Optimize_Start();
-                    getScene()->OptimizeThread( getCull_camera(), this, getScene(), getOgl() );
-                    if( getOgl()->getStats() ) getOgl()->getStats()->Optimize_Stop();
+                    if( getRender()->getStats() ) getRender()->getStats()->Optimize_Start();
+                    getScene()->OptimizeThread( getCull_camera(), this, getScene(), getRender() );
+                    if( getRender()->getStats() ) getRender()->getStats()->Optimize_Stop();
                 }
             }
         } else
         {
             // Optimize stats
-            if( getOgl()->getStats() ) getOgl()->getStats()->Optimize_Start();
-            getScene()->OptimizeThread( getCull_camera(), this, getScene(), getOgl() );
-            if( getOgl()->getStats() ) getOgl()->getStats()->Optimize_Stop();
+            if( getRender()->getStats() ) getRender()->getStats()->Optimize_Start();
+            getScene()->OptimizeThread( getCull_camera(), this, getScene(), getRender() );
+            if( getRender()->getStats() ) getRender()->getStats()->Optimize_Stop();
         }
     }// if scene
 }
@@ -69,7 +69,7 @@ void lsPass_DR::Render()
 #endif
 
     // TODO: workaround - how to find system FBO
-    getOgl()->RestoreDefaultFramebuffer();
+    getRender()->RestoreDefaultFramebuffer();
 
     // set viewport
     glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );
@@ -83,11 +83,11 @@ void lsPass_DR::Render()
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
 #ifdef VORTX_DEBUG_OPENGLERRORS
-    getOgl()->CheckGLErrors( getName() );
+    getRender()->CheckGLErrors( getName() );
 #endif // VORTX_DEBUG_OPENGLERRORS
 
     // Draw
-    if( getScene() ) getScene()->Draw( getCamera(), this, NULL, getOgl() );
+    if( getScene() ) getScene()->Draw( getCamera(), this, NULL, getRender() );
 }
 
 void lsPass_DR::Resize( int x, int y, int width, int height  )

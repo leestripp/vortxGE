@@ -93,7 +93,7 @@ void lsControlManager::Del_Control( lsControl* control )
     delete control;
 }
 
-lsRender *lsControlManager::getOgl() const
+lsRender *lsControlManager::getRender() const
 {
     return m_render;
 }

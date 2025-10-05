@@ -3,7 +3,7 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <memory>
+#include <memory> // Include for std::unique_ptr
 
 // math
 #include "../math/lsMatrix4x4.h"
@@ -74,7 +74,8 @@ public:
 	void Set_Life( double val );
 	
 	// Node tree
-	void Add_Node( lsNode *node );
+	// Changed signature to accept a unique_ptr by rvalue reference for ownership transfer
+	void Add_Node(lsNode* node);
 	void Del_Node( lsNode *node );
 	void Find_Node( lsScene* scn, const string& name );
 	void Del_Children();
@@ -83,6 +84,8 @@ public:
 	virtual void Set_Pos(float x, float y, float z);
 	virtual void Set_Rot(float x, float y, float z);
 	virtual void Set_Scale(float x, float y, float z);
+	// Rotate the node by applying a world-space rotation
+	void RotateWorld(float angle, float x, float y, float z);
 	
 	// Save data
 	void Save();
@@ -108,7 +111,7 @@ public:
     vector<unique_ptr<lsNode>>& getChildren() { // Non-const version for modification
         return m_children;
     }
-
+	
 	// Data --------------------------
 	
 	const string& getName()
@@ -139,7 +142,7 @@ public:
 	
 private:
 	lsNode  *parent;
-	// Children : managed
+	// Children : managed by unique_ptr for automatic memory management
 	vector<unique_ptr<lsNode>> m_children;
 	
 	// must be set.

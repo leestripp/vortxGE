@@ -19,7 +19,7 @@ lsFBO::~lsFBO()
   // never delete m_render;
 }
 
-lsRender *lsFBO::getOgl() const
+lsRender *lsFBO::getRender() const
 {
     return m_render;
 }

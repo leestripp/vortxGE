@@ -1,4 +1,3 @@
-
 #include <sstream>
 
 #include "lsVector3.h"
@@ -88,15 +87,52 @@ lsVector3 lsVector3::operator*(float t) const
 	return result;
 }
 
+lsVector3& lsVector3::operator+=(const lsVector3 &v)
+{
+    x += v.x;
+    y += v.y;
+    z += v.z;
+    return *this;
+}
+
+lsVector3& lsVector3::operator-=(const lsVector3 &v)
+{
+    x -= v.x;
+    y -= v.y;
+    z -= v.z;
+    return *this;
+}
+
 lsVector3 lsVector3::operator*(const lsVector3 &v) const
 {
 	lsVector3 result;
 
+	// Note: This operator is currently implemented as a cross product.
 	result.x = y * v.z - z * v.y;
 	result.y = z * v.x - x * v.z;
 	result.z = x * v.y - y * v.x;
 
 	return result;
+}
+
+// Implementation of the Cross product function
+lsVector3 lsVector3::Cross(const lsVector3 &v) const
+{
+	lsVector3 result;
+	
+	// Cross product: (a2*b3 - a3*b2, a3*b1 - a1*b3, a1*b2 - a2*b1)
+	result.x = y * v.z - z * v.y;
+	result.y = z * v.x - x * v.z;
+	result.z = x * v.y - y * v.x;
+
+	return result;
+}
+
+// Implementation of the Dot product function
+float lsVector3::Dot(const lsVector3 &v) const
+{
+    // Dot product: (a1*b1 + a2*b2 + a3*b3)
+    return (x * v.x + y * v.y + z * v.z);
 }
 
 lsVector3 lsVector3::operator/(float t) const
@@ -264,3 +300,4 @@ void lsVector3::debug(const string& msg)
     cout << msg;
 	cout << "Vector3" << toString() << endl;
 }
+

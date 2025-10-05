@@ -98,7 +98,7 @@ void lsBatch_Lines::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
     if( getShader() ) glUseProgram(0);
 
 #ifdef VORTX_DEBUG_OPENGLERRORS
-    getOgl()->CheckGLErrors( getName() );
+    getRender()->CheckGLErrors( getName() );
 #endif
 
     // Pass it on

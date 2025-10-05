@@ -121,7 +121,7 @@ public:
         return parent;
     }
 
-    lsRender *getOgl() const;
+    lsRender *getRender() const;
     void setOgl(lsRender *value);
 
 private:

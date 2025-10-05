@@ -51,7 +51,7 @@ lsComposite::~lsComposite()
 int lsComposite::Init()
 {
     // Asset Manager
-    assetmanager = new lsAssetManager( getOgl() );
+    assetmanager = new lsAssetManager( getRender() );
     if(! assetmanager )
     {
         // ERROR
@@ -65,7 +65,7 @@ int lsComposite::Init()
         cout << "ERROR: lsComposite::Init - Could not create Scene Manager instance" << endl;
     }
 
-    passmanager = new lsPassManager( getOgl() );
+    passmanager = new lsPassManager( getRender() );
     if(! passmanager )
     {
         // ERROR
@@ -91,7 +91,7 @@ void lsComposite::Update( double delta )
 #endif
     if( scenemanager )
     {
-        scenemanager->Update( getOgl(), delta );
+        scenemanager->Update( getRender(), delta );
     }
 
     // Pass it on

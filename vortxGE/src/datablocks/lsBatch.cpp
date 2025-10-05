@@ -28,7 +28,7 @@ lsBatch::~lsBatch()
     if( next_batch ) delete next_batch;
 }
 
-lsRender *lsBatch::getOgl() const
+lsRender *lsBatch::getRender() const
 {
     return m_render;
 }

@@ -137,9 +137,9 @@ void lsNode::MoveThread( lsScene* scn, lsRender* render, double delta )
 	{
 		for( auto &t : th )
 		{
-			t.join();
+				t.join();
+			}
 		}
-	}
 	
 	// pass it on
 	for (auto& child : m_children)
@@ -209,9 +209,9 @@ void lsNode::OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender
 	{
 		for( auto &t : th )
 		{
-			t.join();
+				t.join();
+			}
 		}
-	}
 	
 	// Pass it on
 	for (auto& child : m_children)
@@ -284,16 +284,16 @@ void lsNode::Set_Life( double val )
 }
 
 
-void lsNode::Add_Node( lsNode *node )
+void lsNode::Add_Node( lsNode* node_ptr )
 {
 #ifdef VORTX_DEBUG_NODES
-	cout << "lsNode::Add_Node() - Name: " << node->getName() << "  to Node : " << getName() << endl;
+	cout << "lsNode::Add_Node() - Name: " << node_ptr->getName() << "  to Node : " << getName() << endl;
 #endif
 	// Set parent pointer for the new child
-	node->setParent(this);
+	node_ptr->setParent(this);
 	
 	// Add to children vector
-	m_children.push_back(unique_ptr<lsNode>(node));
+	m_children.push_back( unique_ptr<lsNode>(node_ptr) );
 }
 
 void lsNode::Del_Node(lsNode* node)
@@ -307,13 +307,14 @@ void lsNode::Del_Node(lsNode* node)
 	// Find and remove the node from m_children
 	for (auto it = m_children.begin(); it != m_children.end(); ++it)
 	{
+		// Use .get() to compare raw pointers
 		if (it->get() == node)
 		{
-			// Set parent to nullptr to prevent dangling pointer
+			// Set parent to nullptr for the node being removed.
+			// The unique_ptr will handle deletion of the node object when it goes out of scope from the vector.
 			node->setParent(nullptr);
-			// Remove the unique_ptr from vector
 			m_children.erase(it);
-			break;
+			return; // Node found and removed
 		}
 	}
 }
@@ -358,6 +359,65 @@ void lsNode::Set_Scale(float x, float y, float z)
 	scale = lsVector3( x, y, z );
 }
 
+/*!
+ * \brief lsNode::RotateWorld
+ *
+ * Rotates the node in world space by calculating the new local rotation matrix.
+ *
+ * \param angle The angle in degrees to rotate.
+ * \param x The X component of the rotation axis.
+ * \param y The Y component of the rotation axis.
+ * \param z The Z component of the rotation axis.
+ */
+void lsNode::RotateWorld(float angle, float x, float y, float z)
+{
+	lsMatrix4x4 parentWorldRotationInverse;
+	lsMatrix4x4 currentWorldRotation;
+	lsMatrix4x4 newWorldRotation;
+	lsMatrix4x4 worldRotationDelta;
+	lsMatrix4x4 newLocalRotation;
+	
+	// 1. Get the current world rotation of this node
+	// ModelMatrix should be up-to-date from the last Move() call.
+	// We extract only the rotation component, discarding translation and scale.
+	currentWorldRotation = ModelMatrix.extractRotation();
+
+	// 2. Create the desired world-space rotation matrix (R_delta)
+	worldRotationDelta.LoadIdentity();
+	// Note: RotateMatrix on an identity matrix creates a pure rotation matrix
+	worldRotationDelta.RotateMatrix(angle, x, y, z); // angle is in degrees, RotateMatrix expects degrees for input.
+	
+	// 3. Calculate the new World Rotation (R_world_new = R_delta * R_world_old)
+	// Multiplying R_delta on the left applies the rotation in world space.
+	newWorldRotation = worldRotationDelta * currentWorldRotation;
+	
+	// 4. Calculate the new Local Rotation (R_local_new = (R_parent_rot)^T * R_world_new)
+	if( parent )
+	{
+		// a) Get parent's world rotation (R_parent_rot)
+		lsMatrix4x4 parentWorldRotation = parent->ModelMatrix.extractRotation();
+		
+		// b) Get the transpose (inverse for orthonormal rotation matrix) of parent's world rotation
+		parentWorldRotationInverse.transpose(parentWorldRotation);
+		
+		// c) Calculate new local rotation matrix (local_new = parent_inverse * world_new)
+		newLocalRotation = parentWorldRotationInverse * newWorldRotation;
+	}
+	else
+	{
+		// No parent, local rotation is the new world rotation
+		newLocalRotation = newWorldRotation;
+	}
+
+	// 5. Convert the newLocalRotation matrix back to ZYX Euler angles (Roll, Pitch, Yaw) and apply.
+	lsVector3 newEulerAngles = lsMatrix4x4::ToEulerZYX(newLocalRotation);
+	
+	// Update the local rotation members which will be used in the next Move() call.
+	// These are typically stored in degrees.
+	Set_Rot(newEulerAngles.x, newEulerAngles.y, newEulerAngles.z);
+}
+
+
 //###################
 // Load and Save
 
@@ -371,4 +431,3 @@ void lsNode::Save()
 		child->Save();
 	}
 }
-

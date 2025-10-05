@@ -93,7 +93,7 @@ void lsPassManager::Del_Pass( lsPass *pass )
 	delete pass;
 }
 
-lsRender *lsPassManager::getOgl() const
+lsRender *lsPassManager::getRender() const
 {
     return m_render;
 }

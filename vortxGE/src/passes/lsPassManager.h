@@ -28,7 +28,7 @@ public:
         pass_list = val;
     }
 
-    lsRender *getOgl() const;
+    lsRender *getRender() const;
     void setOgl(lsRender *value);
 
 private:

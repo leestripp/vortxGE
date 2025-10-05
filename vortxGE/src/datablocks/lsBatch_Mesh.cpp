@@ -103,7 +103,7 @@ void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
 
 	lsShader* shaderToUse = getShader();
 	if (pass->getPass_type() == LSPT_SHADOWMAP) {
-		shaderToUse = getOgl()->getShaderManager()->Find_Shader("shadowmap");
+		shaderToUse = getRender()->getShaderManager()->Find_Shader("shadowmap");
 	}
 
 	if( shaderToUse )
@@ -252,7 +252,7 @@ void lsBatch_Mesh::Clear_GLdata()
 	glDeleteBuffers( 6, bufferObjects );
 	glDeleteVertexArrays( 1, &vao_mesh );
 
-	getOgl()->getStats()->addUsed_mem( -getMem_used() );
+	getRender()->getStats()->addUsed_mem( -getMem_used() );
 	setMem_used( 0 );
 }
 

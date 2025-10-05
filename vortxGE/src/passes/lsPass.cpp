@@ -62,7 +62,7 @@ void lsPass::Add_Property( lsProperty* p )
     property_list = p;
 }
 
-lsRender *lsPass::getOgl() const
+lsRender *lsPass::getRender() const
 {
     return m_render;
 }

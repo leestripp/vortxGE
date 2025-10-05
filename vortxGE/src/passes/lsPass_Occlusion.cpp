@@ -58,17 +58,17 @@ void lsPass_Occlusion::Update()
                 if( getPrev_pass()->getCull_camera() != getCull_camera() )
                 {
                     // Optimize stats
-                    if( getOgl()->getStats() ) getOgl()->getStats()->Optimize_Start();
-                    getScene()->OptimizeThread( getCull_camera(), this, getScene(), getOgl() );
-                    if( getOgl()->getStats() ) getOgl()->getStats()->Optimize_Stop();
+                    if( getRender()->getStats() ) getRender()->getStats()->Optimize_Start();
+                    getScene()->OptimizeThread( getCull_camera(), this, getScene(), getRender() );
+                    if( getRender()->getStats() ) getRender()->getStats()->Optimize_Stop();
                 }
             }
         } else
         {
             // Optimize stats
-            if( getOgl()->getStats() ) getOgl()->getStats()->Optimize_Start();
-            getScene()->OptimizeThread( getCull_camera(), this, getScene(), getOgl() );
-            if( getOgl()->getStats() ) getOgl()->getStats()->Optimize_Stop();
+            if( getRender()->getStats() ) getRender()->getStats()->Optimize_Start();
+            getScene()->OptimizeThread( getCull_camera(), this, getScene(), getRender() );
+            if( getRender()->getStats() ) getRender()->getStats()->Optimize_Stop();
         }
     }// if scene
 }
@@ -86,7 +86,7 @@ void lsPass_Occlusion::Render()
 
     if( fbo )
     {
-        getOgl()->StoreDefaultFramebuffer();
+        getRender()->StoreDefaultFramebuffer();
 		
 		// set viewport
 		glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );
@@ -124,7 +124,7 @@ void lsPass_Occlusion::Render()
         {
             if( list->getOcclusion_type() == LSOT_OCCLUDER )
             {
-                list->DrawSingle( getCamera(), this, getScene(), getOgl() );
+                list->DrawSingle( getCamera(), this, getScene(), getRender() );
 #if defined(VORTX_DEBUG_OCCLUSION)
                 cout << "Draw Occluder : " << list->getName() << endl;
 #endif
@@ -143,7 +143,7 @@ void lsPass_Occlusion::Render()
             if( list->getOcclusion_type() == LSOT_NONE )
             {
                 glBeginQuery( GL_SAMPLES_PASSED, list->getOcclusionID() );
-                list->DrawSingle( getCamera(), this, getScene(), getOgl() );
+                list->DrawSingle( getCamera(), this, getScene(), getRender() );
                 glEndQuery( GL_SAMPLES_PASSED );
             }
             list = list->getNext_drawobject();
@@ -177,7 +177,7 @@ void lsPass_Occlusion::Render()
         }
 
         glDisable( GL_CULL_FACE );
-        getOgl()->RestoreDefaultFramebuffer();
+        getRender()->RestoreDefaultFramebuffer();
     }// if fbo
 
 #if defined(VORTX_DEBUG_OCCLUSION)
