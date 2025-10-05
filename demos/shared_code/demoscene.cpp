@@ -542,8 +542,7 @@ void DemoScene::movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprin
 {
 	if (m_playerRig)
 	{
-		// Assuming 60 FPS, passing delta time
-		m_playerRig->HandleKeyboardInput(1.0f / 60.0f, f, b, l, r, crouch, jump, sprint);
+		m_playerRig->HandleKeyboardInput(f, b, l, r, crouch, jump, sprint);
 	}
 }
 

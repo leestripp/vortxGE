@@ -41,6 +41,7 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 	m_jumpForce = 15.0f;
 	m_mouseXSensitivity = 0.05f;
 	m_mouseYSensitivity = 1.5f;
+	m_airResistance = 0.95;		// Slows down the player if not on the ground.
 	
 	// Capsule dimensions
 	m_capsuleRadius = 0.5f;
@@ -193,7 +194,7 @@ void lsFirstPersonRig::Draw(lsCamera* cam, lsPass* pass, lsScene* scn, lsRender*
 
 // *** Inputs ***
 
-void lsFirstPersonRig::HandleKeyboardInput(float delta, bool forward, bool backward, bool strafeLeft, bool strafeRight, bool crouch, bool jump, bool sprint)
+void lsFirstPersonRig::HandleKeyboardInput(bool forward, bool backward, bool strafeLeft, bool strafeRight, bool crouch, bool jump, bool sprint)
 {
 	if (!m_bulletObject || !m_bulletObject->getBody()) return;
 
@@ -237,8 +238,8 @@ void lsFirstPersonRig::HandleKeyboardInput(float delta, bool forward, bool backw
 		linearVelocity.setX(movement.getX());
 		linearVelocity.setZ(movement.getZ());
 		// Air resistance
-		linearVelocity.setX(linearVelocity.getX() * 0.95f);
-		linearVelocity.setZ(linearVelocity.getZ() * 0.95f);
+		linearVelocity.setX(linearVelocity.getX() * m_airResistance);
+		linearVelocity.setZ(linearVelocity.getZ() * m_airResistance);
 		
 	} else if (canMove && movement.length2() > 0.0f)
 	{
@@ -283,11 +284,11 @@ void lsFirstPersonRig::HandleKeyboardInput(float delta, bool forward, bool backw
 	float targetCameraOffset = m_isCrouching ?
 		m_crouchingCameraOffset :
 		m_standingCameraOffset;
-
+	
 	m_currentCapsuleHeight = targetCapsuleCylinderHeight;
 	m_cameraHeightOffset = targetCameraOffset;
-	updateCapsuleShape(targetCapsuleCylinderHeight);
-
+	updateCapsuleShape();
+	
 	m_bulletObject->getBody()->activate();
 }
 
@@ -376,7 +377,7 @@ void lsFirstPersonRig::checkGroundCollision()
 	}
 }
 
-void lsFirstPersonRig::updateCapsuleShape(float targetCylinderHeight)
+void lsFirstPersonRig::updateCapsuleShape()
 {
 	if (!m_bulletObject || !m_bulletObject->getBody()) return;
 
