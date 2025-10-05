@@ -31,11 +31,14 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 	Set_Rot(0, 0, 0);
 	Set_Scale(1.0f, 1.0f, 1.0f);
 	
+	// init movement
+	m_movement = btVector3(0, 0, 0);
+	
 	// Movement parameters
-	m_moveSpeed = 5.0f;
-	m_sprintSpeed = 10.0f;
-	m_crouchSpeed = 2.5f;
-	m_jumpForce = 1000.0f; // This will likely need tuning
+	m_walkSpeed = 4.0f;
+	m_sprintSpeed = 8.0f;
+	m_crouchSpeed = 2.0f;
+	m_jumpForce = 15.0f;
 	m_mouseXSensitivity = 0.05f;
 	m_mouseYSensitivity = 1.5f;
 	
@@ -68,6 +71,7 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 		m_standingShapeAsset->AllocAsset();
 		lsBulletShape* bs = static_cast<lsBulletShape*>(m_standingShapeAsset->getData());
 		m_standingShape = static_cast<btCapsuleShape*>(bs->getShape());
+		
 	} else
 	{
 		std::cerr << "ERROR: lsFirstPersonRig - Failed to create standing capsule asset." << std::endl;
@@ -85,7 +89,7 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 		std::cerr << "ERROR: lsFirstPersonRig - Failed to create crouching capsule asset." << std::endl;
 	}
 	
-	// Initialize physics rigid body
+	// --- In the constructor, after setting up physics ---
 	if (m_standingShape)
 	{
 		m_bulletObject = new lsBulletObject(this, m_standingShape, scene->getBulletworld()->getMax_proxies());
@@ -93,14 +97,22 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 		{
 			// Set mass for dynamic object
 			m_bulletObject->Init(75.0f); // ~75 kg player
-			m_bulletObject->getBody()->setSleepingThresholds(0.0f, 0.0f); // Prevent sleeping
-			m_bulletObject->getBody()->setAngularFactor(btVector3(0.0f, 1.0f, 0.0f)); // Only allow yaw rotation via physics
-			m_bulletObject->getBody()->setDamping(0.9f, 0.9f); // Linear and angular damping
-			m_bulletObject->getBody()->setGravity(dynamicsWorld->getGravity()); // Inherit world gravity
 			
-			// Attach the internal bulletObject to the base class's bulletobject pointer.
-			// This allows the base lsObject::Move to handle physics updates.
-			setBulletObject( m_bulletObject );
+			// Configure physics properties for better sliding
+			btRigidBody* body = m_bulletObject->getBody();
+			body->setSleepingThresholds(0.0f, 0.0f); // Prevent sleeping
+			body->setAngularFactor(btVector3(0.0f, 1.0f, 0.0f)); // Only allow yaw rotation via physics
+			body->setDamping(0.9f, 0.9f); // Linear and angular damping
+			
+			// Set friction and restitution for sliding behavior
+			body->setFriction(0.1f); // Low friction for sliding
+			body->setRollingFriction(0.1f);
+			body->setSpinningFriction(0.1f);
+			body->setRestitution(0.0f); // No bounce
+			
+			body->setGravity(dynamicsWorld->getGravity()); // Inherit world gravity
+			
+			setBulletObject(m_bulletObject);
 		} else
 		{
 			std::cerr << "ERROR: lsFirstPersonRig - Failed to create BulletObject." << std::endl;
@@ -178,83 +190,106 @@ void lsFirstPersonRig::Draw(lsCamera* cam, lsPass* pass, lsScene* scn, lsRender*
 	lsObject::Draw(cam, pass, scn, render);
 }
 
-void lsFirstPersonRig::HandleKeyboardInput(float delta, bool forward, bool backward, bool strafeLeft, bool strafeRight, bool crouch, bool jump)
+
+// *** Inputs ***
+
+void lsFirstPersonRig::HandleKeyboardInput(float delta, bool forward, bool backward, bool strafeLeft, bool strafeRight, bool crouch, bool jump, bool sprint)
 {
 	if (!m_bulletObject || !m_bulletObject->getBody()) return;
-	
+
+	// Update crouching state
+	m_isCrouching = crouch;
+
+	// Ground check before allowing movement
+	checkGroundCollision();
+
 	btVector3 linearVelocity = m_bulletObject->getBody()->getLinearVelocity();
 	btVector3 currentForwardDir(ModelMatrix.matrix[8], ModelMatrix.matrix[9], ModelMatrix.matrix[10]); // -Z axis
-	currentForwardDir = -currentForwardDir.normalize();
-	btVector3 currentRightDir(ModelMatrix.matrix[0], ModelMatrix.matrix[1], ModelMatrix.matrix[2]); // +X axis
-	currentRightDir = currentRightDir.normalize();
-	
-	// Flatten directions to XZ plane to prevent unwanted vertical movement from horizontal input
-	currentForwardDir.setY(0.0f);
 	currentForwardDir.normalize();
-	currentRightDir.setY(0.0f);
-	currentRightDir.normalize();
-
-	btVector3 movement = btVector3(0, 0, 0);
-	float speed = m_moveSpeed; // Assume normal speed, adjust later
 	
-	// Determine speed based on state
-	if (crouch)
-	{
-		m_isCrouching = true;
+	btVector3 currentRightDir(ModelMatrix.matrix[0], ModelMatrix.matrix[1], ModelMatrix.matrix[2]); // X axis
+	currentRightDir.normalize();
+	
+	btVector3 movement = btVector3(0, 0, 0);
+	float speed = m_walkSpeed;
+	
+	if (sprint) {
+		speed = m_sprintSpeed;
+	} else if (m_isCrouching) {
 		speed = m_crouchSpeed;
-	} else
-	{
-		m_isCrouching = false;
-		// Optionally add sprinting functionality here
 	}
-
-	if (forward) movement += currentForwardDir;
-	if (backward) movement -= currentForwardDir;
-	if (strafeLeft) movement -= currentRightDir;
+	
+	// Movement handling
+	if (forward)  movement -= currentForwardDir;
+	if (backward) movement += currentForwardDir;
+	if (strafeLeft)  movement -= currentRightDir;
 	if (strafeRight) movement += currentRightDir;
-
-	// Apply movement
-	if (movement.length2() > 0.0f) {
-		movement.normalize();
-		movement *= speed;
-		// Maintain current Y velocity for jumping/falling
+	
+	bool canMove = m_isOnGround;
+	
+	// Apply momentum during jumps
+	if (!m_isOnGround && !jump)
+	{
+		// Apply stored movement momentum when in air
+		movement = m_movement;
+		
+		// Maintain momentum
 		linearVelocity.setX(movement.getX());
 		linearVelocity.setZ(movement.getZ());
-	} else {
-		// If no movement input, gradually reduce horizontal velocity
-		linearVelocity.setX(linearVelocity.getX() * 0.9f);
-		linearVelocity.setZ(linearVelocity.getZ() * 0.9f);
-		if (std::fabs(linearVelocity.getX()) < 0.1f) linearVelocity.setX(0);
-		if (std::fabs(linearVelocity.getZ()) < 0.1f) linearVelocity.setZ(0);
+		// Air resistance
+		linearVelocity.setX(linearVelocity.getX() * 0.95f);
+		linearVelocity.setZ(linearVelocity.getZ() * 0.95f);
+		
+	} else if (canMove && movement.length2() > 0.0f)
+	{
+		// Normalize movement to prevent diagonal speed boost
+		movement.normalize();
+		movement *= speed;
+		
+		// Apply only X/Z components; preserve Y (gravity) from physics
+		linearVelocity.setX(movement.getX());
+		linearVelocity.setZ(movement.getZ());
+		
+		// Store current movement for momentum
+		m_movement = movement;
+	} else if (m_isOnGround)
+	{
+		// Ground friction: stop faster when on ground
+		linearVelocity.setX(linearVelocity.getX() * 0.8f);
+		linearVelocity.setZ(linearVelocity.getZ() * 0.8f);
+		
+		// Reset movement momentum when touching ground
+		m_movement = btVector3(0, 0, 0);
 	}
 	
-	// Jumping
-	if (jump && !m_isJumping) {
-		// Check if on ground (simple check: if current vertical velocity is near zero)
-		if (std::fabs(linearVelocity.getY()) < 0.1f) {
-			linearVelocity.setY(m_jumpForce * delta); // Apply upward impulse
-			m_isJumping = true; // Set jumping flag
-		}
-	} else if (!jump && m_isJumping && std::fabs(linearVelocity.getY()) < 0.1f) {
-		// Reset jumping flag when not jumping and vertical velocity is near zero (landed)
+	// Jumping logic - only allow if on ground
+	if (jump && m_isOnGround) {
+		linearVelocity.setY(m_jumpForce); // Apply upward impulse
+		m_isJumping = true;
+		m_isOnGround = false; // Mark as not on ground immediately after jump
+		// Store movement direction before jump for momentum
+		m_movement = movement;
+	} else if (!jump && m_isJumping && std::abs(linearVelocity.getY()) < 0.1f) {
 		m_isJumping = false;
 	}
-
-	m_bulletObject->getBody()->setLinearVelocity(linearVelocity);
-
-	// Update capsule shape and camera offset for crouching/standing
-	float targetCapsuleCylinderHeight = m_isCrouching ? (m_crouchingCapsuleHeight - 2 * m_capsuleRadius) : (m_standingCapsuleHeight - 2 * m_capsuleRadius);
-	float targetCameraOffset = m_isCrouching ? m_crouchingCameraOffset : m_standingCameraOffset;
 	
-	// For simplicity, directly set the height and offset for now.
-	// For a smooth animation, you would lerp these values over time.
+	m_bulletObject->getBody()->setLinearVelocity(linearVelocity);
+	
+	// Update capsule shape and camera offset for crouching/standing
+	float targetCapsuleCylinderHeight = m_isCrouching ?
+		(m_crouchingCapsuleHeight - 2 * m_capsuleRadius) :
+		(m_standingCapsuleHeight - 2 * m_capsuleRadius);
+
+	float targetCameraOffset = m_isCrouching ?
+		m_crouchingCameraOffset :
+		m_standingCameraOffset;
+
 	m_currentCapsuleHeight = targetCapsuleCylinderHeight;
 	m_cameraHeightOffset = targetCameraOffset;
-	updateCapsuleShape(m_currentCapsuleHeight);
+	updateCapsuleShape(targetCapsuleCylinderHeight);
 
-	m_bulletObject->getBody()->activate(); // Activate body to ensure it responds to changes
+	m_bulletObject->getBody()->activate();
 }
-
 
 void lsFirstPersonRig::HandleMouseLook(float delta, float delta_x, float delta_y)
 {
@@ -289,6 +324,56 @@ void lsFirstPersonRig::HandleMouseLook(float delta, float delta_x, float delta_y
 	m_camera->rotation.x = std::clamp(m_camera->rotation.x, -89.0f, 89.0f);
 	
 	m_bulletObject->getBody()->activate(); // Activate body to ensure it responds to changes
+}
+
+void lsFirstPersonRig::checkGroundCollision()
+{
+	if (!m_bulletObject || !m_bulletObject->getBody()) return;
+	
+	btRigidBody* body = m_bulletObject->getBody();
+	btVector3 position = body->getWorldTransform().getOrigin();
+	
+	// Determine the current capsule's half height
+	btCollisionShape* shape = body->getCollisionShape();
+	btCapsuleShape* capsuleShape = dynamic_cast<btCapsuleShape*>(shape);
+	
+	if (!capsuleShape) {
+		// Fallback or error handling if shape isn't a capsule
+		m_isOnGround = false;
+		return;
+	}
+	
+	// Get the total height including radius
+	float halfHeight = capsuleShape->getHalfHeight();
+	float radius = capsuleShape->getRadius();
+	float totalHeight = halfHeight + radius;
+	
+	// Add a small offset to detect ground before contact
+	float rayLength = totalHeight + 0.1f; // Margin for detection
+	
+	btVector3 rayStart = position;
+	btVector3 rayEnd = position - btVector3(0.0f, rayLength, 0.0f);
+	
+	btCollisionWorld::ClosestRayResultCallback rayCallback(rayStart, rayEnd);
+	
+	lsScene* scene = Get_Scene();
+	if (scene) {
+		lsBulletWorld* bw = scene->getBulletworld();
+		if (bw) {
+			btDiscreteDynamicsWorld* world = bw->getDynamicsWorld();
+			if (world) {
+				world->rayTest(rayStart, rayEnd, rayCallback);
+
+				// Set ground state
+				m_isOnGround = rayCallback.hasHit();
+
+				// Optional: Prevent false positives when moving upward quickly
+				if (m_isOnGround && body->getLinearVelocity().getY() > 0.1f) {
+					m_isOnGround = false;
+				}
+			}
+		}
+	}
 }
 
 void lsFirstPersonRig::updateCapsuleShape(float targetCylinderHeight)
@@ -365,9 +450,10 @@ const std::string& lsFirstPersonRig::toString()
 	save_str += scale.toString();
 	
 	// Add specific FPS rig parameters if needed for saving/loading state
-	// Example: m_moveSpeed, m_crouchSpeed, m_jumpForce, m_mouseSensitivity, etc.
+	// Example: m_walkSpeed, m_crouchSpeed, m_jumpForce, m_mouseSensitivity, etc.
 	// For brevity, not including all of them here, but a real implementation would.
 
 	return save_str;
 }
+
 
