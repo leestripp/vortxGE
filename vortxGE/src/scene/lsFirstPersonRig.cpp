@@ -40,7 +40,7 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 	m_crouchSpeed = 2.0f;
 	m_jumpForce = 15.0f;
 	m_mouseXSensitivity = 0.05f;
-	m_mouseYSensitivity = 1.5f;
+	m_mouseYSensitivity = 1.85f;
 	m_airResistance = 0.95;		// Slows down the player if not on the ground.
 	
 	// Capsule dimensions

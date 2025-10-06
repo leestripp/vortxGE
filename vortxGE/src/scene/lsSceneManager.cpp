@@ -380,7 +380,19 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
 				
 				lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
 				bulletObject->Init(mass);
-				obj->setBulletObject(bulletObject); // Set bullet object to the object
+				obj->setBulletObject(bulletObject); // Attach bullet object to the scene object
+				
+		        // Load friction values if present
+		        if (tokens.size() >= 7)
+		        {
+		            float friction = converter.toFloat(tokens[4]);
+		            float rollingFriction = converter.toFloat(tokens[5]);
+		            float spinningFriction = converter.toFloat(tokens[6]);
+		            
+		            bulletObject->getBody()->setFriction(friction);
+		            bulletObject->getBody()->setRollingFriction(rollingFriction);
+		            bulletObject->getBody()->setSpinningFriction(spinningFriction);
+		        }
 			} else
 			{
 				std::cout << "WARNING: Object '" << objectName << "' not found for bullet box shape attachment." << std::endl;
@@ -405,6 +417,18 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
 				lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
 				bulletObject->Init(mass);
 				obj->setBulletObject(bulletObject); // Set bullet object to the object
+				
+				// Load friction values if present
+				if (tokens.size() >= 8)
+				{
+					float friction = converter.toFloat(tokens[4]);
+					float rollingFriction = converter.toFloat(tokens[5]);
+					float spinningFriction = converter.toFloat(tokens[6]);
+					
+					bulletObject->getBody()->setFriction(friction);
+					bulletObject->getBody()->setRollingFriction(rollingFriction);
+					bulletObject->getBody()->setSpinningFriction(spinningFriction);
+				}
 			} else
 			{
 				std::cout << "WARNING: Object '" << objectName << "' not found for bullet pill shape attachment." << std::endl;
@@ -428,6 +452,18 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
 				lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
 				bulletObject->Init(mass);
 				obj->setBulletObject(bulletObject); // Set bullet object to the object
+				
+				// Load friction values if present
+				if (tokens.size() >= 6)
+				{
+					float friction = converter.toFloat(tokens[3]);
+					float rollingFriction = converter.toFloat(tokens[4]);
+					float spinningFriction = converter.toFloat(tokens[5]);
+					
+					bulletObject->getBody()->setFriction(friction);
+					bulletObject->getBody()->setRollingFriction(rollingFriction);
+					bulletObject->getBody()->setSpinningFriction(spinningFriction);
+				}
 			} else
 			{
 				 std::cout << "WARNING: Object '" << objectName << "' not found or has no mesh for convex hull shape." << std::endl;
@@ -451,6 +487,18 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
 				lsBulletObject* bulletObject = new lsBulletObject(obj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
 				bulletObject->Init(mass);
 				obj->setBulletObject(bulletObject); // Set bullet object to the object
+				
+				// Load friction values if present
+				if (tokens.size() >= 6)
+				{
+					float friction = converter.toFloat(tokens[3]);
+					float rollingFriction = converter.toFloat(tokens[4]);
+					float spinningFriction = converter.toFloat(tokens[5]);
+					
+					bulletObject->getBody()->setFriction(friction);
+					bulletObject->getBody()->setRollingFriction(rollingFriction);
+					bulletObject->getBody()->setSpinningFriction(spinningFriction);
+				}
 			} else
 			{
 				 std::cout << "WARNING: Object '" << objectName << "' not found or has no mesh for trimesh shape." << std::endl;
@@ -514,7 +562,19 @@ bool lsSceneManager::LoadSceneFromFile(const std::string& filename, lsScene* tar
 				lsBulletObject* bulletObject = new lsBulletObject(physicsOnlyObj, bulletShape->getShape(), targetScene->getBulletworld()->getMax_proxies());
 				bulletObject->Init(mass);
 				physicsOnlyObj->setBulletObject(bulletObject);
-
+				
+				// Load friction values if present
+				if (tokens.size() >= 10)
+				{
+					float friction = converter.toFloat(tokens[8]);
+					float rollingFriction = converter.toFloat(tokens[9]);
+					float spinningFriction = converter.toFloat(tokens[10]);
+					
+					bulletObject->getBody()->setFriction(friction);
+					bulletObject->getBody()->setRollingFriction(rollingFriction);
+					bulletObject->getBody()->setSpinningFriction(spinningFriction);
+				}
+				
 				std::cout << "INFO: Physics-only object '" << physicsOnlyObj->getName() << "' created and added to Bullet world." << std::endl;
 			}
 			

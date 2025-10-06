@@ -163,7 +163,13 @@ def write_vortxge_scene(context, filepath):
                                 f.write(f"add_bullet_only_mesh {name} {physics_type} {mass} {asset_path} ")
                                 f.write(f"({loc.x:.6f}, {loc.y:.6f}, {loc.z:.6f}) ")
                                 f.write(f"({rot.x:.6f}, {rot.y:.6f}, {rot.z:.6f}) ")
-                                f.write(f"({scale.x:.6f}, {scale.y:.6f}, {scale.z:.6f})\n")
+                                f.write(f"({scale.x:.6f}, {scale.y:.6f}, {scale.z:.6f})")
+                                
+                                # Add friction properties if they exist
+                                friction = obj.get("friction", 0.8)
+                                rolling_friction = obj.get("rolling_friction", 0.0)
+                                spinning_friction = obj.get("spinning_friction", 0.0)
+                                f.write(f" {friction:.6f} {rolling_friction:.6f} {spinning_friction:.6f}\n")
                             else:
                                 print(f"WARNING: Invalid format for 'bullet_only_mesh' on '{obj.name}'. Expected 'type mass'.")
                         except Exception as e:
@@ -187,7 +193,13 @@ def write_vortxge_scene(context, filepath):
                                 if len(parts) == 2:
                                     mass = parts[0]
                                     size_str = parts[1]
-                                    f.write(f"add_bullet_box {name} {mass} {size_str}\n")
+                                    f.write(f"add_bullet_box {name} {mass} {size_str}")
+                                    
+                                    # Add friction properties if they exist
+                                    friction = obj.get("friction", 0.8)
+                                    rolling_friction = obj.get("rolling_friction", 0.0)
+                                    spinning_friction = obj.get("spinning_friction", 0.0)
+                                    f.write(f" {friction:.6f} {rolling_friction:.6f} {spinning_friction:.6f}\n")
                                 else:
                                     print(f"WARNING: Invalid format for 'bullet_box' on '{obj.name}'. Expected 'mass (sx, sy, sz)'.")
 
@@ -196,21 +208,39 @@ def write_vortxge_scene(context, filepath):
                                 parts = prop_val.split()
                                 if len(parts) == 3:
                                     mass, radius, height = parts
-                                    f.write(f"add_bullet_pill {name} {mass} {radius} {height}\n")
+                                    f.write(f"add_bullet_pill {name} {mass} {radius} {height}")
+                                    
+                                    # Add friction properties if they exist
+                                    friction = obj.get("friction", 0.8)
+                                    rolling_friction = obj.get("rolling_friction", 0.0)
+                                    spinning_friction = obj.get("spinning_friction", 0.0)
+                                    f.write(f" {friction:.6f} {rolling_friction:.6f} {spinning_friction:.6f}\n")
                                 else:
                                     print(f"WARNING: Invalid format for 'bullet_pill' on '{obj.name}'. Expected 'mass radius height'.")
 
                             if "bullet_convexhull" in obj:
                                 mass = str(obj["bullet_convexhull"]).strip()
                                 if mass:
-                                    f.write(f"add_bullet_convexhull {name} {mass}\n")
+                                    f.write(f"add_bullet_convexhull {name} {mass}")
+                                    
+                                    # Add friction properties if they exist
+                                    friction = obj.get("friction", 0.8)
+                                    rolling_friction = obj.get("rolling_friction", 0.0)
+                                    spinning_friction = obj.get("spinning_friction", 0.0)
+                                    f.write(f" {friction:.6f} {rolling_friction:.6f} {spinning_friction:.6f}\n")
                                 else:
                                     print(f"WARNING: Empty 'bullet_convexhull' property on '{obj.name}'.")
 
                             if "bullet_trimesh" in obj:
                                 mass = str(obj["bullet_trimesh"]).strip()
                                 if mass:
-                                    f.write(f"add_bullet_trimesh {name} {mass}\n")
+                                    f.write(f"add_bullet_trimesh {name} {mass}")
+                                    
+                                    # Add friction properties if they exist
+                                    friction = obj.get("friction", 0.8)
+                                    rolling_friction = obj.get("rolling_friction", 0.0)
+                                    spinning_friction = obj.get("spinning_friction", 0.0)
+                                    f.write(f" {friction:.6f} {rolling_friction:.6f} {spinning_friction:.6f}\n")
                                 else:
                                     print(f"WARNING: Empty 'bullet_trimesh' property on '{obj.name}'.")
 
