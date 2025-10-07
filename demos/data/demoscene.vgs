@@ -12,8 +12,8 @@ add_bullet_only_mesh `bullet_shape` convexhull 0.0 `data/meshes/bullet_shape.glb
 add_object `material test 01` `Scene` (-3.000000, 1.000000, -4.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/material test 01.glb`
 add_object `material test 01.001` `Scene` (0.000000, 1.000000, -4.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/material test 01.001.glb`
 add_object `material test 01.002` `Scene` (3.000000, 1.000000, -4.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/material test 01.002.glb`
-add_bullet_only_mesh `bullet_shape.001` convexhull 0.0 `data/meshes/bullet_shape.001.glb` (0.000000, 1.000000, -7.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) 0.000000 0.000000 0.000000
-add_object `material test 01.003` `Scene` (-3.000000, 1.000000, -7.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/material test 01.003.glb`
-add_object `material test 01.004` `Scene` (0.000000, 1.000000, -7.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/material test 01.004.glb`
-add_object `material test 01.005` `Scene` (3.000000, 1.000000, -7.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/material test 01.005.glb`
+add_bullet_only_mesh `bullet_shape.001` convexhull 0.0 `data/meshes/bullet_shape.001.glb` (0.000000, 1.000000, -8.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) 0.000000 0.000000 0.000000
+add_object `material test 01.003` `Scene` (-3.000000, 1.000000, -8.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/material test 01.003.glb`
+add_object `material test 01.004` `Scene` (0.000000, 1.000000, -8.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/material test 01.004.glb`
+add_object `material test 01.005` `Scene` (3.000000, 1.000000, -8.709813) (-0.000004, 0.000000, 0.000000) (1.000000, 1.000000, 1.000000) `data/meshes/material test 01.005.glb`
 

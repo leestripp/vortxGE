@@ -66,7 +66,13 @@ private:
 	float m_standingCapsuleHeight; // Height of the cylinder part for standing shape
 	float m_crouchingCapsuleHeight; // Height of the cylinder part for crouching shape
 	float m_capsuleRadius; // Radius of the capsule (same for both standing/crouching)
-	float m_cameraHeightOffset; // Camera's local Y offset from the rig's (capsule's) center
+	
+	// Camera interpolation
+	float m_cameraHeightOffset; // Current camera Y offset from the rig's (capsule's) center
+	float m_targetCameraHeightOffset; // Target camera Y offset for interpolation
+	float m_cameraLerpSpeed; // Speed of camera height interpolation (0.0 to 1.0)
+	
+	// Standing and crouching camera offsets
 	float m_standingCameraOffset; // Camera Y offset when standing
 	float m_crouchingCameraOffset; // Camera Y offset when crouching
 };

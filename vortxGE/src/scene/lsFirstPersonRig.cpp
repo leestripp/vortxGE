@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <algorithm> // For std::clamp
+#include <cmath>     // For std::lerp
 
 lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dynamicsWorld)
 	: lsObject(scene), // Call base class constructor with the scene as parent
@@ -56,6 +57,8 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 	
 	m_currentCapsuleHeight = m_standingCapsuleHeight; // Start standing
 	m_cameraHeightOffset = m_standingCameraOffset;
+	m_targetCameraHeightOffset = m_cameraHeightOffset;
+	m_cameraLerpSpeed = 0.1f; // 10% per frame for smooth interpolation
 	
 	// Create bullet shapes using the scene's asset manager
 	lsAssetManager* am = scene->getAssetManager();
@@ -154,8 +157,9 @@ void lsFirstPersonRig::Move(lsScene* scn, lsRender* render, double delta)
 	// It also handles animation for the rig itself (pos/rot/scale).
 	lsObject::Move(scn, render, delta);
 	
-	// Update camera's local position for crouching/standing
-	// The m_camera is a child, so its local position will be added to the rig's world position.
+	// Update camera's local position with interpolation
+	// Interpolate between current and target camera height
+	m_cameraHeightOffset = std::lerp(m_cameraHeightOffset, m_targetCameraHeightOffset, m_cameraLerpSpeed);
 	m_camera->Set_Pos(0.0f, m_cameraHeightOffset, 0.0f);
 	
 	// Ensure the physics body's position matches the rig's (base object's) position
@@ -198,6 +202,9 @@ void lsFirstPersonRig::HandleKeyboardInput(bool forward, bool backward, bool str
 {
 	if (!m_bulletObject || !m_bulletObject->getBody()) return;
 
+	// Update target camera height for interpolation
+	m_targetCameraHeightOffset = crouch ? m_crouchingCameraOffset : m_standingCameraOffset;
+	
 	// Update crouching state
 	m_isCrouching = crouch;
 
@@ -286,7 +293,8 @@ void lsFirstPersonRig::HandleKeyboardInput(bool forward, bool backward, bool str
 		m_standingCameraOffset;
 	
 	m_currentCapsuleHeight = targetCapsuleCylinderHeight;
-	m_cameraHeightOffset = targetCameraOffset;
+	m_cameraHeightOffset = std::lerp(m_cameraHeightOffset, targetCameraOffset, m_cameraLerpSpeed);
+	m_targetCameraHeightOffset = targetCameraOffset;
 	updateCapsuleShape();
 	
 	m_bulletObject->getBody()->activate();
@@ -456,5 +464,4 @@ const std::string& lsFirstPersonRig::toString()
 
 	return save_str;
 }
-
 
