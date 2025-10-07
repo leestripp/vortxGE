@@ -1,7 +1,7 @@
 bl_info = {
     "name": "vortxGE Scene Exporter",
     "author": "Lee A. Stripp",
-    "version": (1, 2),
+    "version": (1, 4),
     "blender": (4, 5, 0),
     "location": "File > Export > vortxGE Scene (.vgs)",
     "description": "Exports the scene to a vortxGE .vgs file and all meshes to .glb files",
@@ -72,6 +72,16 @@ def get_vortxge_transform(blender_obj, is_mesh=False):
     return loc, rot_degrees, scale
 
 
+def get_mesh_data_name(obj):
+    """
+    Get the mesh data name for an object.
+    For objects with shared mesh data (Alt+D copies), this will be the same.
+    """
+    if obj.type == 'MESH' and obj.data:
+        return obj.data.name
+    return obj.name
+
+
 def write_vortxge_scene(context, filepath):
     """
     Writes the current Blender scene to the specified filepath in .vgs format
@@ -87,6 +97,9 @@ def write_vortxge_scene(context, filepath):
         meshes_dir = os.path.join(vgs_dir, "meshes")
         os.makedirs(meshes_dir, exist_ok=True)
 
+        # Keep track of already exported mesh data names to avoid duplicates
+        exported_mesh_data = set()
+
         with open(filepath, 'w') as f:
             # --- Scene Header ---
             scene_name = context.scene.name
@@ -97,7 +110,7 @@ def write_vortxge_scene(context, filepath):
             if lights:
                 for obj in lights:
                     light = obj.data
-                    
+
                     light_type_str = 'spot' # Default
                     if light.type == 'POINT':
                         light_type_str = 'point'
@@ -111,7 +124,7 @@ def write_vortxge_scene(context, filepath):
 
                     name = f"`{obj.name}`"
                     parent = f"`{scene_name}`"
-                    
+
                     loc, rot, _ = get_vortxge_transform(obj, is_mesh=False)
                     color = light.color
                     intensity = light.energy
@@ -126,29 +139,56 @@ def write_vortxge_scene(context, filepath):
             meshes = [obj for obj in context.scene.objects if obj.type == 'MESH']
             if meshes:
                 for obj in meshes:
-                    # Determine GLB export path
-                    glb_filepath = os.path.join(meshes_dir, f"{obj.name}.glb")
-                    asset_path = f"`data/meshes/{obj.name}.glb`"
-                    name = f"`{obj.name}`"
+                    # Get the object's own name and its underlying mesh data name.
+                    object_name = obj.name
+                    mesh_data_name = get_mesh_data_name(obj)
 
-                    # --- Export GLB for all meshes ---
-                    print(f"Exporting mesh '{obj.name}' to {glb_filepath}")
-                    bpy.ops.object.select_all(action='DESELECT')
-                    obj.select_set(True)
-                    context.view_layer.objects.active = obj
-                    bpy.ops.export_scene.gltf(
-                        filepath=glb_filepath,
-                        use_selection=True,
-                        export_format='GLB',
-                        export_apply=True,
-                        export_texcoords=True,
-                        export_normals=True,
-                        export_tangents=True,
-                        export_materials='EXPORT',
-                        export_yup=True
-                    )
+                    # The GLB file and asset path are based on the MESH DATA name.
+                    # This ensures linked duplicates (Alt+D) point to the same asset.
+                    glb_filename = f"{mesh_data_name}.glb"
+                    glb_filepath = os.path.join(meshes_dir, glb_filename)
+                    asset_path = f"`data/meshes/{glb_filename}`"
 
-                    # --- Write object or physics-only entry to .vgs file ---
+                    # The object entry in the .vgs file uses the unique OBJECT name.
+                    # This ensures each instance has its own transform in the scene.
+                    vgs_object_name = f"`{object_name}`"
+
+                    # --- Export GLB for each unique mesh data ---
+                    if mesh_data_name not in exported_mesh_data:
+                        print(f"Exporting mesh data '{mesh_data_name}' to {glb_filepath}")
+
+                        # Deselect all, then select all objects that share this mesh data.
+                        # This is a more robust way to ensure the exporter works correctly
+                        # for linked duplicates.
+                        bpy.ops.object.select_all(action='DESELECT')
+                        for scene_obj in context.scene.objects:
+                            if (scene_obj.type == 'MESH' and
+                                scene_obj.data and
+                                scene_obj.data.name == mesh_data_name):
+                                scene_obj.select_set(True)
+
+                        # Set active object to one of the objects with this mesh data
+                        context.view_layer.objects.active = obj
+
+                        # Export the selected objects as a single GLB file.
+                        bpy.ops.export_scene.gltf(
+                            filepath=glb_filepath,
+                            use_selection=True,
+                            export_format='GLB',
+                            export_apply=True,
+                            export_texcoords=True,
+                            export_normals=True,
+                            export_tangents=True,
+                            export_materials='EXPORT',
+                            export_yup=True
+                        )
+
+                        # Mark this mesh data as exported to prevent duplicates.
+                        exported_mesh_data.add(mesh_data_name)
+                    else:
+                        print(f"Mesh data '{mesh_data_name}' for object '{object_name}' already exported, skipping GLB creation...")
+
+                    # --- Write object entry to .vgs file ---
                     if "bullet_only_mesh" in obj:
                         try:
                             prop_val = str(obj["bullet_only_mesh"]).strip()
@@ -156,30 +196,30 @@ def write_vortxge_scene(context, filepath):
                             if len(parts) >= 2:
                                 physics_type = parts[0]
                                 mass = parts[1]
-                                
+
                                 # Get the position for bullet-only meshes
                                 loc, rot, scale = get_vortxge_transform(obj, is_mesh=True)
-                                
-                                f.write(f"add_bullet_only_mesh {name} {physics_type} {mass} {asset_path} ")
+
+                                f.write(f"add_bullet_only_mesh {vgs_object_name} {physics_type} {mass} {asset_path} ")
                                 f.write(f"({loc.x:.6f}, {loc.y:.6f}, {loc.z:.6f}) ")
                                 f.write(f"({rot.x:.6f}, {rot.y:.6f}, {rot.z:.6f}) ")
                                 f.write(f"({scale.x:.6f}, {scale.y:.6f}, {scale.z:.6f})")
-                                
+
                                 # Add friction properties if they exist
                                 friction = obj.get("friction", 0.8)
                                 rolling_friction = obj.get("rolling_friction", 0.0)
                                 spinning_friction = obj.get("spinning_friction", 0.0)
                                 f.write(f" {friction:.6f} {rolling_friction:.6f} {spinning_friction:.6f}\n")
                             else:
-                                print(f"WARNING: Invalid format for 'bullet_only_mesh' on '{obj.name}'. Expected 'type mass'.")
+                                print(f"WARNING: Invalid format for 'bullet_only_mesh' on '{object_name}'. Expected 'type mass'.")
                         except Exception as e:
-                            print(f"ERROR processing 'bullet_only_mesh' for '{obj.name}': {e}")
+                            print(f"ERROR processing 'bullet_only_mesh' for '{object_name}': {e}")
                     else:
                         # Normal mesh object
                         parent = f"`{scene_name}`"
                         loc, rot, scale = get_vortxge_transform(obj, is_mesh=True)
 
-                        f.write(f"add_object {name} {parent} ")
+                        f.write(f"add_object {vgs_object_name} {parent} ")
                         f.write(f"({loc.x:.6f}, {loc.y:.6f}, {loc.z:.6f}) ")
                         f.write(f"({rot.x:.6f}, {rot.y:.6f}, {rot.z:.6f}) ")
                         f.write(f"({scale.x:.6f}, {scale.y:.6f}, {scale.z:.6f}) ")
@@ -193,59 +233,59 @@ def write_vortxge_scene(context, filepath):
                                 if len(parts) == 2:
                                     mass = parts[0]
                                     size_str = parts[1]
-                                    f.write(f"add_bullet_box {name} {mass} {size_str}")
-                                    
+                                    f.write(f"add_bullet_box {vgs_object_name} {mass} {size_str}")
+
                                     # Add friction properties if they exist
                                     friction = obj.get("friction", 0.8)
                                     rolling_friction = obj.get("rolling_friction", 0.0)
                                     spinning_friction = obj.get("spinning_friction", 0.0)
                                     f.write(f" {friction:.6f} {rolling_friction:.6f} {spinning_friction:.6f}\n")
                                 else:
-                                    print(f"WARNING: Invalid format for 'bullet_box' on '{obj.name}'. Expected 'mass (sx, sy, sz)'.")
+                                    print(f"WARNING: Invalid format for 'bullet_box' on '{object_name}'. Expected 'mass (sx, sy, sz)'.")
 
                             if "bullet_pill" in obj:
                                 prop_val = str(obj["bullet_pill"])
                                 parts = prop_val.split()
                                 if len(parts) == 3:
                                     mass, radius, height = parts
-                                    f.write(f"add_bullet_pill {name} {mass} {radius} {height}")
-                                    
+                                    f.write(f"add_bullet_pill {vgs_object_name} {mass} {radius} {height}")
+
                                     # Add friction properties if they exist
                                     friction = obj.get("friction", 0.8)
                                     rolling_friction = obj.get("rolling_friction", 0.0)
                                     spinning_friction = obj.get("spinning_friction", 0.0)
                                     f.write(f" {friction:.6f} {rolling_friction:.6f} {spinning_friction:.6f}\n")
                                 else:
-                                    print(f"WARNING: Invalid format for 'bullet_pill' on '{obj.name}'. Expected 'mass radius height'.")
+                                    print(f"WARNING: Invalid format for 'bullet_pill' on '{object_name}'. Expected 'mass radius height'.")
 
                             if "bullet_convexhull" in obj:
                                 mass = str(obj["bullet_convexhull"]).strip()
                                 if mass:
-                                    f.write(f"add_bullet_convexhull {name} {mass}")
-                                    
+                                    f.write(f"add_bullet_convexhull {vgs_object_name} {mass}")
+
                                     # Add friction properties if they exist
                                     friction = obj.get("friction", 0.8)
                                     rolling_friction = obj.get("rolling_friction", 0.0)
                                     spinning_friction = obj.get("spinning_friction", 0.0)
                                     f.write(f" {friction:.6f} {rolling_friction:.6f} {spinning_friction:.6f}\n")
                                 else:
-                                    print(f"WARNING: Empty 'bullet_convexhull' property on '{obj.name}'.")
+                                    print(f"WARNING: Empty 'bullet_convexhull' property on '{object_name}'.")
 
                             if "bullet_trimesh" in obj:
                                 mass = str(obj["bullet_trimesh"]).strip()
                                 if mass:
-                                    f.write(f"add_bullet_trimesh {name} {mass}")
-                                    
+                                    f.write(f"add_bullet_trimesh {vgs_object_name} {mass}")
+
                                     # Add friction properties if they exist
                                     friction = obj.get("friction", 0.8)
                                     rolling_friction = obj.get("rolling_friction", 0.0)
                                     spinning_friction = obj.get("spinning_friction", 0.0)
                                     f.write(f" {friction:.6f} {rolling_friction:.6f} {spinning_friction:.6f}\n")
                                 else:
-                                    print(f"WARNING: Empty 'bullet_trimesh' property on '{obj.name}'.")
+                                    print(f"WARNING: Empty 'bullet_trimesh' property on '{object_name}'.")
 
                         except Exception as e:
-                            print(f"ERROR processing custom properties for '{obj.name}': {e}")
+                            print(f"ERROR processing custom properties for '{object_name}': {e}")
                 f.write("\n")
 
         print(f"Scene successfully exported to {filepath}")
