@@ -15,8 +15,8 @@ import os
 import math
 from mathutils import Matrix, Vector
 from bpy_extras.io_utils import ExportHelper
-from bpy.props import StringProperty
-from bpy.types import Operator
+from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty # Added FloatProperty
+from bpy.types import Operator, Panel
 
 
 def get_vortxge_transform(blender_obj, is_mesh=False):
@@ -50,10 +50,6 @@ def get_vortxge_transform(blender_obj, is_mesh=False):
 
     if is_mesh:
         # For meshes, apply a corrective rotation of +90 degrees around the X-axis.
-        # This is to counteract a -90 degree rotation that is baked into
-        # exported glTF models to convert from Blender's Z-up to the standard Y-up
-        # system. This ensures the transform in the .vgs file correctly orients
-        # the already Y-up model data from the .glb file.
         R_corr = Matrix.Rotation(math.radians(90.0), 4, 'X')
         world_matrix = world_matrix @ R_corr
 
@@ -139,6 +135,11 @@ def write_vortxge_scene(context, filepath):
             meshes = [obj for obj in context.scene.objects if obj.type == 'MESH']
             if meshes:
                 for obj in meshes:
+                    # Skip objects with the "no_export" custom property
+                    if "no_export" in obj and obj["no_export"]:
+                        print(f"Skipping object '{obj.name}' due to 'no_export' property")
+                        continue
+                    
                     # Get the object's own name and its underlying mesh data name.
                     object_name = obj.name
                     mesh_data_name = get_mesh_data_name(obj)
@@ -158,8 +159,6 @@ def write_vortxge_scene(context, filepath):
                         print(f"Exporting mesh data '{mesh_data_name}' to {glb_filepath}")
 
                         # Deselect all, then select all objects that share this mesh data.
-                        # This is a more robust way to ensure the exporter works correctly
-                        # for linked duplicates.
                         bpy.ops.object.select_all(action='DESELECT')
                         for scene_obj in context.scene.objects:
                             if (scene_obj.type == 'MESH' and
@@ -189,10 +188,13 @@ def write_vortxge_scene(context, filepath):
                         print(f"Mesh data '{mesh_data_name}' for object '{object_name}' already exported, skipping GLB creation...")
 
                     # --- Write object entry to .vgs file ---
+                    # Check for "bullet_only_mesh" property
                     if "bullet_only_mesh" in obj:
                         try:
                             prop_val = str(obj["bullet_only_mesh"]).strip()
                             parts = prop_val.split(maxsplit=1)
+                            
+                            # bullet_only_mesh uses format "type mass", e.g., "box 1.0"
                             if len(parts) >= 2:
                                 physics_type = parts[0]
                                 mass = parts[1]
@@ -340,16 +342,278 @@ def menu_func_export(self, context):
     self.layout.operator(ExportVortxGEScene.bl_idname, text="vortxGE Scene (.vgs)")
 
 
+class VortxGEPanel(Panel):
+    """Creates a Panel in the Object properties window"""
+    bl_label = "vortxGE Tools"
+    bl_idname = "OBJECT_PT_vortxge_tools"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+
+    def draw(self, context):
+        layout = self.layout
+        obj = context.object
+        
+        # Check if the object is a MESH to show physics tools
+        if obj and obj.type == 'MESH':
+            
+            # No export property
+            row = layout.row()
+            row.prop(obj, "no_export", text="Exclude from Export")
+
+            # Physics properties panel
+            box = layout.box()
+            box.label(text="Physics Properties")
+            
+            # Mass input (uses the registered custom property on Object)
+            row = box.row()
+            row.prop(obj, "mass", text="Mass")
+            
+            # Create physics buttons
+            col = box.column(align=True) # Use a column for better layout
+            col.label(text="Add Physics Component:")
+            
+            # Row 1: Box and Pill
+            row1 = col.row()
+            row1.operator("object.create_physics_box", text="Box")
+            row1.operator("object.create_physics_pill", text="Pill")
+            
+            # Row 2: Convex Hull and Tri-Mesh
+            row2 = col.row()
+            row2.operator("object.create_physics_convexhull", text="Convex Hull")
+            row2.operator("object.create_physics_trimesh", text="Tri-Mesh")
+            
+            # Row 3: Bullet Only Mesh
+            col.separator()
+            col.label(text="Collider Only:")
+            col.operator("object.create_physics_bullet_only_mesh", text="Collider (Invisible in Game)", icon='HIDE_ON')
+
+
+# Helper function to clean up other physics properties
+def clean_physics_properties(obj, exclude_prop=""):
+    """Removes all physics custom properties except the one specified."""
+    props_to_check = [
+        "bullet_box", "bullet_pill", "bullet_convexhull", 
+        "bullet_trimesh", "bullet_only_mesh"
+    ]
+    for prop in props_to_check:
+        if prop in obj and prop != exclude_prop:
+            del obj[prop]
+
+
+class CreatePhysicsBulletOnlyMesh(Operator):
+    """Create bullet_only_mesh physics for selected object and set wireframe display"""
+    bl_idname = "object.create_physics_bullet_only_mesh"
+    bl_label = "Create Bullet Only Mesh"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    # Enum to select the underlying physics shape type for the bullet_only_mesh property
+    physics_shape: EnumProperty(
+        name="Collider Shape",
+        description="The collision shape the engine will use for this invisible collider",
+        items=[
+            ('box', 'Box', 'Use a box shape collider'),
+            ('pill', 'Pill', 'Use a pill/capsule shape collider'),
+            ('convexhull', 'Convex Hull', 'Use a convex hull shape collider'),
+            ('trimesh', 'Tri-Mesh', 'Use a triangle mesh shape collider (slowest)')
+        ],
+        default='box'
+    )
+
+    def invoke(self, context, event):
+        # Open a dialog to choose the physics shape before executing
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+    def execute(self, context):
+        obj = context.active_object
+        if obj is None or obj.type != 'MESH':
+            self.report({'ERROR'}, "No active mesh object selected.")
+            return {'CANCELLED'}
+            
+        clean_physics_properties(obj, exclude_prop="bullet_only_mesh")
+        
+        # Set the custom property: "bullet_only_mesh": "SHAPE MASS"
+        obj["bullet_only_mesh"] = f"{self.physics_shape} {obj.mass:.6f}" 
+        
+        # Set the object's viewport display to wireframe
+        obj.display_type = 'WIRE'
+        
+        # Set friction properties (standard defaults)
+        obj["friction"] = 0.8
+        obj["rolling_friction"] = 0.0
+        obj["spinning_friction"] = 0.0
+        
+        self.report({'INFO'}, f"Collider-Only physics ({self.physics_shape}) set for {obj.name}. Display set to Wireframe.")
+        return {'FINISHED'}
+
+
+class CreatePhysicsBox(Operator):
+    """Create box physics for selected object"""
+    bl_idname = "object.create_physics_box"
+    bl_label = "Create Box Physics"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        obj = context.active_object
+        if obj is None or obj.type != 'MESH':
+            self.report({'ERROR'}, "No active mesh object selected.")
+            return {'CANCELLED'}
+            
+        clean_physics_properties(obj, exclude_prop="bullet_box")
+                
+        # Set physics property. obj.mass is the registered float property.
+        obj["bullet_box"] = f"{obj.mass:.6f} (0.5, 0.5, 0.5)" # Use mass from the panel
+        obj.display_type = 'TEXTURED' # Reset display type for rendered object
+        
+        # Set friction properties (standard defaults)
+        obj["friction"] = 0.8
+        obj["rolling_friction"] = 0.0
+        obj["spinning_friction"] = 0.0
+        
+        self.report({'INFO'}, f"Box physics set for {obj.name}")
+        return {'FINISHED'}
+
+
+class CreatePhysicsPill(Operator):
+    """Create pill physics for selected object"""
+    bl_idname = "object.create_physics_pill"
+    bl_label = "Create Pill Physics"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        obj = context.active_object
+        if obj is None or obj.type != 'MESH':
+            self.report({'ERROR'}, "No active mesh object selected.")
+            return {'CANCELLED'}
+            
+        clean_physics_properties(obj, exclude_prop="bullet_pill")
+                
+        # Set physics property. obj.mass is the registered float property.
+        obj["bullet_pill"] = f"{obj.mass:.6f} 0.5 1.0" # Use mass from the panel
+        obj.display_type = 'TEXTURED' # Reset display type for rendered object
+        
+        # Set friction properties
+        obj["friction"] = 0.8
+        obj["rolling_friction"] = 0.0
+        obj["spinning_friction"] = 0.0
+
+        self.report({'INFO'}, f"Pill physics set for {obj.name}")
+        return {'FINISHED'}
+
+
+class CreatePhysicsConvexHull(Operator):
+    """Create convex hull physics for selected object"""
+    bl_idname = "object.create_physics_convexhull"
+    bl_label = "Create Convex Hull Physics"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        obj = context.active_object
+        if obj is None or obj.type != 'MESH':
+            self.report({'ERROR'}, "No active mesh object selected.")
+            return {'CANCELLED'}
+            
+        clean_physics_properties(obj, exclude_prop="bullet_convexhull")
+                
+        # Set physics property. obj.mass is the registered float property.
+        obj["bullet_convexhull"] = f"{obj.mass:.6f}" # Use mass from the panel
+        obj.display_type = 'TEXTURED' # Reset display type for rendered object
+        
+        # Set friction properties
+        obj["friction"] = 0.8
+        obj["rolling_friction"] = 0.0
+        obj["spinning_friction"] = 0.0
+        
+        self.report({'INFO'}, f"Convex Hull physics set for {obj.name}")
+        return {'FINISHED'}
+
+
+class CreatePhysicsTriMesh(Operator):
+    """Create tri-mesh physics for selected object"""
+    bl_idname = "object.create_physics_trimesh"
+    bl_label = "Create Tri-Mesh Physics"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        obj = context.active_object
+        if obj is None or obj.type != 'MESH':
+            self.report({'ERROR'}, "No active mesh object selected.")
+            return {'CANCELLED'}
+            
+        clean_physics_properties(obj, exclude_prop="bullet_trimesh")
+                
+        # Set physics property. obj.mass is the registered float property.
+        obj["bullet_trimesh"] = f"{obj.mass:.6f}" # Use mass from the panel
+        obj.display_type = 'TEXTURED' # Reset display type for rendered object
+        
+        # Set friction properties
+        obj["friction"] = 0.8
+        obj["rolling_friction"] = 0.0
+        obj["spinning_friction"] = 0.0
+
+        self.report({'INFO'}, f"Tri-Mesh physics set for {obj.name}")
+        return {'FINISHED'}
+
+
+# --- Register/Unregister Functions ---
+
+classes = (
+    ExportVortxGEScene,
+    VortxGEPanel,
+    CreatePhysicsBox,
+    CreatePhysicsPill,
+    CreatePhysicsConvexHull,
+    CreatePhysicsTriMesh,
+    CreatePhysicsBulletOnlyMesh # New operator added here
+)
+
 def register():
-    bpy.utils.register_class(ExportVortxGEScene)
+    # Register custom properties
+    bpy.types.Object.no_export = BoolProperty(
+        name="No Export",
+        description="Exclude this object from vortxGE scene export",
+        default=False
+    )
+    
+    bpy.types.Object.physics_type = EnumProperty(
+        name="Physics Type (Info only)",
+        description="Physics shape type (Set by buttons)",
+        items=[
+            ('box', 'Box', 'Box shape'),
+            ('pill', 'Pill', 'Pill (cylinder) shape'),
+            ('convexhull', 'Convex Hull', 'Convex hull shape'),
+            ('trimesh', 'Tri-Mesh', 'Triangle mesh shape')
+        ],
+        default='box'
+    )
+    
+    bpy.types.Object.mass = FloatProperty(
+        name="Mass",
+        description="Physics mass value",
+        default=1.0,
+        min=0.0
+    )
+    
+    # Register all classes
+    for cls in classes:
+        bpy.utils.register_class(cls)
+    
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
 
 def unregister():
-    bpy.utils.unregister_class(ExportVortxGEScene)
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
+    
+    # Unregister all classes
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
+        
+    # Unregister custom properties
+    del bpy.types.Object.no_export
+    del bpy.types.Object.physics_type
+    del bpy.types.Object.mass
 
 
 if __name__ == "__main__":
     register()
-
