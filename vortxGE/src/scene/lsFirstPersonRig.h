@@ -4,11 +4,12 @@
 #include "lsCamera.h"
 #include "../physics/lsBulletObject.h"
 #include "../physics/lsBulletWorld.h"
+#include <bullet/btBulletDynamicsCommon.h>
 
 class lsScene;
 class lsRender;
 class lsAssetManager;
-class lsBulletShape; // Forward declare lsBulletShape
+class lsBulletShape;
 
 class lsFirstPersonRig : public lsObject
 {
@@ -24,6 +25,15 @@ public:
 	// Player input handlers
 	void HandleKeyboardInput(bool forward, bool backward, bool strafeLeft, bool strafeRight, bool crouch, bool jump, bool sprint);
 	void HandleMouseLook(float delta, float delta_x, float delta_y);
+	// Mouse input handling
+	void HandleMouseButtons(bool left, bool right);
+	
+	// Pickup system
+	void tryPickupObject();
+	void pickupObject(lsObject* obj);
+	void releaseObject();
+	void throwObject();
+	bool isHolding() const { return m_isHolding; }
 	
 	// Getters for external access (e.g., from DemoScene)
 	lsCamera* getCamera() const { return m_camera; }
@@ -75,4 +85,19 @@ private:
 	// Standing and crouching camera offsets
 	float m_standingCameraOffset; // Camera Y offset when standing
 	float m_crouchingCameraOffset; // Camera Y offset when crouching
+	
+	// Pickup system
+	bool m_isHolding = false;
+	lsObject* m_heldObject = nullptr;
+	btRigidBody* m_heldBody = nullptr;
+	btGeneric6DofConstraint* m_constraint = nullptr;
+	btTransform m_originalTransform; // Store original transform for release
+	
+	// Pickup parameters
+	float m_pickupDistance = 5.0f;     // Distance to pickup objects
+	float m_throwForce = 20.0f;        // Force applied when throwing
+	float m_holdDistance = 4.0f;       // Distance in front of player where object is held
+	
+	void cleanupConstraint();
 };
+

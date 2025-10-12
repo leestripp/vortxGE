@@ -25,6 +25,12 @@ find_package(OpenAL REQUIRED)
 # GLEW used by vortxGE
 find_package(GLEW REQUIRED)
 
+include_directories(
+	${BULLET_INCLUDE_DIR}
+	${OPENGL_INCLUDE_DIR}
+	${OPENAL_INCLUDE_DIR}
+)
+
 add_subdirectory(vortxGE)
 add_subdirectory(tests)
 add_subdirectory(tools/obj2vbm)

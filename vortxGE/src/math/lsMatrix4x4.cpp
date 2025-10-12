@@ -379,6 +379,64 @@ lsVector3 lsMatrix4x4::ToEulerZYX(const lsMatrix4x4& m)
     return lsVector3(roll_rad * RAD2ANG, pitch_rad * RAD2ANG, yaw_rad * RAD2ANG);
 }
 
+lsMatrix4x4 lsMatrix4x4::getLocalTransformFromParent(const lsMatrix4x4& parentMatrix) const
+{
+    // To get the local transform from a parent matrix, we compute:
+    // local_transform = parent_inverse * world_transform
+    
+    // Create a copy of the current (world) matrix
+    lsMatrix4x4 worldTransform = *this;
+    
+    // Create inverse of the parent matrix
+    lsMatrix4x4 parentInverse;
+    parentInverse.LoadIdentity();
+    
+    // For a standard transformation matrix, we can compute the inverse more efficiently
+    // by separating rotation and translation components
+    
+    // Extract rotation part from parent (3x3 upper-left)
+    lsMatrix4x4 parentRotationOnly;
+    parentRotationOnly.LoadIdentity();
+    parentRotationOnly.matrix[0] = parentMatrix.matrix[0];
+    parentRotationOnly.matrix[1] = parentMatrix.matrix[1];
+    parentRotationOnly.matrix[2] = parentMatrix.matrix[2];
+    parentRotationOnly.matrix[4] = parentMatrix.matrix[4];
+    parentRotationOnly.matrix[5] = parentMatrix.matrix[5];
+    parentRotationOnly.matrix[6] = parentMatrix.matrix[6];
+    parentRotationOnly.matrix[8] = parentMatrix.matrix[8];
+    parentRotationOnly.matrix[9] = parentMatrix.matrix[9];
+    parentRotationOnly.matrix[10] = parentMatrix.matrix[10];
+    
+    // Compute inverse of rotation matrix (transpose for orthonormal matrix)
+    parentRotationOnly.transpose(parentRotationOnly);
+    
+    // Extract translation part from parent
+    lsVector3 parentTranslation(parentMatrix.matrix[12], parentMatrix.matrix[13], parentMatrix.matrix[14]);
+    
+    // Apply inverse rotation to the translation (this is the negative of the world position in local space)
+    lsVector3 invertedTranslation = parentRotationOnly.Rotate(parentTranslation);
+    invertedTranslation.x = -invertedTranslation.x;
+    invertedTranslation.y = -invertedTranslation.y;
+    invertedTranslation.z = -invertedTranslation.z;
+    
+    // Set up inverse matrix with rotated and negated translation
+    parentInverse.matrix[0] = parentRotationOnly.matrix[0];
+    parentInverse.matrix[1] = parentRotationOnly.matrix[1];
+    parentInverse.matrix[2] = parentRotationOnly.matrix[2];
+    parentInverse.matrix[4] = parentRotationOnly.matrix[4];
+    parentInverse.matrix[5] = parentRotationOnly.matrix[5];
+    parentInverse.matrix[6] = parentRotationOnly.matrix[6];
+    parentInverse.matrix[8] = parentRotationOnly.matrix[8];
+    parentInverse.matrix[9] = parentRotationOnly.matrix[9];
+    parentInverse.matrix[10] = parentRotationOnly.matrix[10];
+    parentInverse.matrix[12] = invertedTranslation.x;
+    parentInverse.matrix[13] = invertedTranslation.y;
+    parentInverse.matrix[14] = invertedTranslation.z;
+    
+    // Compute local transform: parent_inverse * world_transform
+    return parentInverse * worldTransform;
+}
+
 void lsMatrix4x4::debug( const string& str )
 {
     // For Thread overlap

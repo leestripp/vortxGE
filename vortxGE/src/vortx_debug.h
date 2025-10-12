@@ -25,6 +25,7 @@
 
 // Physics
 // #define VORTX_DEBUG_PHYSICS
+#define VORTX_DEBUG_RAYCAST
 
 // Scene
 // #define VORTX_DEBUG_LOADSCENE

@@ -18,19 +18,21 @@ static void key_callback(GLFWwindow* window, int key, __attribute__((unused)) in
 {
 	bool pressed = (action == GLFW_PRESS || action == GLFW_REPEAT);
 
-    if (action == GLFW_RELEASE) {
-        switch (key) {
-            case GLFW_KEY_ESCAPE:
-                glfwSetWindowShouldClose(window, GLFW_TRUE);
-                break;
+	if (action == GLFW_RELEASE)
+	{
+		switch (key) {
+			case GLFW_KEY_ESCAPE:
+				glfwSetWindowShouldClose(window, GLFW_TRUE);
+				break;
+			
             case GLFW_KEY_F1:
                 glfw_app.setFullscreen(!glfw_app.getFullscreen());
                 glfw_app.CheckFullScreen();
                 break;
-        }
-    }
-
-    // Handle movement keys
+		}
+	}
+	
+	// Handle movement keys
 	switch (key)
 	{
 		case GLFW_KEY_W: glfw_app.setKey_w(pressed); break;
@@ -43,16 +45,46 @@ static void key_callback(GLFWwindow* window, int key, __attribute__((unused)) in
 	}
 }
 
+static void mouse_button_callback(GLFWwindow* window, int button, int action, __attribute__((unused)) int mods)
+{
+    if(! window)
+    {
+        cerr << "ERROR: mouse_button_callback() called with NULL window." << endl;
+        return;
+    }
+    
+    if (button == GLFW_MOUSE_BUTTON_LEFT)
+    {
+        glfw_app.setMouse_left(action == GLFW_PRESS);
+    }
+    else if (button == GLFW_MOUSE_BUTTON_RIGHT)
+    {
+        glfw_app.setMouse_right(action == GLFW_PRESS);
+        
+        // Handle right mouse button click for pickup
+        if (action == GLFW_PRESS && glfw_app.getRunning() && glfw_app.getDemoscene()) 
+        {
+            // Call the DemoScene's handleMouseButtons method directly
+            glfw_app.getDemoscene()->handleMouseButtons(true, false); // Right button pressed
+        }
+        else if (action == GLFW_RELEASE && glfw_app.getRunning() && glfw_app.getDemoscene())
+        {
+            // Release pickup state when right mouse button is released
+            glfw_app.getDemoscene()->handleMouseButtons(false, false);
+        }
+    }
+}
+
 static void cursor_position_callback( __attribute__((unused)) GLFWwindow* window, double xpos, double ypos )
 {
-    glfw_app.setPos_x( xpos );
-    glfw_app.setPos_y( ypos );
+	glfw_app.setPos_x( xpos );
+	glfw_app.setPos_y( ypos );
 }
 
 static void Resize_Callback( __attribute__((unused)) GLFWwindow* window, int width, int height )
 {
-    glfw_app.setWin_width( width );
-    glfw_app.setWin_height( height );
+	glfw_app.setWin_width( width );
+	glfw_app.setWin_height( height );
 }
 
 void error_callback( int error, const char* description )
@@ -66,121 +98,129 @@ void error_callback( int error, const char* description )
 
 glfwApp::glfwApp()
 {
-    demoscene = NULL;
-
+	demoscene = nullptr;
+	m_window = nullptr;
+	
 	// keys
-    key_w = key_a = key_s = key_d = false;
-    key_jump = key_sprint = key_crouch = false;
-
-    // Mouse - top left is 0x0
-    old_x = 0;
-    old_y = 0;
-    pos_x = 0;
-    pos_y = 0;
-    m_mouse_look_active = false;
-
-    m_fullscreen = false;
-    m_win_width_old = 1920;
-    m_win_height_old = 1080;
+	key_w = key_a = key_s = key_d = false;
+	key_jump = key_sprint = key_crouch = false;
+	
+	// Mouse - top left is 0x0
+	old_x = 0;
+	old_y = 0;
+	pos_x = 0;
+	pos_y = 0;
+	m_mouse_look_active = false;
+	
+	m_fullscreen = false;
+	m_win_width_old = 1920;
+	m_win_height_old = 1080;
 }
 
 glfwApp::~glfwApp()
 {
 }
 
+
 void glfwApp::CheckFullScreen()
 {
-    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode *mode = glfwGetVideoMode( monitor );
+	if (! m_window) {
+		cerr << "ERROR: CheckFullScreen() called with NULL m_window." << endl;
+		return;
+	}
+	
+	GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+	const GLFWvidmode *mode = glfwGetVideoMode( monitor );
 
-    if( m_fullscreen )
-    {
-        cout << "Go Fullscreen" << endl;
+	if( m_fullscreen )
+	{
+		cout << "Go Fullscreen" << endl;
 
-        // Grab mouse
-        glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
-        // backup window position and window size
-        glfwGetWindowSize( window, &m_win_width_old, &m_win_height_old );
-        cout << "Store Window Size : " << m_win_width_old << " x " << m_win_height_old << endl;
+		// Grab mouse
+		glfwSetInputMode( m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
+		// backup window position and window size
+		glfwGetWindowSize( m_window, &m_win_width_old, &m_win_height_old );
+		cout << "Store Window Size : " << m_win_width_old << " x " << m_win_height_old << endl;
 
-        glfwWindowHint( GLFW_DECORATED, false );
-        glfwSetWindowMonitor( window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate );
-        glfwGetWindowSize( window, &m_win_width, &m_win_height );
+		glfwWindowHint( GLFW_DECORATED, false );
+		glfwSetWindowMonitor( m_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate );
+		glfwGetWindowSize( m_window, &m_win_width, &m_win_height );
 
-    } else
-    {
-        cout << "Go Windowed" << endl;
-        cout << "Restore Window Size : " << m_win_width_old << " x " << m_win_height_old << endl;
+	} else
+	{
+		cout << "Go Windowed" << endl;
+		cout << "Restore Window Size : " << m_win_width_old << " x " << m_win_height_old << endl;
 
-        // Release mouse
-        glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
-        glfwWindowHint( GLFW_DECORATED, true );
-        glfwSetWindowMonitor( window, NULL, 0, 0, m_win_width_old, m_win_height_old, 0 );
-        glfwGetWindowSize( window, &m_win_width, &m_win_height );
-    }
+		// Release mouse
+		glfwSetInputMode( m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+		glfwWindowHint( GLFW_DECORATED, true );
+		glfwSetWindowMonitor( m_window, NULL, 0, 0, m_win_width_old, m_win_height_old, 0 );
+		glfwGetWindowSize( m_window, &m_win_width, &m_win_height );
+	}
 }
 
 bool glfwApp::Init()
 {
-    // Setup glfw error callback
-    glfwSetErrorCallback( error_callback );
+	// Setup glfw error callback
+	glfwSetErrorCallback( error_callback );
 
-    if(! glfwInit() )
-    {
-        return false;
-    }
+	if(! glfwInit() )
+	{
+		return false;
+	}
 
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
-    glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
+	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+	
+	glfwWindowHint( GLFW_DECORATED, true );
+	
+	// glfwCreateWindow(640, 480, "My Title", NULL, NULL);
+	m_window = glfwCreateWindow( 1920, 1080, "vortxGEdemo_glfw3", NULL, NULL );
+	if(! m_window )
+	{
+		cout << "ERROR: glfwCreateWindow - Could not create window..." << endl;
+		glfwTerminate();
+		return false;
+	}
 
-    glfwWindowHint( GLFW_DECORATED, true );
+	// Keyboard events
+	glfwSetKeyCallback( m_window, key_callback );
+	// Mouse events
+	glfwSetCursorPosCallback(m_window, cursor_position_callback );
+	glfwSetMouseButtonCallback(m_window, mouse_button_callback); // Add mouse button callback
+	// resize
+	glfwSetWindowSizeCallback(m_window, Resize_Callback );
 
-    // glfwCreateWindow(640, 480, "My Title", NULL, NULL);
-    window = glfwCreateWindow( 1920, 1080, "vortxGEdemo_glfw3", NULL, NULL );
-    if(! window )
-    {
-        cout << "ERROR: glfwCreateWindow - Could not create window..." << endl;
-        glfwTerminate();
-        return false;
-    }
+	glfwMakeContextCurrent( m_window );
+	glfwSwapInterval( 1 ); // vSync
+	glfwSetWindowPos( m_window, 256, 256 );
+	glfwShowWindow( m_window );
+	
+	// Create demo scene
+	demoscene = new DemoScene();
+	if(! demoscene  )
+	{
+		cout << "ERROR: glfwApp::Init() - Can't create demoscene instance." << endl;
+		return false;
+	} else
+	{
+		cout << "glfwApp::Init() : demoscene instance created." << endl;
+		if( demoscene->Init() )
+		{
+			cout << "glfwApp::Init() : demoscene->Init() OK." << endl;
+			int width, height;
+			glfwGetFramebufferSize( m_window, &width, &height );
+			demoscene->Resize( 0, 0, width, height );
 
-    // Keyboard events
-    glfwSetKeyCallback( window, key_callback );
-    // Mouse events
-    glfwSetCursorPosCallback( window, cursor_position_callback );
-    // resize
-    glfwSetWindowSizeCallback( window, Resize_Callback );
+		} else
+		{
+			cout << "ERROR: glfwApp::Init() - demoscene->Init() Failed." << endl;
+			return false;
+		}
+	}
 
-    glfwMakeContextCurrent( window );
-    glfwSwapInterval( 1 ); // vSync
-    glfwSetWindowPos( window, 256, 256 );
-    glfwShowWindow( window );
-
-    // Create demo scene
-    demoscene = new DemoScene();
-    if(! demoscene  )
-    {
-        cout << "ERROR: glfwApp::Init() - Can't create demoscene instance." << endl;
-        return false;
-    } else
-    {
-        cout << "glfwApp::Init() : demoscene instance created." << endl;
-        if( demoscene->Init() )
-        {
-            cout << "glfwApp::Init() : demoscene->Init() OK." << endl;
-            int width, height;
-            glfwGetFramebufferSize( window, &width, &height );
-            demoscene->Resize( 0, 0, width, height );
-
-        } else
-        {
-            cout << "ERROR: glfwApp::Init() - demoscene->Init() Failed." << endl;
-            return false;
-        }
-    }
-
-    return true;
+	return true;
 }
 
 
@@ -194,87 +234,100 @@ void glfwApp::Run()
 	lsTimer timer;
 	timer.start_Timer();
 	
-    // match window size
-    glfwGetWindowSize( window, &m_win_width, &m_win_height );
+	// match window size
+	glfwGetWindowSize( m_window, &m_win_width, &m_win_height );
+	
+	running = true;
 
-    running = true;
-
-    while( running )
-    {
-        if( glfwWindowShouldClose( window ) )
-        {
-            running = false;
-        }
+	while( running )
+	{
+		if( glfwWindowShouldClose( m_window ) )
+		{
+			running = false;
+		}
 
 		if( demoscene )
 		{
-            // Only update camera in fullscreen mode
-            if( m_fullscreen )
-            {
-                if (!m_mouse_look_active)
-                {
-                    // First frame in mouse look mode, sync positions to prevent jump
-                    glfwGetCursorPos(window, &old_x, &old_y);
-                    pos_x = old_x;
-                    pos_y = old_y;
-                    m_mouse_look_active = true;
+			// Only update camera in fullscreen mode
+			if( m_fullscreen )
+			{
+				if (!m_mouse_look_active)
+				{
+					// First frame in mouse look mode, sync positions to prevent jump
+					glfwGetCursorPos(m_window, &old_x, &old_y);
+					pos_x = old_x;
+					pos_y = old_y;
+					m_mouse_look_active = true;
+				}
+
+				// Rotate
+				demoscene->rotatePlayerView( (pos_x - old_x), (pos_y - old_y) );
+				old_x = pos_x;
+				old_y = pos_y;
+
+				// Move player
+				demoscene->movePlayer( key_w, key_s, key_a, key_d, key_jump, key_sprint, key_crouch );
+				
+                // Handle mouse buttons for pickup/throw
+                if (mouse_right) {
+                    demoscene->handleMouseButtons(false, true); // Right button held down
                 }
-
-                // Rotate
-                demoscene->rotatePlayerView( (pos_x - old_x), (pos_y - old_y) );
-                old_x = pos_x;
-                old_y = pos_y;
-
-                // Move player
-                demoscene->movePlayer( key_w, key_s, key_a, key_d, key_jump, key_sprint, key_crouch );
-                if (key_jump) setKey_jump(false); // Reset jump state after processing
-            }
-            else
-            {
-                // Not in fullscreen, so mouse look is inactive
-                m_mouse_look_active = false;
-            }
+                else if (mouse_left && !m_mouse_look_active) {
+                    // Try to pick up object on left click (if not in mouse look mode)
+                    demoscene->handleMouseButtons(true, false);
+                } else {
+                    demoscene->handleMouseButtons(false, false);
+                }
+                
+				if (key_jump) setKey_jump(false); // Reset jump state after processing
+			}
+			else
+			{
+				// Not in fullscreen, so mouse look is inactive
+				m_mouse_look_active = false;
+			}
 
 			// Update
 			demoscene->Update( delta );
 
 			// Render
-            demoscene->Resize( 0, 0, m_win_width, m_win_height );
+			demoscene->Resize( 0, 0, m_win_width, m_win_height );
 			demoscene->Render();
 		}
 
-        // Swap
-        glfwSwapBuffers( window );
-        // Poll
-        glfwPollEvents();
+		// Swap
+		glfwSwapBuffers( m_window );
+		// Poll
+		glfwPollEvents();
 
 		// Delta
 		delta = timer.get_ElapsedTime();
 		timer.start_Timer();
 
-    } // while running LOOP
+	} // while running LOOP
 
-    // Release mouse
-    glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+	// Release mouse
+	glfwSetInputMode( m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
 
 	// delete our scene
 	if( demoscene ) delete demoscene;
-
-    glfwDestroyWindow( window );
-    glfwTerminate();
+	// window
+	if(m_window) glfwDestroyWindow( m_window );
+	
+	glfwTerminate();
 }
 
+//**********************
+// MAIN: Do not mode as it uses the global alfw_app variable.
 
-// ************************
-// MAIN
-
-int main( /* int argc, const char * argv[] */ )
+int main()
 {
-    if( glfw_app.Init() )
+    if(! glfw_app.Init())
     {
-        glfw_app.Run();
+        return -1;
     }
-
+	
+    glfw_app.Run();
+	
     return 0;
 }
-

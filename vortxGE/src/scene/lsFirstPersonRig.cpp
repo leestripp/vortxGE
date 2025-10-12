@@ -15,6 +15,7 @@
 #include <algorithm> // For std::clamp
 #include <cmath>     // For std::lerp
 
+
 lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dynamicsWorld)
 	: lsObject(scene), // Call base class constructor with the scene as parent
 	  m_camera(nullptr),
@@ -335,6 +336,26 @@ void lsFirstPersonRig::HandleMouseLook(float delta, float delta_x, float delta_y
 	m_bulletObject->getBody()->activate(); // Activate body to ensure it responds to changes
 }
 
+void lsFirstPersonRig::HandleMouseButtons(bool left, bool right)
+{
+	if (left)
+	{
+		if(m_isHolding)
+		{
+			throwObject();
+		}
+	} else if (right)
+	{
+		if(! m_isHolding)
+		{
+			tryPickupObject();
+		}
+	} else
+	{
+		releaseObject();
+	}
+}
+
 void lsFirstPersonRig::checkGroundCollision()
 {
 	if (!m_bulletObject || !m_bulletObject->getBody()) return;
@@ -428,6 +449,149 @@ void lsFirstPersonRig::updateCapsuleShape()
 
 		// Reactivate body
 		m_bulletObject->getBody()->activate();
+	}
+}
+
+void lsFirstPersonRig::tryPickupObject()
+{
+	if (m_isHolding || !m_bulletObject) return;
+	
+	// Raycast to find objects in front of the player
+	btVector3 rayStart = btVector3(
+		m_camera->ModelMatrix.matrix[12],
+		m_camera->ModelMatrix.matrix[13],
+		m_camera->ModelMatrix.matrix[14]
+	);
+	// Ray direction
+	btVector3 rayDirection = btVector3(
+		m_camera->ModelMatrix.matrix[8],
+		m_camera->ModelMatrix.matrix[9],
+		m_camera->ModelMatrix.matrix[10]
+	);
+	rayDirection = rayDirection.normalize();
+	btVector3 rayEnd = rayStart + -(rayDirection * m_pickupDistance);
+	
+	// Create a ray test callback
+	btCollisionWorld::ClosestRayResultCallback rayCallback(rayStart, rayEnd);
+	
+	lsScene* scene = Get_Scene();
+	if (scene) {
+		lsBulletWorld* bw = scene->getBulletworld();
+		if (bw) {
+			btDiscreteDynamicsWorld* world = bw->getDynamicsWorld();
+			if (world) {
+				world->rayTest(rayStart, rayEnd, rayCallback);
+				
+				if (rayCallback.hasHit()) {
+					const btCollisionObject* hitObject = rayCallback.m_collisionObject;
+					lsObject* obj = static_cast<lsObject*>(hitObject->getUserPointer());
+					
+					if (obj && obj != this) { // Don't pick up self
+						pickupObject(obj);
+					}
+				}
+			}
+		}
+	}
+}
+
+void lsFirstPersonRig::pickupObject(lsObject* obj)
+{
+	if (!obj || !m_bulletObject || m_isHolding) return;
+	
+	btRigidBody* body = static_cast<btRigidBody*>(obj->getBulletObject()->getBody());
+	if (!body) return;
+	
+	m_heldObject = obj;
+	m_heldBody = body;
+	
+	// Store original transform
+	m_originalTransform = body->getWorldTransform();
+	
+	// Create a point-to-point constraint to attach the object to the player
+	btVector3 pivotInA(0, 0, 0);
+	btVector3 pivotInB(0, 0, 0);
+	
+	// Position the object in front of the player
+	// our player is already rotated, so we just need the local position
+	btVector3 position(0.0, 1.0, 0.0);
+	btVector3 direction(0.0, 0.0, -1.0);
+	btVector3 targetPosition = position + (direction * m_holdDistance);
+	
+	// Constraint transforms.
+	btTransform constraintFrameA = btTransform::getIdentity();
+	btTransform constraintFrameB = btTransform::getIdentity();
+	constraintFrameA.setOrigin(targetPosition);
+	constraintFrameB.setOrigin(btVector3(0, 0, 0));
+	
+	// Create a 6DOF constraint
+	m_constraint = new btGeneric6DofConstraint(*m_bulletObject->getBody(), *body,
+			constraintFrameA,
+			constraintFrameB.inverse(),
+			true
+		);
+	
+	// Set linear limits (position constraints)
+	m_constraint->setLinearLowerLimit(btVector3(-0.1f, -0.1f, -0.1f));
+	m_constraint->setLinearUpperLimit(btVector3(0.1f, 0.1f, 0.1f));
+	// Set angular limits to prevent rotation (lock all axes)
+	m_constraint->setAngularLowerLimit(btVector3(0, 0, 0));
+	m_constraint->setAngularUpperLimit(btVector3(0, 0, 0));
+	
+	lsScene* scene = Get_Scene();
+	if (scene)
+	{
+		lsBulletWorld* bw = scene->getBulletworld();
+		if (bw) {
+			btDiscreteDynamicsWorld* world = bw->getDynamicsWorld();
+			if (world) {
+				world->addConstraint(m_constraint);
+			}
+		}
+	}
+	
+	m_isHolding = true;
+}
+
+void lsFirstPersonRig::releaseObject()
+{
+	if (!m_isHolding || !m_constraint) return;
+	
+	cleanupConstraint();
+	
+	m_heldObject = nullptr;
+	m_heldBody = nullptr;
+	m_isHolding = false;
+}
+
+void lsFirstPersonRig::throwObject()
+{
+	if (!m_isHolding || !m_heldBody) return;
+	
+	// Apply force to the held object
+	btVector3 throwDirection = btVector3(m_camera->rotation.x, m_camera->rotation.y, m_camera->rotation.z).normalized();
+	btVector3 force = throwDirection * m_throwForce;
+	m_heldBody->applyImpulse(force, btVector3(0, 0, 0));
+	
+	// Release the object
+	releaseObject();
+}
+
+void lsFirstPersonRig::cleanupConstraint()
+{
+	if (m_constraint && m_bulletObject) {
+		lsScene* scene = Get_Scene();
+		if (scene) {
+			lsBulletWorld* bw = scene->getBulletworld();
+			if (bw) {
+				btDiscreteDynamicsWorld* world = bw->getDynamicsWorld();
+				if (world) {
+					world->removeConstraint(m_constraint);
+				}
+			}
+		}
+		delete m_constraint;
+		m_constraint = nullptr;
 	}
 }
 

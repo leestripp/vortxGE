@@ -553,4 +553,11 @@ void DemoScene::rotatePlayerView( double delta_x, double delta_y)
 	}
 }
 
+void DemoScene::handleMouseButtons(bool left, bool right)
+{
+	if (m_playerRig)
+	{
+		m_playerRig->HandleMouseButtons(left, right);
+	}
+}
 

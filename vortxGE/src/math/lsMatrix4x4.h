@@ -39,6 +39,9 @@ public:
 	// New: Extract only the rotation component of the matrix (no translation/scale)
 	lsMatrix4x4 extractRotation();
 	
+	// get local transform from parent matrix
+	lsMatrix4x4 getLocalTransformFromParent(const lsMatrix4x4& parentMatrix) const;
+	
 	// Static utility for Euler angle conversion
 	static lsVector3 ToEulerZYX(const lsMatrix4x4& m);
 	

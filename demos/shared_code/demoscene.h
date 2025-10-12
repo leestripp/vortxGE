@@ -26,6 +26,7 @@ public:
     // Player movement
     void movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch);
     void rotatePlayerView( double delta_x, double delta_y);
+    void handleMouseButtons(bool left, bool right); // Add this method
     // vortxGE - Scene events and Camera
     void Update( double delta );
     void Render();
