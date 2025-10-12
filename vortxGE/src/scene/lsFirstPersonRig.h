@@ -92,9 +92,6 @@ private:
 	btRigidBody* m_heldBody = nullptr;
 	btGeneric6DofConstraint* m_constraint = nullptr;
 	btTransform m_originalTransform;
-	// Store mass
-	float m_heldOriginalMass;
-	btVector3 m_heldOriginalInertia;
 	
 	// Pickup parameters
 	float m_pickupDistance;     // Distance to pickup objects

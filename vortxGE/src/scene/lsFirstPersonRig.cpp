@@ -47,7 +47,7 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 	
 	// Pickup objects settings.
 	m_pickupDistance = 5.0f;     // Distance to pickup objects
-	m_throwForce = 15.0f;        // Force applied when throwing (function also calc's mass)
+	m_throwForce = 30.0f;        // Force applied when throwing (function also calc's mass)
 	m_holdDistance = 4.0f;       // Distance in front of player where object is held
 	m_isHolding = false;
 	
@@ -163,11 +163,6 @@ void lsFirstPersonRig::Move(lsScene* scn, lsRender* render, double delta)
 	// This updates ModelMatrix based on physics (if m_bulletObject is linked to lsObject::bulletobject).
 	// It also handles animation for the rig itself (pos/rot/scale).
 	lsObject::Move(scn, render, delta);
-	
-	// Update camera's local position with interpolation
-	// Interpolate between current and target camera height
-	m_cameraHeightOffset = std::lerp(m_cameraHeightOffset, m_targetCameraHeightOffset, m_cameraLerpSpeed);
-	m_camera->Set_Pos(0.0f, m_cameraHeightOffset, 0.0f);
 	
 	// Ensure the physics body's position matches the rig's (base object's) position
 	// This is important if something external changes the rig's position (e.g., scene loading)
@@ -510,55 +505,50 @@ void lsFirstPersonRig::pickupObject(lsObject* obj)
 	
 	btRigidBody* body = static_cast<btRigidBody*>(obj->getBulletObject()->getBody());
 	if (!body) return;
+	
 	// Skip objects with zero or negative mass (static/kinematic bodies)
 	if (body->getMass() <= 0.0f) return;
-	
-	// Save original mass and inertia
-	m_heldOriginalMass = body->getMass();
-	m_heldOriginalInertia = body->getInvInertiaDiagLocal();
 	
 	m_heldObject = obj;
 	m_heldBody = body;
 	
-	// Make object kinematic (disable physics influence)
-	int oldFlags = body->getCollisionFlags();
-	body->setCollisionFlags(oldFlags | btCollisionObject::CF_KINEMATIC_OBJECT);
-	body->setActivationState(DISABLE_DEACTIVATION);
-	// Disable gravity
-	body->setGravity(btVector3(0, 0, 0));
-	// reduce mass for better handling
-	// body->setMassProps(1.0f, btVector3(0, 0, 0));
+    // Disable sleeping for the held object to keep it active
+    body->setSleepingThresholds(0.0f, 0.0f);
+    
+	// Get player's position and orientation
+	btVector3 playerPosition(0.0, 1.0, 0.0);
+	btVector3 forwardDir(0.0, 0.0, -1.0);
+	// Calculate desired offset in front of player (relative to player's local space)
+	btVector3 desiredOffset = playerPosition + forwardDir * m_holdDistance;
 	
-	// Create a constraint to attach the object to the player
-	btVector3 pivotInA(0, 0, 0);
-	btVector3 pivotInB(0, 0, 0);
-	
-	// Position the object in front of the player (local space)
-	// our player is already rotated, so we just need the local position
-	btVector3 position(0.0, 1.0, 0.0);
-	btVector3 direction(0.0, 0.0, -1.0);
-	btVector3 targetPosition = position + (direction * m_holdDistance);
-	
-	// Constraint transforms.
+	// Create constraint frames
 	btTransform constraintFrameA = btTransform::getIdentity();
 	btTransform constraintFrameB = btTransform::getIdentity();
-	constraintFrameA.setOrigin(targetPosition);
+
+	// Set constraint frame B to be at the center of the object (local space)
 	constraintFrameB.setOrigin(btVector3(0, 0, 0));
 	
-	// Create a 6DOF constraint
-	m_constraint = new btGeneric6DofConstraint(*m_bulletObject->getBody(), *body,
-			constraintFrameA,
-			constraintFrameB.inverse(),
-			true
-		);
-	
-	// Set linear limits (position constraints)
-	m_constraint->setLinearLowerLimit(btVector3(-0.1f, -0.1f, -0.1f));
-	m_constraint->setLinearUpperLimit(btVector3(0.1f, 0.1f, 0.1f));
-	// Set angular limits to prevent rotation (lock all axes)
+	// Set constraint frame A such that it positions the object at 'desiredOffset' from player
+	constraintFrameA.setOrigin(desiredOffset);
+
+	// Create 6DOF constraint between player and object
+	m_constraint = new btGeneric6DofConstraint(
+		*m_bulletObject->getBody(), 
+		*body,
+		constraintFrameA,
+		constraintFrameB.inverse(),
+		true
+	);
+
+	// Allow only small movement (to keep object near player)
+	m_constraint->setLinearLowerLimit(btVector3(-0.2f, -0.2f, -0.2f));
+	m_constraint->setLinearUpperLimit(btVector3(0.2f, 0.2f, 0.2f));
+
+	// Prevent rotation of the held object
 	m_constraint->setAngularLowerLimit(btVector3(0, 0, 0));
 	m_constraint->setAngularUpperLimit(btVector3(0, 0, 0));
-	
+
+	// Apply constraint with proper world coordinates
 	lsScene* scene = Get_Scene();
 	if (scene)
 	{
@@ -568,7 +558,7 @@ void lsFirstPersonRig::pickupObject(lsObject* obj)
 			btDiscreteDynamicsWorld* world = bw->getDynamicsWorld();
 			if (world)
 			{
-				world->addConstraint(m_constraint);
+				world->addConstraint(m_constraint, true); // Enable collisions between constrained objects
 				m_isHolding = true;
 			}
 		}
@@ -579,18 +569,36 @@ void lsFirstPersonRig::releaseObject()
 {
 	if (!m_isHolding || !m_constraint) return;
 	
-	// Restore physics properties
-	// m_heldBody->setMassProps(m_heldOriginalMass, m_heldOriginalInertia);
-	m_heldBody->setCollisionFlags(m_heldBody->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
-	m_heldBody->setGravity(btVector3(0, -9.8f * 2.0f, 0)); // Restore gravity
-	m_heldBody->setActivationState(ACTIVE_TAG);
+	// Remove constraint from world
+	lsScene* scene = Get_Scene();
+	if (scene)
+	{
+		lsBulletWorld* bw = scene->getBulletworld();
+		if (bw)
+		{
+			btDiscreteDynamicsWorld* world = bw->getDynamicsWorld();
+			if (world)
+			{
+				world->removeConstraint(m_constraint);
+			}
+		}
+	}
 	
-	cleanupConstraint();
+	// Clean up constraint
+	delete m_constraint;
+	m_constraint = nullptr;
 	
+    // Restore the held object's original physics properties including sleep state
+    if (m_heldBody)
+    {
+        // Restore sleep thresholds to allow sleeping again
+        m_heldBody->setSleepingThresholds(0.8f, 1.0f);
+    }
+    
+	// Reset held object state
 	m_heldObject = nullptr;
 	m_heldBody = nullptr;
 	m_isHolding = false;
-	m_constraint = nullptr;
 }
 
 void lsFirstPersonRig::throwObject()
