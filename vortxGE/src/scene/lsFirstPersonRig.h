@@ -91,12 +91,15 @@ private:
 	lsObject* m_heldObject = nullptr;
 	btRigidBody* m_heldBody = nullptr;
 	btGeneric6DofConstraint* m_constraint = nullptr;
-	btTransform m_originalTransform; // Store original transform for release
+	btTransform m_originalTransform;
+	// Store mass
+	float m_heldOriginalMass;
+	btVector3 m_heldOriginalInertia;
 	
 	// Pickup parameters
-	float m_pickupDistance = 5.0f;     // Distance to pickup objects
-	float m_throwForce = 20.0f;        // Force applied when throwing
-	float m_holdDistance = 4.0f;       // Distance in front of player where object is held
+	float m_pickupDistance;     // Distance to pickup objects
+	float m_throwForce;        // Force applied when throwing
+	float m_holdDistance;       // Distance in front of player where object is held
 	
 	void cleanupConstraint();
 };

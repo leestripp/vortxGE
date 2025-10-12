@@ -25,10 +25,10 @@ static void key_callback(GLFWwindow* window, int key, __attribute__((unused)) in
 				glfwSetWindowShouldClose(window, GLFW_TRUE);
 				break;
 			
-            case GLFW_KEY_F1:
-                glfw_app.setFullscreen(!glfw_app.getFullscreen());
-                glfw_app.CheckFullScreen();
-                break;
+			case GLFW_KEY_F1:
+				glfw_app.setFullscreen(!glfw_app.getFullscreen());
+				glfw_app.CheckFullScreen();
+				break;
 		}
 	}
 	
@@ -45,34 +45,42 @@ static void key_callback(GLFWwindow* window, int key, __attribute__((unused)) in
 	}
 }
 
-static void mouse_button_callback(GLFWwindow* window, int button, int action, __attribute__((unused)) int mods)
+static void mouse_button_callback(GLFWwindow* window, int button, int action, int /* mods */)
 {
-    if(! window)
+    if (!window)
     {
         cerr << "ERROR: mouse_button_callback() called with NULL window." << endl;
         return;
     }
-    
-    if (button == GLFW_MOUSE_BUTTON_LEFT)
-    {
-        glfw_app.setMouse_left(action == GLFW_PRESS);
-    }
-    else if (button == GLFW_MOUSE_BUTTON_RIGHT)
-    {
-        glfw_app.setMouse_right(action == GLFW_PRESS);
-        
-        // Handle right mouse button click for pickup
-        if (action == GLFW_PRESS && glfw_app.getRunning() && glfw_app.getDemoscene()) 
-        {
-            // Call the DemoScene's handleMouseButtons method directly
-            glfw_app.getDemoscene()->handleMouseButtons(true, false); // Right button pressed
-        }
-        else if (action == GLFW_RELEASE && glfw_app.getRunning() && glfw_app.getDemoscene())
-        {
-            // Release pickup state when right mouse button is released
-            glfw_app.getDemoscene()->handleMouseButtons(false, false);
-        }
-    }
+
+    // Reset the buttons to false by default
+    glfw_app.setMBL(false);
+    glfw_app.setMBR(false);
+	
+	switch(action)
+	{
+		case GLFW_PRESS:
+			if (button == GLFW_MOUSE_BUTTON_LEFT)
+   			{
+   				glfw_app.setMBL(true);
+   			}
+			if (button == GLFW_MOUSE_BUTTON_RIGHT)
+   			{
+   				glfw_app.setMBR(true);
+   			}
+			break;
+		
+		case GLFW_RELEASE:
+			if (button == GLFW_MOUSE_BUTTON_LEFT)
+   			{
+   				glfw_app.setMBL(false);
+   			}
+			if (button == GLFW_MOUSE_BUTTON_RIGHT)
+   			{
+   				glfw_app.setMBR(false);
+   			}
+			break;
+	}
 }
 
 static void cursor_position_callback( __attribute__((unused)) GLFWwindow* window, double xpos, double ypos )
@@ -268,20 +276,11 @@ void glfwApp::Run()
 				// Move player
 				demoscene->movePlayer( key_w, key_s, key_a, key_d, key_jump, key_sprint, key_crouch );
 				
-                // Handle mouse buttons for pickup/throw
-                if (mouse_right) {
-                    demoscene->handleMouseButtons(false, true); // Right button held down
-                }
-                else if (mouse_left && !m_mouse_look_active) {
-                    // Try to pick up object on left click (if not in mouse look mode)
-                    demoscene->handleMouseButtons(true, false);
-                } else {
-                    demoscene->handleMouseButtons(false, false);
-                }
-                
+				// Handle mouse buttons
+				demoscene->handleMouseButtons(m_mouse_button_left, m_mouse_button_right);
+				
 				if (key_jump) setKey_jump(false); // Reset jump state after processing
-			}
-			else
+			} else
 			{
 				// Not in fullscreen, so mouse look is inactive
 				m_mouse_look_active = false;
@@ -322,12 +321,12 @@ void glfwApp::Run()
 
 int main()
 {
-    if(! glfw_app.Init())
-    {
-        return -1;
-    }
+	if(! glfw_app.Init())
+	{
+		return -1;
+	}
 	
-    glfw_app.Run();
+	glfw_app.Run();
 	
-    return 0;
+	return 0;
 }

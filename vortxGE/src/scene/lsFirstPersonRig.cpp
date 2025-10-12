@@ -45,6 +45,12 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 	m_mouseYSensitivity = 1.85f;
 	m_airResistance = 0.95;		// Slows down the player if not on the ground.
 	
+	// Pickup objects settings.
+	m_pickupDistance = 5.0f;     // Distance to pickup objects
+	m_throwForce = 15.0f;        // Force applied when throwing (function also calc's mass)
+	m_holdDistance = 4.0f;       // Distance in front of player where object is held
+	m_isHolding = false;
+	
 	// Capsule dimensions
 	m_capsuleRadius = 0.5f;
 	m_standingCapsuleHeight = 1.8f; // Total height 1.8m
@@ -338,22 +344,25 @@ void lsFirstPersonRig::HandleMouseLook(float delta, float delta_x, float delta_y
 
 void lsFirstPersonRig::HandleMouseButtons(bool left, bool right)
 {
+	// Left mouse button: only trigger throwing if holding an object
 	if (left)
 	{
-		if(m_isHolding)
+		if (m_isHolding)
 		{
 			throwObject();
+			return;
 		}
-	} else if (right)
-	{
-		if(! m_isHolding)
-		{
-			tryPickupObject();
-		}
-	} else
-	{
-		releaseObject();
 	}
+	
+	// Right mouse button: pickup or release based on state
+	if (right && m_isHolding) return;
+	if (right && !m_isHolding)
+	{
+		tryPickupObject();
+		return;
+	}
+	// Just let go
+	releaseObject();
 }
 
 void lsFirstPersonRig::checkGroundCollision()
@@ -501,18 +510,30 @@ void lsFirstPersonRig::pickupObject(lsObject* obj)
 	
 	btRigidBody* body = static_cast<btRigidBody*>(obj->getBulletObject()->getBody());
 	if (!body) return;
+	// Skip objects with zero or negative mass (static/kinematic bodies)
+	if (body->getMass() <= 0.0f) return;
+	
+	// Save original mass and inertia
+	m_heldOriginalMass = body->getMass();
+	m_heldOriginalInertia = body->getInvInertiaDiagLocal();
 	
 	m_heldObject = obj;
 	m_heldBody = body;
 	
-	// Store original transform
-	m_originalTransform = body->getWorldTransform();
+	// Make object kinematic (disable physics influence)
+	int oldFlags = body->getCollisionFlags();
+	body->setCollisionFlags(oldFlags | btCollisionObject::CF_KINEMATIC_OBJECT);
+	body->setActivationState(DISABLE_DEACTIVATION);
+	// Disable gravity
+	body->setGravity(btVector3(0, 0, 0));
+	// reduce mass for better handling
+	// body->setMassProps(1.0f, btVector3(0, 0, 0));
 	
-	// Create a point-to-point constraint to attach the object to the player
+	// Create a constraint to attach the object to the player
 	btVector3 pivotInA(0, 0, 0);
 	btVector3 pivotInB(0, 0, 0);
 	
-	// Position the object in front of the player
+	// Position the object in front of the player (local space)
 	// our player is already rotated, so we just need the local position
 	btVector3 position(0.0, 1.0, 0.0);
 	btVector3 direction(0.0, 0.0, -1.0);
@@ -542,26 +563,34 @@ void lsFirstPersonRig::pickupObject(lsObject* obj)
 	if (scene)
 	{
 		lsBulletWorld* bw = scene->getBulletworld();
-		if (bw) {
+		if (bw)
+		{
 			btDiscreteDynamicsWorld* world = bw->getDynamicsWorld();
-			if (world) {
+			if (world)
+			{
 				world->addConstraint(m_constraint);
+				m_isHolding = true;
 			}
 		}
 	}
-	
-	m_isHolding = true;
 }
 
 void lsFirstPersonRig::releaseObject()
 {
 	if (!m_isHolding || !m_constraint) return;
 	
+	// Restore physics properties
+	// m_heldBody->setMassProps(m_heldOriginalMass, m_heldOriginalInertia);
+	m_heldBody->setCollisionFlags(m_heldBody->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+	m_heldBody->setGravity(btVector3(0, -9.8f * 2.0f, 0)); // Restore gravity
+	m_heldBody->setActivationState(ACTIVE_TAG);
+	
 	cleanupConstraint();
 	
 	m_heldObject = nullptr;
 	m_heldBody = nullptr;
 	m_isHolding = false;
+	m_constraint = nullptr;
 }
 
 void lsFirstPersonRig::throwObject()
@@ -569,8 +598,15 @@ void lsFirstPersonRig::throwObject()
 	if (!m_isHolding || !m_heldBody) return;
 	
 	// Apply force to the held object
-	btVector3 throwDirection = btVector3(m_camera->rotation.x, m_camera->rotation.y, m_camera->rotation.z).normalized();
-	btVector3 force = throwDirection * m_throwForce;
+	btVector3 throwDirection = btVector3(
+		m_camera->ModelMatrix.matrix[8],
+		m_camera->ModelMatrix.matrix[9],
+		m_camera->ModelMatrix.matrix[10]
+	);
+	throwDirection = throwDirection.normalize();
+	
+	// Calculate the required impulse based on mass and desired speed
+	btVector3 force = -throwDirection * (m_throwForce * m_heldBody->getMass());
 	m_heldBody->applyImpulse(force, btVector3(0, 0, 0));
 	
 	// Release the object
@@ -579,13 +615,17 @@ void lsFirstPersonRig::throwObject()
 
 void lsFirstPersonRig::cleanupConstraint()
 {
-	if (m_constraint && m_bulletObject) {
+	if (m_constraint)
+	{
 		lsScene* scene = Get_Scene();
-		if (scene) {
+		if (scene)
+		{
 			lsBulletWorld* bw = scene->getBulletworld();
-			if (bw) {
+			if (bw)
+			{
 				btDiscreteDynamicsWorld* world = bw->getDynamicsWorld();
-				if (world) {
+				if (world)
+				{
 					world->removeConstraint(m_constraint);
 				}
 			}
