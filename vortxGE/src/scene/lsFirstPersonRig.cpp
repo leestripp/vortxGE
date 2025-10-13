@@ -95,12 +95,13 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 		m_crouchingShapeAsset->AllocAsset();
 		lsBulletShape* bs = static_cast<lsBulletShape*>(m_crouchingShapeAsset->getData());
 		m_crouchingShape = static_cast<btCapsuleShape*>(bs->getShape());
+		
 	} else
 	{
 		std::cerr << "ERROR: lsFirstPersonRig - Failed to create crouching capsule asset." << std::endl;
 	}
 	
-	// --- In the constructor, after setting up physics ---
+	// setting up physics
 	if (m_standingShape)
 	{
 		m_bulletObject = new lsBulletObject(this, m_standingShape, scene->getBulletworld()->getMax_proxies());
@@ -113,7 +114,8 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 			btRigidBody* body = m_bulletObject->getBody();
 			body->setSleepingThresholds(0.0f, 0.0f); // Prevent sleeping
 			body->setAngularFactor(btVector3(0.0f, 1.0f, 0.0f)); // Only allow yaw rotation via physics
-			body->setDamping(0.9f, 0.9f); // Linear and angular damping
+			// Set angular high to stop held objects from rotation the player to much.
+			body->setDamping(0.9f, 2.0f); // Linear and angular damping
 			
 			// Set friction and restitution for sliding behavior
 			body->setFriction(0.1f); // Low friction for sliding
