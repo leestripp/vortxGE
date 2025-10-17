@@ -12,6 +12,7 @@ class lsCamera;
 class lsEvent;
 class lsFirstPersonRig;
 class lsSpeaker;
+class lsLight_Direct;
 
 using namespace std;
 
@@ -38,7 +39,7 @@ protected:
     void setupObjectEmitter();
     // Scene Events
     void processEvent( lsEvent* event );
-
+	
 private:
     vortxGE     *m_vortxge;
 	
@@ -51,8 +52,9 @@ private:
     lsViewer *m_viewer;
 	
     // Player Rig
-    lsFirstPersonRig* m_playerRig; // Changed type to lsFirstPersonRig
+    lsFirstPersonRig* m_playerRig = nullptr; // Changed type to lsFirstPersonRig
+    lsLight_Direct* m_sun_light = nullptr;
     
     // Audio Speaker
-    lsSpeaker* m_speaker; // Add a speaker object to the scene
+    lsSpeaker* m_speaker = nullptr; // Add a speaker object to the scene
 };

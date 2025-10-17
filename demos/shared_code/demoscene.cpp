@@ -300,23 +300,23 @@ void DemoScene::setupControls()
 			}// if pass_fbo
 			
 			// Create a lsLight_Direct to follow the player.
-			lsLight_Direct* sun_light = new lsLight_Direct(m_viewer_scene);
-			if(sun_light && playerCam)
+			m_sun_light = new lsLight_Direct(m_viewer_scene);
+			if(m_sun_light && playerCam)
 			{
 				// Set the follow camera.
-				sun_light->setFollowCamera(playerCam);
+				m_sun_light->setFollowCamera(playerCam);
 				
 				// Default settings.
-				sun_light->Set_Orthographic(-200.0, 200.0, -200.0, 200.0, 1.0, 100.0);
-		        sun_light->setName("Sun Light");
-				sun_light->Set_Pos(0.0, 50.0, 30.0);
-		        sun_light->Set_Rot(-60.0, 0.0, 0.0);
+				m_sun_light->Set_Orthographic(-200.0, 200.0, -200.0, 200.0, 1.0, 100.0);
+		        m_sun_light->setName("Sun Light");
+				m_sun_light->Set_Pos(0.0, 50.0, 30.0);
+		        m_sun_light->Set_Rot(-60.0, 0.0, 0.0);
 		        // light colour
-		        sun_light->diffuse = lsVector4(1.0, 0.9, 0.85, 1.0);
+		        m_sun_light->diffuse = lsVector4(1.0, 0.9, 0.85, 1.0);
 		        
 				// Add to scene.
-				m_viewer_scene->Add_Node(sun_light);
-		        m_viewer_scene->getLightManager()->Add_Light(sun_light);
+				m_viewer_scene->Add_Node(m_sun_light);
+		        m_viewer_scene->getLightManager()->Add_Light(m_sun_light);
 			}
 		}// if viewer_scene
 	}// if viewer
@@ -434,6 +434,61 @@ void DemoScene::setupTestScene()
 	
 	// Setup shadowmaps.
 	setupShadows();
+	
+	// Create object emitter.
+	setupObjectEmitter();
+}
+
+void DemoScene::setupObjectEmitter()
+{
+	if (!m_viewer_scene) return;
+	
+	cout << "DemoScene::setupObjectEmitter() called" << endl;
+	
+	// Create the mesh asset for emitted objects
+	lsAsset_Mesh* emitMesh = m_viewer_scene->getAssetManager()->CreateAsset_Mesh("data/meshes/Wood_Cube.glb");
+	if (!emitMesh)
+	{
+		cout << "ERROR: Failed to create mesh asset for emitter" << endl;
+		return;
+	}
+	emitMesh->AllocAsset();
+	
+	// Create the bullet shape asset (box with size 1.0, 1.0, 1.0)
+	lsAsset_BulletShape_Box* emitBulletShape = m_viewer_scene->getAssetManager()->CreateAsset_BulletShape_Box(1.0f, 1.0f, 1.0f);
+	if (!emitBulletShape)
+	{
+		cout << "ERROR: Failed to create bullet box shape for emitter" << endl;
+		return;
+	}
+	emitBulletShape->AllocAsset();
+	
+	// Create the emitter object
+	lsObjectEmitter* emitter = new lsObjectEmitter(emitMesh, emitBulletShape, m_viewer_scene);
+	if (!emitter)
+	{
+		cout << "ERROR: Failed to create object emitter" << endl;
+		return;
+	}
+	
+	// Set emitter properties
+	emitter->setName("WoodCubeEmitter");
+	emitter->Set_Pos(0, 20, -10); // Position above the ground
+	emitter->setEmittime(500.0); // Emit every 500ms
+	emitter->setEmit_life(20.0 * 1000.0); // Life of 20 seconds
+	
+	// Set randomization properties for more interesting emission
+	emitter->setRand_area(lsVector3(2.0f, 0.0f, 2.0f)); // Random area around emitter
+	emitter->setRand_velocity(lsVector3(2.0f, 5.0f, 2.0f)); // Random velocity
+	emitter->setRand_rotation(true); // Random rotation
+	
+	// Add lights
+	emitter->add_Emit_Light(m_sun_light);
+	
+	// Add the emitter to the scene
+	m_viewer_scene->Add_Node(emitter);
+	
+	cout << "DemoScene::setupObjectEmitter() completed" << endl;
 }
 
 void DemoScene::setupShadows()

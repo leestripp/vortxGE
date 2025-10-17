@@ -1,6 +1,9 @@
+#include <algorithm> 
+
+// Debug
 #include "../vortx_debug.h"
 
-// OpenGL
+// Render
 #include "../render/lsRender.h"
 
 // datablocks
@@ -107,7 +110,7 @@ lsScene::~lsScene()
 }
 
 /*!
- * Poll scene events, Update physics and Init Identity Matrix
+ * Update physics and Set Identity Matrix
  *
  * \param scn
  * \param render
@@ -131,6 +134,7 @@ void lsScene::Move( __attribute__((unused)) lsScene* scn, lsRender* render, doub
 	ModelMatrix.debug( "lsScene ModelMatrix: " + getName() );
 #endif
 }
+
 
 /*!
  * \brief lsScene::Draw
@@ -253,12 +257,10 @@ void lsScene::InitDrawlist()
 void lsScene::Add_DrawObject( lsObject *object )
 {
 	object->setPrev_drawobject( NULL );
-
-	m_mutex.lock();
+	
 	object->setNext_drawobject( draw_list );
 	if( draw_list ) draw_list->setPrev_drawobject( object );
 	draw_list = object;
-	m_mutex.unlock();
 }
 
 /*! Add event
@@ -266,9 +268,7 @@ void lsScene::Add_DrawObject( lsObject *object )
  */
 void lsScene::Add_Event( lsEvent *event )
 {
-	m_mutex.lock();
 	Get_EventManager()->Add_Event( event );
-	m_mutex.unlock();
 }
 
 /*!
@@ -293,7 +293,8 @@ lsEvent* lsScene::Poll_Event()
 			{
 			case LSET_DEL_NODE:
 				delnode = (lsEvent_DelNode*)event;
-				Del_Node( delnode->getNode() );
+				// Process the deletion through the new mechanism
+				delnode->ProcessEvent();
 				break;
 
 				// User events
@@ -309,7 +310,7 @@ lsEvent* lsScene::Poll_Event()
 			event = Get_EventManager()->Poll_Event();
 		} // while loop
 	}
-
+	
 	return event;
 }
 

@@ -34,6 +34,8 @@ public:
 	void releaseObject();
 	void throwObject();
 	bool isHolding() const { return m_isHolding; }
+	// If a held object is marked for deletion, we must release it.
+	void CleanupBeforeDeletion();
 	
 	// Getters for external access (e.g., from DemoScene)
 	lsCamera* getCamera() const { return m_camera; }

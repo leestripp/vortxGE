@@ -3,16 +3,15 @@
 
 // events
 #include "lsEvent.h"
+#include "lsEvent_DelNode.h"
 
 #include "lsEventManager.h"
-
 
 lsEventManager::lsEventManager()
 {
 	event_list = NULL;
 	last_event = NULL;
 	current_event = NULL;
-
 }
 
 lsEventManager::~lsEventManager()
@@ -60,7 +59,3 @@ lsEvent *lsEventManager::Poll_Event()
 
 	return current_event;
 }
-
-
-
-

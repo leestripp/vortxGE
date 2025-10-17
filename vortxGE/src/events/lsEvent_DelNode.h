@@ -1,5 +1,4 @@
-#ifndef LSEVENT_DELNODE_H
-#define LSEVENT_DELNODE_H
+#pragma once
 
 #include "lsEvent.h"
 
@@ -14,7 +13,8 @@ class lsEvent_DelNode : public lsEvent
 public:
 	lsEvent_DelNode();
 	virtual ~lsEvent_DelNode();
-
+	
+	// overrides
+	void ProcessEvent();
 };
 
-#endif // LSEVENT_DELNODE_H

@@ -2,8 +2,9 @@
 
 #include <string>
 #include <thread>
+#include <mutex>
 #include <vector>
-#include <memory> // Include for std::unique_ptr
+#include <memory>
 
 // math
 #include "../math/lsMatrix4x4.h"
@@ -64,7 +65,7 @@ public:
 	// Threads
 	void MoveThread( lsScene* scn, lsRender* render, double delta );
 	void OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
-	
+    
 	// Scene
 	virtual lsScene *Get_Scene();
 	virtual lsEventManager *Get_EventManager();
@@ -72,6 +73,13 @@ public:
 	// Life
 	void checkLife( lsScene *scn );
 	void Set_Life( double val );
+	void CleanupDeletedNodes();
+	
+	// Flags
+	void SetActive(bool active);
+	bool GetActive() const;
+	void MarkForDeletion();
+	bool IsMarkedForDeletion() const;
 	
 	// Node tree
 	// Changed signature to accept a unique_ptr by rvalue reference for ownership transfer
@@ -148,6 +156,8 @@ private:
 	// must be set.
 	string name;
 	int node_type;
+	bool m_active;      // Node is active and should be processed
+    bool m_delete;      // Node marked for deletion
 	
 	// Life
 	lsTimer timer_life;

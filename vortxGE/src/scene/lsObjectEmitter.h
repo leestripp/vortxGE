@@ -1,8 +1,8 @@
-#ifndef LSOBJECTEMITTER_H
-#define LSOBJECTEMITTER_H
+#pragma once
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 // render
 #include "../render/lsRender.h"
@@ -16,6 +16,7 @@
 // math
 #include "../math/lsRandom.h"
 #include "../math/lsVector3.h"
+#include "../math/lsMatrix4x4.h"
 
 #include "lsAnimNode.h"
 
@@ -57,13 +58,16 @@ public:
 	lsAsset *getEmit_bulletshape() const;
 	void setEmit_bulletshape(lsAsset *value);
 	
-	void setMass(double mass);
+	void setMass(float mass);
 	
 	double getEmit_life() const;
 	void setEmit_life(double value);
 
-	lsLight *getEmit_light() const;
-	void setEmit_light(lsLight *value);
+	// Light management
+	void add_Emit_Light(lsLight* light);
+	void remove_Emit_Light(lsLight* light);
+	void clear_Emit_Lights();
+	const std::vector<lsLight*>& get_Emit_Lights() const;
 
 	lsVector3 getRand_area() const;
 	void setRand_area(const lsVector3 &value);
@@ -81,12 +85,13 @@ private:
 	// Emit data
 	lsScene         *m_scene;
 	lsAsset_Mesh    *emit_mesh;
-	double			m_mass = 1.0;
+	float			m_mass = 1.0f;
 	lsAsset         *emit_bulletshape;
 	// Life
 	double          emit_life;
-	// Light
-	lsLight         *emit_light;
+	
+	// Lights for emitted objects
+	std::vector<lsLight*> emit_lights;
 	
 	// Random ranges
 	lsRandom m_random;
@@ -94,5 +99,3 @@ private:
 	lsVector3   rand_velocity;
 	bool        rand_rotation;
 };
-
-#endif // LSOBJECTEMITTER_H

@@ -26,7 +26,6 @@ private:
 	lsNode* hit_node;
 	lsVector3 hit_point;
 	lsVector3 hit_normal;
-
 };
 
 #endif // LSEVENT_HITPOINT_H

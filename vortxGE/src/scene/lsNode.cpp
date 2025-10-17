@@ -22,9 +22,12 @@ lsNode::lsNode( lsNode* parent )
 	
 	name = "Node";
 	node_type = LSNT_NODE;
-
+	// flags
+	m_active = true;
+	m_delete = false;
+	
 	this->parent = parent;
-
+	
 	// defaults
 	ModelMatrix.LoadIdentity();
 	Set_Pos( 0, 0, 0 );
@@ -43,6 +46,54 @@ lsNode::~lsNode()
 #endif
 	// Nodes never self deletes
 }
+
+void lsNode::CleanupDeletedNodes()
+{
+#ifdef VORTX_DEBUG_NODES
+	cout << "lsScene::CleanupDeletedNodes() - Cleaning up deleted nodes" << endl;
+#endif
+	
+	// Clean up deleted nodes
+	for (auto it = m_children.begin(); it != m_children.end();)
+	{
+		if ((*it)->IsMarkedForDeletion())
+		{
+			// Set parent to nullptr for the node being removed.
+			// The unique_ptr will handle deletion of the node object when it goes out of scope from the vector.
+			(*it)->setParent(nullptr);
+			it = m_children.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+// Flags
+
+void lsNode::SetActive(bool active)
+{
+	m_active = active;
+}
+
+bool lsNode::GetActive() const
+{
+	return m_active;
+}
+
+void lsNode::MarkForDeletion()
+{
+	m_delete = true;
+}
+
+bool lsNode::IsMarkedForDeletion() const
+{
+	return m_delete;
+}
+
+//**************
+// Move
 
 void lsNode::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render, __attribute__((unused)) double delta )
 {
@@ -76,8 +127,8 @@ void lsNode::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused))
 	ModelMatrix.debug( "lsNode ModelMatrix: " + getName() );
 #endif
 	
-	// time to die
-	// checkLife( scn );
+	// Check lift timer.
+	checkLife(scn);
 }
 
 /*!
@@ -90,6 +141,7 @@ void lsNode::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused))
  * \param render
  * \param delta
  */
+
 void lsNode::MoveThread( lsScene* scn, lsRender* render, double delta )
 {
 #ifdef VORTX_DEBUG_NODETHREADS
@@ -107,44 +159,57 @@ void lsNode::MoveThread( lsScene* scn, lsRender* render, double delta )
 	cout << "lsNode::MoveThread - Thread count : " << threads << endl;
 #endif
 	
-	// cycle through children nodes.
-	// Parents Matrix has been set.
-	for (auto& child : m_children)
+    // Collect children that are not marked for deletion
+    std::vector<lsNode*> children_to_process; // Use local copy
+    {
+        // For now, assume we're safe because this is part of a Move operation that happens
+        // sequentially per node. But be cautious about shared access.
+        for (auto& child : m_children)
+        {
+            if (! child->IsMarkedForDeletion())
+            {
+                children_to_process.push_back( child.get() );
+            }
+        }
+    }
+	
+	if(! children_to_process.empty())
 	{
-		// Add thread
-		th.push_back( thread( &lsNode::Move, child.get(), scn, render, delta ) );
-		tc++;
-
-		// check our thread count
-		if(( tc >= threads )||( &(*child) == &(*m_children.back()) ))
+		// Cycle through children nodes (filter out deleted ones).
+		// Parents Matrix has been set.
+		for (auto child : children_to_process)
 		{
-#ifdef VORTX_DEBUG_NODETHREADS
-			// debug
-			cout << "lsNode::MoveThread - Threads pushed : " << tc << endl;
-#endif
-			// Join and wait
+			// Add thread
+			th.push_back( thread( &lsNode::Move, child, scn, render, delta ) );
+			tc++;
+			
+			// check our thread count
+			if( tc >= threads )
+			{
+				// Join and wait
+				for( auto &t : th )
+				{
+					t.join();
+				}
+				// clean up
+				th.clear();
+				tc = 0;
+			}
+		}
+		// Join last threads.
+		if(! th.empty() )
+		{
 			for( auto &t : th )
 			{
 				t.join();
 			}
-			// clean up
-			th.clear();
-			tc = 0;
 		}
-	}
-	// Join last threads.
-	if(! th.empty() )
-	{
-		for( auto &t : th )
+		
+		// Pass it on to non-deleted children
+		for (auto child : children_to_process)
 		{
-				t.join();
-			}
+			child->MoveThread( scn, render, delta );
 		}
-	
-	// pass it on
-	for (auto& child : m_children)
-	{
-		child->MoveThread( scn, render, delta );
 	}
 }
 
@@ -179,29 +244,32 @@ void lsNode::OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender
 	cout << msg.str();
 #endif
 
-	// cycle through child and its next nodes
+	// cycle through child and its next nodes (filter out deleted ones)
 	for (auto& child : m_children)
 	{
-		// Add thread
-		th.push_back( thread( &lsNode::Optimize, child.get(), cam, pass, scn, render ) );
-		tc++;
-		
-		// check our thread count
-		if(( tc >= threads )||( &(*child) == &(*m_children.back()) ))
+		if (!child->IsMarkedForDeletion())
 		{
-#ifdef VORTX_DEBUG_NODETHREADS
-			stringstream msg;
-			msg << "lsNode::OptimizeThread - Threads pushed : " << tc << endl;
-			cout << msg.str();
-#endif
-			// Join and wait
-			for( auto &t : th )
+			// Add thread
+			th.push_back( thread( &lsNode::Optimize, child.get(), cam, pass, scn, render ) );
+			tc++;
+			
+			// check our thread count
+			if(( tc >= threads )||( &(*child) == &(*m_children.back()) ))
 			{
-				t.join();
+#ifdef VORTX_DEBUG_NODETHREADS
+				stringstream msg;
+				msg << "lsNode::OptimizeThread - Threads pushed : " << tc << endl;
+				cout << msg.str();
+#endif
+				// Join and wait
+				for( auto &t : th )
+				{
+					t.join();
+				}
+				// clean up
+				th.clear();
+				tc = 0;
 			}
-			// clean up
-			th.clear();
-			tc = 0;
 		}
 	}
 	// Join last threads.
@@ -209,14 +277,17 @@ void lsNode::OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender
 	{
 		for( auto &t : th )
 		{
-				t.join();
-			}
+			t.join();
 		}
+	}
 	
-	// Pass it on
+	// Pass it on to non-deleted children
 	for (auto& child : m_children)
 	{
-		child->OptimizeThread( cam, pass, scn, render );
+		if (!child->IsMarkedForDeletion())
+		{
+			child->OptimizeThread( cam, pass, scn, render );
+		}
 	}
 }
 
@@ -304,19 +375,8 @@ void lsNode::Del_Node(lsNode* node)
 	
 	if(! node) return;
 	
-	// Find and remove the node from m_children
-	for (auto it = m_children.begin(); it != m_children.end(); ++it)
-	{
-		// Use .get() to compare raw pointers
-		if (it->get() == node)
-		{
-			// Set parent to nullptr for the node being removed.
-			// The unique_ptr will handle deletion of the node object when it goes out of scope from the vector.
-			node->setParent(nullptr);
-			m_children.erase(it);
-			return; // Node found and removed
-		}
-	}
+	// Mark for deletion instead of immediate removal
+	node->MarkForDeletion();
 }
 
 void lsNode::Find_Node( lsScene* scn, const string& name )

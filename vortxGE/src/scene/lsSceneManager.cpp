@@ -83,6 +83,9 @@ void lsSceneManager::Update( lsRender* render, double delta )
 
 			// Move nodes threaded
 			scene->MoveThread( scene, render, delta );
+			
+			// Clean up deleted nodes after processing
+			scene->CleanupDeletedNodes();
 		}
 	}
 	if( render->getStats() ) render->getStats()->Move_Stop();

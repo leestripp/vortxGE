@@ -21,241 +21,248 @@
 
 lsObjectEmitter::lsObjectEmitter( lsAsset_Mesh *am, lsAsset *abs, lsNode* parent  ) : lsAnimNode(parent)
 {
-    setNode_type( LSNT_OBJECT_EMITTER );
-    setName("Object Emitter");
+	setNode_type( LSNT_OBJECT_EMITTER );
+	setName("Object Emitter");
 
-    // object data to emit
-    emit_mesh = am;
-    emit_bulletshape = abs;
-    // Life
-    emit_life = 5000.0;
-    // Light
-    emit_light = NULL;
+	// object data to emit
+	emit_mesh = am;
+	emit_bulletshape = abs;
+	// Life
+	emit_life = 5000.0;
+	// Lights
+	emit_lights.clear();
 
-    // randome defaults.
-    rand_area = lsVector3( 5, 5, 5 );
-    rand_velocity = lsVector3( 0, 0, 0 );
-    rand_rotation = true;
+	// randome defaults.
+	rand_area = lsVector3( 5, 5, 5 );
+	rand_velocity = lsVector3( 0, 0, 0 );
+	rand_rotation = true;
 
-    // Emit
-    timer_emit.start_Timer();
-    emittime = 2000.0;
+	// Emit
+	timer_emit.start_Timer();
+	emittime = 2000.0;
 
-    // Get the root node
-    m_scene = parent->Get_Scene();
+	// Get the root node
+	m_scene = parent->Get_Scene();
 }
 
 lsObjectEmitter::~lsObjectEmitter()
 {
+	// Clean up any remaining lights in our vector
+	emit_lights.clear();
 }
 
 void lsObjectEmitter::EmitObject( lsScene *scn, lsRender *render )
 {
-    lsObject *object;
-    lsBulletObject *bulletobject;
-    lsBulletShape *bulletshape;
-    float ox, oy, oz;
+	lsObject *object;
+	lsBulletObject *bulletobject;
+	lsBulletShape *bulletshape;
+	float ox, oy, oz;
 	
-    if( timer_emit.get_ElapsedTime() > emittime )
-    {
-        // reset timer
-        timer_emit.start_Timer();
+	if( timer_emit.get_ElapsedTime() > emittime )
+	{
+		// reset timer
+		timer_emit.start_Timer();
 		
-        object = new lsObject( m_scene );
-        if( object )
-        {
-            object->Set_Asset( (lsAsset*)emit_mesh );
-            // set poition 12-14
-            ox = ModelMatrix.matrix[12] + m_random.Rand_FloatRange( -rand_area.x, rand_area.x );
-            oy = ModelMatrix.matrix[13] + m_random.Rand_FloatRange( -rand_area.y, rand_area.y );
-            oz = ModelMatrix.matrix[14] + m_random.Rand_FloatRange( -rand_area.z, rand_area.z );
-            object->Set_Pos( ox, oy, oz );
-            // Set life
-            object->Set_Life( emit_life );
-            // Light
-            object->getLightManager()->Add_Light( emit_light );
+		object = new lsObject( scn );
+		if( object )
+		{
+			object->Set_Asset( (lsAsset *)emit_mesh );
+			
+			// Set position at emitter location + random offset
+			ox = position.x + m_random.Rand_FloatRange( -rand_area.x, rand_area.x );
+			oy = position.y + m_random.Rand_FloatRange( -rand_area.y, rand_area.y );
+			oz = position.z + m_random.Rand_FloatRange( -rand_area.z, rand_area.z );
+			object->Set_Pos( ox, oy, oz );
+			
+			// Set life
+			object->Set_Life( emit_life );
+			
+			// Add lights to emitted object
+			for (auto& light : emit_lights)
+			{
+				if (light) 
+				{
+					object->getLightManager()->Add_Light(light);
+				}
+			}
 
-            // Add node
-            if( m_scene )
-            {
-                m_scene->Add_Node( object );
-            }
+			// Add node to scene - this will be managed by the scene graph
+			scn->Add_Node( object );
 
-            // Get our physics shape
-            switch( emit_bulletshape->getAsset_type() )
-            {
-            case LSAT_BULLETSHAPE_BOX:
-            case LSAT_BULLETSHAPE_PILL:
-            case LSAT_BULLETSHAPE_PLANE:
-            case LSAT_BULLETSHAPE_SPHERE:
-                // TODO: Add extra shapes, convex hull, concave mesh etc...
-                bulletshape = (lsBulletShape*)emit_bulletshape->getData();
-                break;
+			// Get our physics shape
+			switch( emit_bulletshape->getAsset_type() )
+			{
+			case LSAT_BULLETSHAPE_BOX:
+			case LSAT_BULLETSHAPE_SPHERE:
+			case LSAT_BULLETSHAPE_PLANE:
+			case LSAT_BULLETSHAPE_PILL:
+				bulletshape = (lsBulletShape*)emit_bulletshape->getData();
+				break;
 
-            default:
-                cout << "Warning: Wrong Asset attached as bullet shape to : " << getName() << ", adding default sphere shape" << endl;
+			default:
+				cout << "Warning: Wrong Asset attached as bullet shape to : " << getName() << ", adding default sphere shape" << endl;
 				bulletshape = new lsBulletShape( render );
-				bulletshape->Make_Sphere( 1.0 );
-                break;
-            }
+				bulletshape->Make_Sphere( 1.0f );
+				break;
+			}
 
-            // Add lsBulletObject
-            bulletobject = new lsBulletObject( object, bulletshape->getShape(), scn->getBulletworld()->getMax_proxies() );
-            if( bulletobject )
-            {
-                bulletobject->Init( m_mass ); // Mass 0 = static
-                bulletobject->Set_Gravity( 0, -10, 0 );
-                // match position
-                bulletobject->Set_Position( ox, oy, oz );
+			// Add lsBulletObject
+			bulletobject = new lsBulletObject( object, bulletshape->getShape(), scn->getBulletworld()->getMax_proxies() );
+			if( bulletobject )
+			{
+				bulletobject->Init( 1.0f ); // Mass 1.0 = dynamic
+				bulletobject->Set_Gravity( 0, -10, 0 );
+				// match position
+				bulletobject->Set_Position( ox, oy, oz );
 
-                // rotation
-                if( rand_rotation )
-                {
-                    ox = m_random.Rand_FloatRange( 0, 360.0 );
-                    oy = m_random.Rand_FloatRange( 0, 360.0 );
-                    oz = m_random.Rand_FloatRange( 0, 360.0 );
-                    bulletobject->Set_Rotation( ox, oy, oz );
-                    object->Set_Rot( ox, oy, oz );
-                }
-                // velocity
-                ox = m_random.Rand_FloatRange( -rand_velocity.x, rand_velocity.x );
-                oy = m_random.Rand_FloatRange( -rand_velocity.y, rand_velocity.y );
-                oz = m_random.Rand_FloatRange( -rand_velocity.z, rand_velocity.z );
-                bulletobject->Set_Velocity( ox, oy, oz );
+				// rotation
+				if( rand_rotation )
+				{
+					float rx = m_random.Rand_FloatRange( 0, 360.0f );
+					float ry = m_random.Rand_FloatRange( 0, 360.0f );
+					float rz = m_random.Rand_FloatRange( 0, 360.0f );
+					bulletobject->Set_Rotation( rx, ry, rz );
+					object->Set_Rot( rx, ry, rz );
+				}
+				// velocity
+				float vx = m_random.Rand_FloatRange( -rand_velocity.x, rand_velocity.x );
+				float vy = m_random.Rand_FloatRange( -rand_velocity.y, rand_velocity.y );
+				float vz = m_random.Rand_FloatRange( -rand_velocity.z, rand_velocity.z );
+				bulletobject->Set_Velocity( vx, vy, vz );
 
-            }// if( bulletobject )
+			}// if( bulletobject )
 
-            // Update object ModelMatrix to stop flickering.
-            // Set transform
-            lsMatrix4x4 transmat;
-            lsMatrix4x4 rotmat;
-            lsMatrix4x4 scalemat;
-
-            transmat.TranslateMatrix( object->position.x, object->position.y, object->position.z );
-            rotmat.RotateMatrix( object->rotation.x, 1, 0, 0 );
-            rotmat.RotateMatrix( object->rotation.y, 0, 1, 0 );
-            rotmat.RotateMatrix( object->rotation.z, 0, 0, 1 );
-            scalemat.ScaleMatrix( object->scale.x, object->scale.y, object->scale.z );
-            object->ModelMatrix = transmat * rotmat * scalemat;
-
-        }// if object
-    }// if emittime
+		}// if object
+	}// if emittime
 }
 
 
 void lsObjectEmitter::Move( lsScene *scn, lsRender *render, double delta )
 {
-    // apply animation
-    if( getAnimationManager() ) getAnimationManager()->UpdateAll( delta );
+	// apply animation
+	if( getAnimationManager() ) 
+		getAnimationManager()->UpdateAll( delta );
 	
-    // Set transform
-    lsMatrix4x4 transmat;
-    lsMatrix4x4 rotmat;
-    lsMatrix4x4 scalemat;
+	// Emit Object
+	EmitObject( scn, render );
 	
-    transmat.TranslateMatrix( position.x, position.y, position.z );
-    rotmat.RotateMatrix( rotation.x, 1, 0, 0 );
-    rotmat.RotateMatrix( rotation.y, 0, 1, 0 );
-    rotmat.RotateMatrix( rotation.z, 0, 0, 1 );
-    scalemat.ScaleMatrix( scale.x, scale.y, scale.z );
-	
-    if( getParent() )
-        ModelMatrix = getParent()->ModelMatrix;
-    else
-        ModelMatrix.LoadIdentity();
-	
-    ModelMatrix = ModelMatrix * transmat * rotmat * scalemat;
-	
-    // Emit Object
-    EmitObject( scn, render );
-    // Life
-    checkLife( scn );
+	// Life
+	checkLife( scn );
 }
 
 // #################################################
 
 double lsObjectEmitter::getEmittime() const
 {
-    return emittime;
+	return emittime;
 }
 
 void lsObjectEmitter::setEmittime(double value)
 {
-    emittime = value;
+	emittime = value;
 }
 
 lsAsset_Mesh *lsObjectEmitter::getEmit_mesh() const
 {
-    return emit_mesh;
+	return emit_mesh;
 }
 
 void lsObjectEmitter::setEmit_mesh(lsAsset_Mesh *value)
 {
-    emit_mesh = value;
+	emit_mesh = value;
 }
 
 lsAsset *lsObjectEmitter::getEmit_bulletshape() const
 {
-    return emit_bulletshape;
+	return emit_bulletshape;
 }
 
 void lsObjectEmitter::setEmit_bulletshape(lsAsset *value)
 {
-    emit_bulletshape = value;
+	emit_bulletshape = value;
 }
 
-void lsObjectEmitter::setMass(double mass)
+void lsObjectEmitter::setMass(float mass)
 {
 	m_mass = mass;
 }
 
 double lsObjectEmitter::getEmit_life() const
 {
-    return emit_life;
+	return emit_life;
 }
 
 void lsObjectEmitter::setEmit_life(double value)
 {
-    emit_life = value;
+	emit_life = value;
 }
 
-lsLight *lsObjectEmitter::getEmit_light() const
+// Light management methods
+
+void lsObjectEmitter::add_Emit_Light(lsLight* light)
 {
-    return emit_light;
+	if(! light) return;
+	for(const auto l : emit_lights)
+	{
+		if(l == light)
+		{
+			return;
+		}
+	}
+	// Add light
+	emit_lights.push_back(light);
 }
 
-void lsObjectEmitter::setEmit_light(lsLight *value)
+void lsObjectEmitter::remove_Emit_Light(lsLight* light)
 {
-    emit_light = value;
+    if(! light) return;
+    for(auto it = emit_lights.begin(); it != emit_lights.end(); ++it)
+    {
+        if(*it == light)
+        {
+            emit_lights.erase(it);
+            break; // Exit after removing to avoid invalid iterator
+        }
+    }
+}
+
+void lsObjectEmitter::clear_Emit_Lights()
+{
+	emit_lights.clear();
+}
+
+const std::vector<lsLight*>& lsObjectEmitter::get_Emit_Lights() const
+{
+	return emit_lights;
 }
 
 lsVector3 lsObjectEmitter::getRand_area() const
 {
-    return rand_area;
+	return rand_area;
 }
 
 void lsObjectEmitter::setRand_area(const lsVector3 &value)
 {
-    rand_area = value;
+	rand_area = value;
 }
 
 lsVector3 lsObjectEmitter::getRand_velocity() const
 {
-    return rand_velocity;
+	return rand_velocity;
 }
 
 void lsObjectEmitter::setRand_velocity(const lsVector3 &value)
 {
-    rand_velocity = value;
+	rand_velocity = value;
 }
 
 bool lsObjectEmitter::getRand_rotation() const
 {
-    return rand_rotation;
+	return rand_rotation;
 }
 
 void lsObjectEmitter::setRand_rotation(bool value)
 {
-    rand_rotation = value;
+	rand_rotation = value;
 }
 

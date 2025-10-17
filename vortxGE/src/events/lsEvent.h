@@ -1,5 +1,4 @@
-#ifndef LSEVENT_H_
-#define LSEVENT_H_
+#pragma once
 
 // Core event tupes
 const int LSET_NULL		= 0;
@@ -20,12 +19,14 @@ class lsEvent
 public:
 	lsEvent();
 	virtual ~lsEvent();
-
+	
+	virtual void ProcessEvent() { /* Default implementation */ }
+	
 	lsNode *getNode() const
 	{
 		return node;
 	}
-
+	
 	void setNode(lsNode *node)
 	{
 		this->node = node;
@@ -71,18 +72,14 @@ public:
 	{
 		this->event_type = event_type;
 	}
-
-
+	
 private:
 	lsEventManager *eventmanager;
-
+	
 	lsEvent *next_event;
 	lsEvent *prev_event;
-
+	
 	int event_type;
 	// Node events
 	lsNode* node;
-
 };
-
-#endif /* LSEVENT_H_ */

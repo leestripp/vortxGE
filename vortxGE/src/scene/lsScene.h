@@ -29,7 +29,7 @@ public:
     // Get the base Scene, every node has this func.
     lsScene *Get_Scene();
     lsEventManager *Get_EventManager();
-	
+    
     void ClearScene();
     void Add_DrawObject( lsObject* object );
 	
@@ -103,7 +103,5 @@ private:
     lsObject* sky_object;
     // Audio Listener
     lsListener* m_listener;
-	
-    // Threads
-    mutex m_mutex;
 };
+

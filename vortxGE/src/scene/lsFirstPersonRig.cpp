@@ -154,10 +154,17 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 
 lsFirstPersonRig::~lsFirstPersonRig()
 {
+	// Clean up any held objects before destruction
+	if (m_constraint)
+	{
+		cleanupConstraint();
+	}
+	
 	// The base class `lsObject` destructor will handle `delete bulletobject;`
 	// and `Del_Children()` will handle `delete m_camera;` since it's stored as unique_ptr.
 	// Asset shapes are managed by the scene's asset manager, so we don't delete them here.
 }
+
 
 void lsFirstPersonRig::Move(lsScene* scn, lsRender* render, double delta)
 {
@@ -178,6 +185,15 @@ void lsFirstPersonRig::Move(lsScene* scn, lsRender* render, double delta)
 	// because lsObject::Move() already updates ModelMatrix from physics.
 	// We update m_isCrouching state based on input, and updateCapsuleShape()
 	// ensures the bullet collision shape reflects that, affecting future physics.
+	
+	// Check if any held object is marked for deletion and clean it up
+    if (m_isHolding && m_heldObject)
+    {
+        if (m_heldObject->IsMarkedForDeletion())
+        {
+            releaseObject();
+        }
+    }
 }
 
 void lsFirstPersonRig::Optimize(lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render)
@@ -514,9 +530,9 @@ void lsFirstPersonRig::pickupObject(lsObject* obj)
 	m_heldObject = obj;
 	m_heldBody = body;
 	
-    // Disable sleeping for the held object to keep it active
-    body->setSleepingThresholds(0.0f, 0.0f);
-    
+	// Disable sleeping for the held object to keep it active
+	body->setSleepingThresholds(0.0f, 0.0f);
+	
 	// Get player's position and orientation
 	btVector3 playerPosition(0.0, 1.0, 0.0);
 	btVector3 forwardDir(0.0, 0.0, -1.0);
@@ -587,16 +603,15 @@ void lsFirstPersonRig::releaseObject()
 	}
 	
 	// Clean up constraint
-	delete m_constraint;
-	m_constraint = nullptr;
+	cleanupConstraint();
 	
-    // Restore the held object's original physics properties including sleep state
-    if (m_heldBody)
-    {
-        // Restore sleep thresholds to allow sleeping again
-        m_heldBody->setSleepingThresholds(0.8f, 1.0f);
-    }
-    
+	// Restore the held object's original physics properties including sleep state
+	if (m_heldBody)
+	{
+		// Restore sleep thresholds to allow sleeping again
+		m_heldBody->setSleepingThresholds(0.8f, 1.0f);
+	}
+	
 	// Reset held object state
 	m_heldObject = nullptr;
 	m_heldBody = nullptr;
@@ -645,22 +660,38 @@ void lsFirstPersonRig::cleanupConstraint()
 	}
 }
 
+// If a held object is marked for deletion we need to release it.
+// Clean up before deletion
+void lsFirstPersonRig::CleanupBeforeDeletion()
+{
+	// Release any held object if needed
+	if (m_isHolding)
+	{
+		releaseObject();
+	}
+}
+
+
 const std::string& lsFirstPersonRig::toString()
 {
 	save_str = "add_first_person_rig ";
-	if (getName() != "") {
+	if (getName() != "")
+	{
 		save_str += "`";
 		save_str += getName();
 		save_str += "`";
-	} else {
+	} else
+	{
 		save_str += "`FirstPersonRig`";
 	}
-
-	if (getParent()) {
+	
+	if (getParent())
+	{
 		save_str += " `";
 		save_str += getParent()->getName();
 		save_str += "`";
-	} else {
+	} else
+	{
 		save_str += " `NONE`";
 	}
 

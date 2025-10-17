@@ -117,7 +117,7 @@ void lsObject::Move( lsScene* scn, __attribute__((unused)) lsRender* render, dou
 
         ModelMatrix = ModelMatrix * transmat * rotmat * scalemat;
     }
-
+	
     // time to die
     checkLife( scn );
 }
