@@ -81,11 +81,11 @@ public:
 private:
 	lsTimer         timer_emit;
 	double          emittime;
-
+	
 	// Emit data
 	lsScene         *m_scene;
 	lsAsset_Mesh    *emit_mesh;
-	float			m_mass = 1.0f;
+	float			m_emit_mass = 1.0f;
 	lsAsset         *emit_bulletshape;
 	// Life
 	double          emit_life;

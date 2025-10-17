@@ -476,6 +476,7 @@ void DemoScene::setupObjectEmitter()
 	emitter->Set_Pos(0, 20, -10); // Position above the ground
 	emitter->setEmittime(500.0); // Emit every 500ms
 	emitter->setEmit_life(20.0 * 1000.0); // Life of 20 seconds
+	emitter->setMass(50.0); // 50kg
 	
 	// Set randomization properties for more interesting emission
 	emitter->setRand_area(lsVector3(2.0f, 0.0f, 2.0f)); // Random area around emitter

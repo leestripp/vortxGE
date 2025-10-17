@@ -73,6 +73,10 @@ void lsObjectEmitter::EmitObject( lsScene *scn, lsRender *render )
 			oy = position.y + m_random.Rand_FloatRange( -rand_area.y, rand_area.y );
 			oz = position.z + m_random.Rand_FloatRange( -rand_area.z, rand_area.z );
 			object->Set_Pos( ox, oy, oz );
+			// Stop world centre flicker.
+			object->ModelMatrix.matrix[12] = ox;
+			object->ModelMatrix.matrix[13] = oy;
+			object->ModelMatrix.matrix[14] = oz;
 			
 			// Set life
 			object->Set_Life( emit_life );
@@ -110,11 +114,11 @@ void lsObjectEmitter::EmitObject( lsScene *scn, lsRender *render )
 			bulletobject = new lsBulletObject( object, bulletshape->getShape(), scn->getBulletworld()->getMax_proxies() );
 			if( bulletobject )
 			{
-				bulletobject->Init( 1.0f ); // Mass 1.0 = dynamic
-				bulletobject->Set_Gravity( 0, -10, 0 );
+				bulletobject->Init( m_emit_mass );
+				bulletobject->Set_Gravity( 0, -9.8*2.0, 0 );
 				// match position
 				bulletobject->Set_Position( ox, oy, oz );
-
+				
 				// rotation
 				if( rand_rotation )
 				{
@@ -129,7 +133,7 @@ void lsObjectEmitter::EmitObject( lsScene *scn, lsRender *render )
 				float vy = m_random.Rand_FloatRange( -rand_velocity.y, rand_velocity.y );
 				float vz = m_random.Rand_FloatRange( -rand_velocity.z, rand_velocity.z );
 				bulletobject->Set_Velocity( vx, vy, vz );
-
+				
 			}// if( bulletobject )
 
 		}// if object
@@ -184,7 +188,7 @@ void lsObjectEmitter::setEmit_bulletshape(lsAsset *value)
 
 void lsObjectEmitter::setMass(float mass)
 {
-	m_mass = mass;
+	m_emit_mass = mass;
 }
 
 double lsObjectEmitter::getEmit_life() const
