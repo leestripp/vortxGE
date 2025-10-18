@@ -111,22 +111,22 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
         case ShaderKind::DebugNormals: // Although debug_normals doesn't use all lights, keep light uniform init common
             // Shadow Map uniforms (arrays)
             for(int i = 0; i < 3; ++i) {
-                isMatrices[i] = glGetUniformLocation( shader, ("sMatrices[" + std::to_string(i) + "]").c_str() );
-                iTex_shadowmaps[i] = glGetUniformLocation( shader, ("tex_shadowmaps[" + std::to_string(i) + "]").c_str() );
-                iUse_shadowmap[i] = glGetUniformLocation( shader, ("use_shadowmap[" + std::to_string(i) + "]").c_str() );
+                isMatrices[i] = glGetUniformLocation( shader, ("sMatrices[" + to_string(i) + "]").c_str() );
+                iTex_shadowmaps[i] = glGetUniformLocation( shader, ("tex_shadowmaps[" + to_string(i) + "]").c_str() );
+                iUse_shadowmap[i] = glGetUniformLocation( shader, ("use_shadowmap[" + to_string(i) + "]").c_str() );
             }
             
             // Lights uniforms (arrays)
             iLightCount = glGetUniformLocation( shader, "vxLightCount" );
             for(int i = 0; i < 3; ++i) {
-                iLightType[i] = glGetUniformLocation( shader, ("vxLightType[" + std::to_string(i) + "]").c_str() );
-                iLightPos[i] = glGetUniformLocation( shader, ("vxLightPos[" + std::to_string(i) + "]").c_str() );
-                iLightDir[i] = glGetUniformLocation( shader, ("vxLightDir[" + std::to_string(i) + "]").c_str() );
-                iLightCutoff[i] = glGetUniformLocation( shader, ("vxLightCutoff[" + std::to_string(i) + "]").c_str() );
-                iLightOuterCutoff[i] = glGetUniformLocation( shader, ("vxLightOuterCutoff[" + std::to_string(i) + "]").c_str() );
-                iLightDiffuse[i] = glGetUniformLocation( shader, ("vxLightDiffuse[" + std::to_string(i) + "]").c_str() );
-                iLightSpecular[i] = glGetUniformLocation( shader, ("vxLightSpecular[" + std::to_string(i) + "]").c_str() );
-                iLightIntensity[i] = glGetUniformLocation( shader, ("vxLightIntensity[" + std::to_string(i) + "]").c_str() );
+                iLightType[i] = glGetUniformLocation( shader, ("vxLightType[" + to_string(i) + "]").c_str() );
+                iLightPos[i] = glGetUniformLocation( shader, ("vxLightPos[" + to_string(i) + "]").c_str() );
+                iLightDir[i] = glGetUniformLocation( shader, ("vxLightDir[" + to_string(i) + "]").c_str() );
+                iLightCutoff[i] = glGetUniformLocation( shader, ("vxLightCutoff[" + to_string(i) + "]").c_str() );
+                iLightOuterCutoff[i] = glGetUniformLocation( shader, ("vxLightOuterCutoff[" + to_string(i) + "]").c_str() );
+                iLightDiffuse[i] = glGetUniformLocation( shader, ("vxLightDiffuse[" + to_string(i) + "]").c_str() );
+                iLightSpecular[i] = glGetUniformLocation( shader, ("vxLightSpecular[" + to_string(i) + "]").c_str() );
+                iLightIntensity[i] = glGetUniformLocation( shader, ("vxLightIntensity[" + to_string(i) + "]").c_str() );
             }
             
             // Material
@@ -216,7 +216,7 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
             {
                 const auto& lights = object->getLightManager()->getLights();
                 int active_lights_count = 0;
-                for (int i = 0; i < std::min((int)lights.size(), 3); ++i)
+                for (int i = 0; i < min((int)lights.size(), 3); ++i)
                 {
                     lsLight* light = lights[i];
                     if (light)
@@ -508,7 +508,7 @@ bool lsShader::debugProgram()
 void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 {
     const auto& lights = object->getLightManager()->getLights();
-    int num_lights = std::min((int)lights.size(), 3); // Shader supports max 3 lights
+    int num_lights = min((int)lights.size(), 3); // Shader supports max 3 lights
     
     for (int i = 0; i < num_lights; ++i)
     {

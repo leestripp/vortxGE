@@ -235,7 +235,7 @@ void lsObjectEmitter::clear_Emit_Lights()
 	emit_lights.clear();
 }
 
-const std::vector<lsLight*>& lsObjectEmitter::get_Emit_Lights() const
+const vector<lsLight*>& lsObjectEmitter::get_Emit_Lights() const
 {
 	return emit_lights;
 }

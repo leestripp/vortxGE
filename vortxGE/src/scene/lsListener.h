@@ -18,7 +18,7 @@ public:
     void setOrientation(float at_x, float at_y, float at_z, float up_x, float up_y, float up_z);
 
     // Save data
-    const std::string& toString() override;
+    const string& toString() override;
 
 private:
     float m_gain = 1.0f;

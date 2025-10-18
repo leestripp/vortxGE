@@ -12,8 +12,8 @@
 #include "../physics/lsBulletObject.h"
 
 #include <iostream>
-#include <algorithm> // For std::clamp
-#include <cmath>     // For std::lerp
+#include <algorithm> // For clamp
+#include <cmath>     // For lerp
 
 
 lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dynamicsWorld)
@@ -71,7 +71,7 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 	lsAssetManager* am = scene->getAssetManager();
 	if (!am)
 	{
-		std::cerr << "ERROR: lsFirstPersonRig - AssetManager not available from scene." << std::endl;
+		cerr << "ERROR: lsFirstPersonRig - AssetManager not available from scene." << endl;
 		return;
 	}
 
@@ -85,7 +85,7 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 		
 	} else
 	{
-		std::cerr << "ERROR: lsFirstPersonRig - Failed to create standing capsule asset." << std::endl;
+		cerr << "ERROR: lsFirstPersonRig - Failed to create standing capsule asset." << endl;
 	}
 	
 	// Crouching capsule shape
@@ -98,7 +98,7 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 		
 	} else
 	{
-		std::cerr << "ERROR: lsFirstPersonRig - Failed to create crouching capsule asset." << std::endl;
+		cerr << "ERROR: lsFirstPersonRig - Failed to create crouching capsule asset." << endl;
 	}
 	
 	// setting up physics
@@ -128,11 +128,11 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 			setBulletObject(m_bulletObject);
 		} else
 		{
-			std::cerr << "ERROR: lsFirstPersonRig - Failed to create BulletObject." << std::endl;
+			cerr << "ERROR: lsFirstPersonRig - Failed to create BulletObject." << endl;
 		}
 	} else
 	{
-		std::cerr << "ERROR: lsFirstPersonRig - Standing capsule shape is NULL, cannot initialize BulletObject." << std::endl;
+		cerr << "ERROR: lsFirstPersonRig - Standing capsule shape is NULL, cannot initialize BulletObject." << endl;
 	}
 	
 	// Create camera and attach as child
@@ -148,7 +148,7 @@ lsFirstPersonRig::lsFirstPersonRig(lsScene* scene, btDiscreteDynamicsWorld* dyna
 		Add_Node(m_camera); // Add camera as a child node
 	} else
 	{
-		std::cerr << "ERROR: lsFirstPersonRig - Failed to create camera." << std::endl;
+		cerr << "ERROR: lsFirstPersonRig - Failed to create camera." << endl;
 	}
 }
 
@@ -297,7 +297,7 @@ void lsFirstPersonRig::HandleKeyboardInput(bool forward, bool backward, bool str
 		m_isOnGround = false; // Mark as not on ground immediately after jump
 		// Store movement direction before jump for momentum
 		m_movement = movement;
-	} else if (!jump && m_isJumping && std::abs(linearVelocity.getY()) < 0.1f) {
+	} else if (!jump && m_isJumping && abs(linearVelocity.getY()) < 0.1f) {
 		m_isJumping = false;
 	}
 	
@@ -313,7 +313,7 @@ void lsFirstPersonRig::HandleKeyboardInput(bool forward, bool backward, bool str
 		m_standingCameraOffset;
 	
 	m_currentCapsuleHeight = targetCapsuleCylinderHeight;
-	m_cameraHeightOffset = std::lerp(m_cameraHeightOffset, targetCameraOffset, m_cameraLerpSpeed);
+	m_cameraHeightOffset = lerp(m_cameraHeightOffset, targetCameraOffset, m_cameraLerpSpeed);
 	m_targetCameraHeightOffset = targetCameraOffset;
 	updateCapsuleShape();
 	
@@ -350,7 +350,7 @@ void lsFirstPersonRig::HandleMouseLook(float delta, float delta_x, float delta_y
 	float pitch_delta = -delta_y * m_mouseYSensitivity * delta; // Assuming down mouse moves camera up
 	m_camera->rotation.x += pitch_delta;
 	// Clamp pitch to prevent looking too far up/down (e.g., -89 to +89 degrees)
-	m_camera->rotation.x = std::clamp(m_camera->rotation.x, -89.0f, 89.0f);
+	m_camera->rotation.x = clamp(m_camera->rotation.x, -89.0f, 89.0f);
 	
 	m_bulletObject->getBody()->activate(); // Activate body to ensure it responds to changes
 }
@@ -672,7 +672,7 @@ void lsFirstPersonRig::CleanupBeforeDeletion()
 }
 
 
-const std::string& lsFirstPersonRig::toString()
+const string& lsFirstPersonRig::toString()
 {
 	save_str = "add_first_person_rig ";
 	if (getName() != "")

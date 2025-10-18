@@ -16,7 +16,7 @@ public:
     void Move(lsScene* scn, lsRender* render, double delta) override;
 
     // Load WAV file into OpenAL buffer
-    bool LoadWav(const std::string& filename);
+    bool LoadWav(const string& filename);
     void UnloadWav();
 	
     // Control playback
@@ -34,7 +34,7 @@ public:
     void setMaxDistance(float maxDistance);
 
     // Save data
-    const std::string& toString() override;
+    const string& toString() override;
 
 private:
     ALuint m_sourceId = 0;
@@ -51,5 +51,5 @@ private:
     void Cleanup(); 
 
     // Helper for WAV loading
-    bool loadWavData(const std::string& filename, ALenum* format, ALvoid** data, ALsizei* size, ALsizei* freq);
+    bool loadWavData(const string& filename, ALenum* format, ALvoid** data, ALsizei* size, ALsizei* freq);
 };

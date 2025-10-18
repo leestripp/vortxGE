@@ -41,7 +41,7 @@ public:
 	lsCamera* getCamera() const { return m_camera; }
 	
 	// Save data
-	virtual const std::string& toString() override;
+	virtual const string& toString() override;
 	
 private:
 	void checkGroundCollision();

@@ -2,7 +2,7 @@
 #include <sstream>
 #include <string.h>
 #include <math.h>
-#include <algorithm> // For std::clamp
+#include <algorithm> // For clamp
 
 #include "lsMatrix4x4.h"
 #include "lsVector3.h"
@@ -344,7 +344,7 @@ lsVector3 lsMatrix4x4::ToEulerZYX(const lsMatrix4x4& m)
     
     // Extract pitch (rotation.y) from m[2][0] = -sin(pitch)
     // m.matrix[2] corresponds to M[2][0] in row-major notation
-    pitch_rad = asin(std::clamp(-m.matrix[2], -1.0f, 1.0f)); 
+    pitch_rad = asin(clamp(-m.matrix[2], -1.0f, 1.0f)); 
     
     // Check for gimbal lock (pitch near +/- 90 degrees)
     const float C_EPSILON = 1e-4f; // A small epsilon to check for near-zero cos(pitch)

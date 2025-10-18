@@ -35,9 +35,9 @@ public:
 	
 private:
     // Changed from linked list to map for fast lookup
-    std::map<std::string, lsShader*> shader_map;
+    map<string, lsShader*> shader_map;
     // Map to store shader name -> kind mapping
-    std::map<std::string, ShaderKind> shaderNameToKindMap;
+    map<string, ShaderKind> shaderNameToKindMap;
     
     // render
     lsRender *m_render;

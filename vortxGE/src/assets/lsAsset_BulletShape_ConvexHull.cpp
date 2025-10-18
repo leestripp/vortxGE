@@ -20,7 +20,7 @@ lsAsset_BulletShape_ConvexHull::~lsAsset_BulletShape_ConvexHull()
 void lsAsset_BulletShape_ConvexHull::AllocAsset()
 {
     if (!m_meshAsset || !m_meshAsset->getData()) {
-        std::cout << "ERROR: lsAsset_BulletShape_ConvexHull::AllocAsset() - Mesh asset is not available." << std::endl;
+        cout << "ERROR: lsAsset_BulletShape_ConvexHull::AllocAsset() - Mesh asset is not available." << endl;
         return;
     }
     FreeAsset();
@@ -30,7 +30,7 @@ void lsAsset_BulletShape_ConvexHull::AllocAsset()
         bulletshape->Make_ConvexHull_FromMesh(static_cast<lsMesh*>(m_meshAsset->getData()));
         setData(bulletshape);
     } else {
-        std::cout << "ERROR: Failed to allocate asset : " << getAsset_name() << std::endl;
+        cout << "ERROR: Failed to allocate asset : " << getAsset_name() << endl;
     }
 }
 

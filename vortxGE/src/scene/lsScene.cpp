@@ -75,7 +75,7 @@ lsScene::lsScene( lsRender* m_render, float world_size, int maxProxies ) : lsNod
 	m_listener = new lsListener(this); // Create a default listener for the scene
 	if (!m_listener)
 	{
-		std::cerr << "ERROR: lsScene::lsScene - Could not instance lsListener" << std::endl;
+		cerr << "ERROR: lsScene::lsScene - Could not instance lsListener" << endl;
 	} else
 	{
 		Add_Node(m_listener); // Add listener as a child of the scene

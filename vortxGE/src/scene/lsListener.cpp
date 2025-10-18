@@ -86,7 +86,7 @@ void lsListener::setOrientation(float at_x, float at_y, float at_z, float up_x, 
     alListenerfv(AL_ORIENTATION, m_orientation);
 }
 
-const std::string& lsListener::toString()
+const string& lsListener::toString()
 {
     save_str = "add_listener ";
     if (getName() != "")

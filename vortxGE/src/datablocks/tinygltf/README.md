@@ -128,8 +128,8 @@ using namespace tinygltf;
 
 Model model;
 TinyGLTF loader;
-std::string err;
-std::string warn;
+string err;
+string warn;
 
 bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, argv[1]);
 //bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, argv[1]); // for binary glTF(.glb)

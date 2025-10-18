@@ -8,18 +8,18 @@ lsOpenAL::lsOpenAL()
 
 lsOpenAL::~lsOpenAL()
 {
-    std::cout << "lsOpenAL::~lsOpenAL() - Cleaning up OpenAL..." << std::endl;
+    cout << "lsOpenAL::~lsOpenAL() - Cleaning up OpenAL..." << endl;
     Cleanup();
 }
 
 bool lsOpenAL::Init()
 {
-    std::cout << "lsOpenAL::Init() - Initializing OpenAL..." << std::endl;
+    cout << "lsOpenAL::Init() - Initializing OpenAL..." << endl;
     
     m_device = alcOpenDevice(nullptr); // Open the default audio device
     if (!m_device)
     {
-        std::cerr << "ERROR: Failed to open OpenAL device." << std::endl;
+        cerr << "ERROR: Failed to open OpenAL device." << endl;
         return false;
     }
     ALC_RETURN_ON_ERROR(m_device, false); // Check for ALC errors after opening device
@@ -27,7 +27,7 @@ bool lsOpenAL::Init()
     m_context = alcCreateContext(m_device, nullptr); // Create an OpenAL context
     if (!m_context)
     {
-        std::cerr << "ERROR: Failed to create OpenAL context." << std::endl;
+        cerr << "ERROR: Failed to create OpenAL context." << endl;
         ALC_RETURN_ON_ERROR(m_device, false); // Check for ALC errors related to context creation
         alcCloseDevice(m_device); // Cleanup device if context creation failed
         m_device = nullptr;
@@ -37,7 +37,7 @@ bool lsOpenAL::Init()
 
     if (!alcMakeContextCurrent(m_context)) // Make the context current
     {
-        std::cerr << "ERROR: Failed to make OpenAL context current." << std::endl;
+        cerr << "ERROR: Failed to make OpenAL context current." << endl;
         ALC_RETURN_ON_ERROR(m_device, false); // Check for ALC errors related to making context current
         alcDestroyContext(m_context); // Cleanup context if failed to make current
         m_context = nullptr;
@@ -49,7 +49,7 @@ bool lsOpenAL::Init()
 
     // Get and print device information
     const ALCchar* deviceName = alcGetString(m_device, ALC_DEVICE_SPECIFIER);
-    std::cout << "INFO: OpenAL Device: " << (deviceName ? deviceName : "Default") << std::endl;
+    cout << "INFO: OpenAL Device: " << (deviceName ? deviceName : "Default") << endl;
 	
     // Optional: Set listener defaults (can be overridden by lsListener)
     alListenerf(AL_GAIN, 1.0f);
@@ -60,7 +60,7 @@ bool lsOpenAL::Init()
 
     AL_RETURN_ON_ERROR(false); // Check for AL errors after listener setup
 
-    std::cout << "INFO: OpenAL initialized successfully." << std::endl;
+    cout << "INFO: OpenAL initialized successfully." << endl;
     return true;
 }
 
@@ -79,12 +79,12 @@ void lsOpenAL::Cleanup()
     }
 }
 
-bool lsOpenAL::CheckALError(const std::string& filename, int line) const
+bool lsOpenAL::CheckALError(const string& filename, int line) const
 {
     ALenum error = alGetError();
     if (error != AL_NO_ERROR)
     {
-        std::string errorString;
+        string errorString;
         switch (error)
         {
             case AL_INVALID_NAME: errorString = "AL_INVALID_NAME"; break;
@@ -94,18 +94,18 @@ bool lsOpenAL::CheckALError(const std::string& filename, int line) const
             case AL_OUT_OF_MEMORY: errorString = "AL_OUT_OF_MEMORY"; break;
             default: errorString = "Unknown AL Error"; break;
         }
-        std::cerr << "OpenAL Error: " << errorString << " at " << filename << ":" << line << std::endl;
+        cerr << "OpenAL Error: " << errorString << " at " << filename << ":" << line << endl;
         return true;
     }
     return false;
 }
 
-bool lsOpenAL::CheckALCError(ALCdevice* device, const std::string& filename, int line) const
+bool lsOpenAL::CheckALCError(ALCdevice* device, const string& filename, int line) const
 {
     ALCenum error = alcGetError(device);
     if (error != ALC_NO_ERROR)
     {
-        std::string errorString;
+        string errorString;
         switch (error)
         {
             case ALC_INVALID_DEVICE: errorString = "ALC_INVALID_DEVICE"; break;
@@ -115,7 +115,7 @@ bool lsOpenAL::CheckALCError(ALCdevice* device, const std::string& filename, int
             case ALC_OUT_OF_MEMORY: errorString = "ALC_OUT_OF_MEMORY"; break;
             default: errorString = "Unknown ALC Error"; break;
         }
-        std::cerr << "OpenALC Error: " << errorString << " at " << filename << ":" << line << std::endl;
+        cerr << "OpenALC Error: " << errorString << " at " << filename << ":" << line << endl;
         return true;
     }
     return false;

@@ -32,5 +32,5 @@ public:
 	
 private:
 	// Removed: lsScene *scene_list; // This was replaced by m_scenes
-	std::vector<std::unique_ptr<lsScene>> m_scenes; // New member to manage scenes
+	vector<unique_ptr<lsScene>> m_scenes; // New member to manage scenes
 };

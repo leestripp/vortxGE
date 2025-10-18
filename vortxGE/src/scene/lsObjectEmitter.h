@@ -67,7 +67,7 @@ public:
 	void add_Emit_Light(lsLight* light);
 	void remove_Emit_Light(lsLight* light);
 	void clear_Emit_Lights();
-	const std::vector<lsLight*>& get_Emit_Lights() const;
+	const vector<lsLight*>& get_Emit_Lights() const;
 
 	lsVector3 getRand_area() const;
 	void setRand_area(const lsVector3 &value);
@@ -91,7 +91,7 @@ private:
 	double          emit_life;
 	
 	// Lights for emitted objects
-	std::vector<lsLight*> emit_lights;
+	vector<lsLight*> emit_lights;
 	
 	// Random ranges
 	lsRandom m_random;

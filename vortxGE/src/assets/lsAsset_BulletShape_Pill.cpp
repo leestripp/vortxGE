@@ -27,7 +27,7 @@ void lsAsset_BulletShape_Pill::AllocAsset()
         setData(bulletshape);
     } else
     {
-        std::cout << "ERROR: Failed to allocate asset : " << getAsset_name() << std::endl;
+        cout << "ERROR: Failed to allocate asset : " << getAsset_name() << endl;
     }
 }
 

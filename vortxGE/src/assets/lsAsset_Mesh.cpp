@@ -45,13 +45,13 @@ void lsAsset_Mesh::AllocAsset()
 	if( mesh )
 	{
 		// Check file extension
-		std::string ext;
+		string ext;
 		size_t pos = filename.find_last_of(".");
-		if (pos != std::string::npos) {
+		if (pos != string::npos) {
 			ext = filename.substr(pos + 1);
 		}
 		
-		std::cout << "INFO: Loading mesh '" << filename << "' with extension '" << ext << "'" << std::endl;
+		cout << "INFO: Loading mesh '" << filename << "' with extension '" << ext << "'" << endl;
 		
 		if (ext == "vbm")
 		{

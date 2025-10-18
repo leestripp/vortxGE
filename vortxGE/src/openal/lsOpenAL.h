@@ -5,6 +5,8 @@
 #include <AL/al.h>
 #include <AL/alc.h>
 
+using namespace std;
+
 class lsOpenAL
 {
 public:
@@ -18,8 +20,8 @@ public:
 	ALCcontext* getContext() const { return m_context; }
 
 	// Error checking
-	bool CheckALError(const std::string& filename, int line) const;
-	bool CheckALCError(ALCdevice* device, const std::string& filename, int line) const;
+	bool CheckALError(const string& filename, int line) const;
+	bool CheckALCError(ALCdevice* device, const string& filename, int line) const;
 
 private:
 	ALCdevice* m_device = nullptr;

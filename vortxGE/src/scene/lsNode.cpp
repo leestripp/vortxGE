@@ -160,7 +160,7 @@ void lsNode::MoveThread( lsScene* scn, lsRender* render, double delta )
 #endif
 	
     // Collect children that are not marked for deletion
-    std::vector<lsNode*> children_to_process; // Use local copy
+    vector<lsNode*> children_to_process; // Use local copy
     {
         // For now, assume we're safe because this is part of a Move operation that happens
         // sequentially per node. But be cautious about shared access.

@@ -26,7 +26,7 @@ void lsTimer::start_Timer( double rem, bool ajust )
 	if( ajust )
 	{
 		// Debug
-		// std::cout << "Timer usecs adjust - " << usec << std::endl;
+		// cout << "Timer usecs adjust - " << usec << endl;
 		t1.tv_usec += usec;
 	}
 }
@@ -51,7 +51,7 @@ void lsTimer::sleep( double msec )
 	// convert
 	usec = msec*1000.0f;
 	// Debug
-	// std::cout << "Timer usecs sleep - " << usec << std::endl;
+	// cout << "Timer usecs sleep - " << usec << endl;
 
 	usleep( usec );
 }

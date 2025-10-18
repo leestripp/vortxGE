@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <vector>
-#include <iostream> // Included for std::cerr/std::cout
+#include <iostream> // Included for cerr/cout
 
 lsSpeaker::lsSpeaker(lsNode* parent) : lsAnimNode(parent)
 {
@@ -18,7 +18,7 @@ lsSpeaker::lsSpeaker(lsNode* parent) : lsAnimNode(parent)
     // Generate OpenAL source
     alGenSources(1, &m_sourceId);
     if (m_sourceId == 0) {
-        std::cerr << "ERROR: Failed to generate OpenAL source for speaker: " << getName() << std::endl;
+        cerr << "ERROR: Failed to generate OpenAL source for speaker: " << getName() << endl;
         return;
     }
 
@@ -51,7 +51,7 @@ void lsSpeaker::Cleanup()
 
 lsSpeaker::~lsSpeaker()
 {
-    std::cout << "lsSpeaker::~lsSpeaker() - Cleaning up OpenAL..." << std::endl;
+    cout << "lsSpeaker::~lsSpeaker() - Cleaning up OpenAL..." << endl;
     Cleanup();
 }
 
@@ -69,7 +69,7 @@ void lsSpeaker::Move(lsScene* scn, lsRender* render, double delta)
     }
 }
 
-bool lsSpeaker::LoadWav(const std::string& filename)
+bool lsSpeaker::LoadWav(const string& filename)
 {
     UnloadWav(); // Unload any existing buffer first
 
@@ -80,7 +80,7 @@ bool lsSpeaker::LoadWav(const std::string& filename)
 	
     if (!loadWavData(filename, &format, &data, &size, &freq))
     {
-        std::cerr << "ERROR: Failed to load WAV data from " << filename << std::endl;
+        cerr << "ERROR: Failed to load WAV data from " << filename << endl;
         return false;
     }
 	
@@ -88,7 +88,7 @@ bool lsSpeaker::LoadWav(const std::string& filename)
     alGenBuffers(1, &m_bufferId);
     if (m_bufferId == 0)
     {
-        std::cerr << "ERROR: Failed to generate OpenAL buffer for " << filename << std::endl;
+        cerr << "ERROR: Failed to generate OpenAL buffer for " << filename << endl;
         free(data);
         return false;
     }
@@ -100,7 +100,7 @@ bool lsSpeaker::LoadWav(const std::string& filename)
     // Attach buffer to source
     alSourcei(m_sourceId, AL_BUFFER, m_bufferId);
 
-    std::cout << "INFO: Loaded WAV file: " << filename << std::endl;
+    cout << "INFO: Loaded WAV file: " << filename << endl;
     return true;
 }
 
@@ -178,12 +178,12 @@ void lsSpeaker::setMaxDistance(float maxDistance)
     alSourcef(m_sourceId, AL_MAX_DISTANCE, m_maxDistance);
 }
 
-bool lsSpeaker::loadWavData(const std::string& filename, ALenum* format, ALvoid** data, ALsizei* size, ALsizei* freq)
+bool lsSpeaker::loadWavData(const string& filename, ALenum* format, ALvoid** data, ALsizei* size, ALsizei* freq)
 {
-    std::string fullPath = lsDir().getexepath() + filename;
-    std::ifstream file(fullPath, std::ios::binary);
+    string fullPath = lsDir().getexepath() + filename;
+    ifstream file(fullPath, ios::binary);
     if (!file.is_open()) {
-        std::cerr << "ERROR: Failed to open WAV file: " << fullPath << std::endl;
+        cerr << "ERROR: Failed to open WAV file: " << fullPath << endl;
         return false;
     }
 
@@ -197,15 +197,15 @@ bool lsSpeaker::loadWavData(const std::string& filename, ALenum* format, ALvoid*
 
     // RIFF chunk
     file.read(chunkID, 4);
-    if (std::string(chunkID, 4) != "RIFF") {
-        std::cerr << "ERROR: Invalid WAV header: 'RIFF' chunk missing." << std::endl;
+    if (string(chunkID, 4) != "RIFF") {
+        cerr << "ERROR: Invalid WAV header: 'RIFF' chunk missing." << endl;
         file.close();
         return false;
     }
     file.read(reinterpret_cast<char*>(&chunkSize), 4); // File size
     file.read(chunkID, 4); // "WAVE"
-    if (std::string(chunkID, 4) != "WAVE") {
-        std::cerr << "ERROR: Invalid WAV header: 'WAVE' chunk missing." << std::endl;
+    if (string(chunkID, 4) != "WAVE") {
+        cerr << "ERROR: Invalid WAV header: 'WAVE' chunk missing." << endl;
         file.close();
         return false;
     }
@@ -218,25 +218,25 @@ bool lsSpeaker::loadWavData(const std::string& filename, ALenum* format, ALvoid*
         file.read(reinterpret_cast<char*>(&chunkSize), 4);
 
         if (file.eof()) {
-            std::cerr << "ERROR: Unexpected end of WAV file while reading chunks." << std::endl;
+            cerr << "ERROR: Unexpected end of WAV file while reading chunks." << endl;
             file.close();
             return false;
         }
 
-        std::string sChunkID(chunkID, 4);
+        string sChunkID(chunkID, 4);
 
         if (sChunkID == "fmt ") {
             fmt_found = true;
             file.read(reinterpret_cast<char*>(&audioFormat), 2);
             file.read(reinterpret_cast<char*>(&numChannels), 2);
             file.read(reinterpret_cast<char*>(&sampleRate), 4);
-            file.seekg(4, std::ios_base::cur); // Skip ByteRate
-            file.seekg(2, std::ios_base::cur); // Skip BlockAlign
+            file.seekg(4, ios_base::cur); // Skip ByteRate
+            file.seekg(2, ios_base::cur); // Skip BlockAlign
             file.read(reinterpret_cast<char*>(&bitsPerSample), 2);
 
             // Skip any extra bytes in fmt chunk if present
             if (chunkSize > 16) {
-                file.seekg(chunkSize - 16, std::ios_base::cur);
+                file.seekg(chunkSize - 16, ios_base::cur);
             }
         } else if (sChunkID == "data") {
             data_found = true;
@@ -244,24 +244,24 @@ bool lsSpeaker::loadWavData(const std::string& filename, ALenum* format, ALvoid*
             break; // Found data chunk, stop iterating
         } else {
             // Skip unknown chunk
-            file.seekg(chunkSize, std::ios_base::cur);
+            file.seekg(chunkSize, ios_base::cur);
         }
     }
 
     if (!fmt_found) {
-        std::cerr << "ERROR: WAV 'fmt ' chunk not found." << std::endl;
+        cerr << "ERROR: WAV 'fmt ' chunk not found." << endl;
         file.close();
         return false;
     }
     if (!data_found) {
-        std::cerr << "ERROR: WAV 'data' chunk not found." << std::endl;
+        cerr << "ERROR: WAV 'data' chunk not found." << endl;
         file.close();
         return false;
     }
 
     // Validate audio format
     if (audioFormat != 1) { // Only PCM is supported
-        std::cerr << "ERROR: WAV audio format is not PCM. (AudioFormat = " << audioFormat << ")" << std::endl;
+        cerr << "ERROR: WAV audio format is not PCM. (AudioFormat = " << audioFormat << ")" << endl;
         file.close();
         return false;
     }
@@ -276,7 +276,7 @@ bool lsSpeaker::loadWavData(const std::string& filename, ALenum* format, ALvoid*
     } else if (numChannels == 2 && bitsPerSample == 16) {
         *format = AL_FORMAT_STEREO16;
     } else {
-        std::cerr << "ERROR: Unsupported WAV format: " << numChannels << " channels, " << bitsPerSample << " bits per sample." << std::endl;
+        cerr << "ERROR: Unsupported WAV format: " << numChannels << " channels, " << bitsPerSample << " bits per sample." << endl;
         file.close();
         return false;
     }
@@ -286,7 +286,7 @@ bool lsSpeaker::loadWavData(const std::string& filename, ALenum* format, ALvoid*
 
     *data = malloc(dataSize);
     if (!*data) {
-        std::cerr << "ERROR: Out of memory for WAV data buffer (size: " << dataSize << " bytes)." << std::endl;
+        cerr << "ERROR: Out of memory for WAV data buffer (size: " << dataSize << " bytes)." << endl;
         file.close();
         return false;
     }
@@ -296,7 +296,7 @@ bool lsSpeaker::loadWavData(const std::string& filename, ALenum* format, ALvoid*
     return true;
 }
 
-const std::string& lsSpeaker::toString()
+const string& lsSpeaker::toString()
 {
     save_str = "add_speaker ";
     if (getName() != "")

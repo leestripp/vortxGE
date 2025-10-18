@@ -21,9 +21,9 @@ public:
 	void Del_Light( lsLight* light );
 	void ClearLights();
 	
-	const std::vector<lsLight*>& getLights() const { return m_light_list; }
+	const vector<lsLight*>& getLights() const { return m_light_list; }
 	int getLight_count() const { return m_light_list.size(); }
 
 private:
-	std::vector<lsLight*> m_light_list;
+	vector<lsLight*> m_light_list;
 };

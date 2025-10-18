@@ -64,7 +64,7 @@ namespace {
 		return ch;
 	}
 
-	static std::string urldecode(const std::string &str)
+	static string urldecode(const string &str)
 	{
 	  using namespace std;
 	  string result;
@@ -888,29 +888,29 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 {
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
-	std::string err;
-	std::string warn;
+	string err;
+	string warn;
 
 	// Get executable path.
 	lsDir dir;
 	string basepath = dir.getexepath();
 	
-	std::string ext;
+	string ext;
 	size_t pos = filename.find_last_of(".");
-	if (pos != std::string::npos) {
+	if (pos != string::npos) {
 		ext = filename.substr(pos + 1);
 	}
 	
 	bool ret = (ext == "glb") ? loader.LoadBinaryFromFile(&model, &err, &warn, basepath + filename)
 							  : loader.LoadASCIIFromFile(&model, &err, &warn, basepath + filename);
 
-	if (!warn.empty()) { std::cout << "glTF WARN: " << warn << std::endl; }
-	if (!err.empty()) { std::cerr << "glTF ERR: " << err << std::endl; }
-	if (!ret) { std::cerr << "Failed to load glTF: " << filename << std::endl; return; }
+	if (!warn.empty()) { cout << "glTF WARN: " << warn << endl; }
+	if (!err.empty()) { cerr << "glTF ERR: " << err << endl; }
+	if (!ret) { cerr << "Failed to load glTF: " << filename << endl; return; }
 
-	lsVector3 min_v(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-	lsVector3 max_v(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest());
-	std::vector<lsVector3> all_vertices;
+	lsVector3 min_v(numeric_limits<float>::max(), numeric_limits<float>::max(), numeric_limits<float>::max());
+	lsVector3 max_v(numeric_limits<float>::lowest(), numeric_limits<float>::lowest(), numeric_limits<float>::lowest());
+	vector<lsVector3> all_vertices;
 
 	for (const auto& mesh : model.meshes) {
 		for (const auto& primitive : mesh.primitives) {
@@ -918,7 +918,7 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 			if (!batch) continue;
 
 			// Attributes
-			std::vector<lsListItem_vertexdata> vertexData;
+			vector<lsListItem_vertexdata> vertexData;
 			size_t vertexCount = 0;
 
 			if (primitive.attributes.find("POSITION") == primitive.attributes.end()) {
@@ -943,12 +943,12 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 					vertexData[i].vertex[1] = p[1];
 					vertexData[i].vertex[2] = p[2];
 
-					min_v.x = std::min(min_v.x, p[0]);
-					min_v.y = std::min(min_v.y, p[1]);
-					min_v.z = std::min(min_v.z, p[2]);
-					max_v.x = std::max(max_v.x, p[0]);
-					max_v.y = std::max(max_v.y, p[1]);
-					max_v.z = std::max(max_v.z, p[2]);
+					min_v.x = min(min_v.x, p[0]);
+					min_v.y = min(min_v.y, p[1]);
+					min_v.z = min(min_v.z, p[2]);
+					max_v.x = max(max_v.x, p[0]);
+					max_v.y = max(max_v.y, p[1]);
+					max_v.z = max(max_v.z, p[2]);
 					all_vertices.emplace_back(p[0], p[1], p[2]);
 				}
 			}
@@ -1031,7 +1031,7 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 				batch->m_roughness = pbr.roughnessFactor;
 				batch->m_metallic = pbr.metallicFactor;
 				
-				std::string shader_name_suffix = "";
+				string shader_name_suffix = "";
 
 				auto get_texture_id = [&](int tex_idx) -> GLuint {
 					if (tex_idx < 0 || static_cast<size_t>(tex_idx) >= model.textures.size()) return 0;
@@ -1040,8 +1040,8 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 					const auto& img = model.images[tex.source];
 					
 					if (!img.uri.empty() && !tinygltf::IsDataURI(img.uri)) {
-						std::string base_dir = filename.substr(0, filename.find_last_of("/\\"));
-						std::string tex_path = base_dir + "/" + urldecode(img.uri);
+						string base_dir = filename.substr(0, filename.find_last_of("/\\"));
+						string tex_path = base_dir + "/" + urldecode(img.uri);
 
 						lsAsset_Texture *image_asset = (lsAsset_Texture *)am->Find_Asset(tex_path);
 						if (!image_asset) {
@@ -1085,7 +1085,7 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 					if (batch->tex_normal != 0) shader_name_suffix += "n";
 				}
 				
-				std::string shader_name = "light_tex_";
+				string shader_name = "light_tex_";
 				if (shader_name_suffix.empty()) {
 					shader_name += "none";
 				} else {

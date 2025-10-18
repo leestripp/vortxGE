@@ -10,6 +10,8 @@
 class lsStats;
 class lsShaderManager;
 
+using namespace std;
+
 class lsRender
 {
 public:
@@ -21,7 +23,7 @@ public:
 	// (No Cleanup() method here, destructor handles it, or specific per-API cleanup)
 	
 	// Generic Debugging & Error Checking
-	virtual void CheckErrors(const std::string& name) = 0; // Renamed from CheckGLErrors
+	virtual void CheckErrors(const string& name) = 0; // Renamed from CheckGLErrors
 	
 	// Generic Framebuffer Management
 	virtual void StoreDefaultFramebuffer() = 0;
