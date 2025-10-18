@@ -23,6 +23,7 @@ public:
 	
     // from lsNode
     void Move( lsScene* scn, lsRender* render, double delta );
+    void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
     void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
     void InitDrawlist();
 	

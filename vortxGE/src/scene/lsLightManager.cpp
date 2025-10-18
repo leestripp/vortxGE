@@ -43,3 +43,48 @@ void lsLightManager::Del_Light( lsLight* light )
         m_light_list.erase(it, m_light_list.end());
     }
 }
+
+void lsLightManager::setActiveLights(lsCamera* camera, float maxDistance)
+{
+    if (! camera || maxDistance <= 0.0f)
+    {
+        return;
+    }
+    
+    // Get camera position
+    lsVector3 camPos(
+        camera->ModelMatrix.matrix[12],
+        camera->ModelMatrix.matrix[13],
+        camera->ModelMatrix.matrix[14]
+    );
+    
+    // Only consider lights within maxDistance
+    for(lsLight* light : m_light_list)
+    {
+        // make direct lights (sun) active
+        if(light->getLight_type() == LSLT_DIRECT)
+        {
+            light->setActive(true);
+            continue;
+        }
+        
+        // Get light position
+        lsVector3 lightPos(
+            light->ModelMatrix.matrix[12],
+            light->ModelMatrix.matrix[13],
+            light->ModelMatrix.matrix[14]
+        );
+        
+        // Calculate distance
+        float distance = camPos.distance(lightPos);
+        
+        // Add light if within range
+        if(distance <= maxDistance)
+        {
+            light->setActive(true);
+        } else
+        {
+        		 light->setActive(false);
+        }
+    }
+}

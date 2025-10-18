@@ -48,6 +48,9 @@ void lsPass_DR::Update()
                 {
                     // Optimize stats
                     if( getRender()->getStats() ) getRender()->getStats()->Optimize_Start();
+                    // Optimize Lights first
+                    getScene()->Optimize(getCull_camera(), this, getScene(), getRender());
+                    // Scene drawables.
                     getScene()->OptimizeThread( getCull_camera(), this, getScene(), getRender() );
                     if( getRender()->getStats() ) getRender()->getStats()->Optimize_Stop();
                 }

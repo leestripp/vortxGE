@@ -135,6 +135,15 @@ void lsScene::Move( __attribute__((unused)) lsScene* scn, lsRender* render, doub
 #endif
 }
 
+//******************
+// Optimize
+
+void lsScene::Optimize( lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
+{
+	// Update Actice light based on distance from camera.
+	// TODO: create a setable distance for the user.
+	m_lightManager->setActiveLights(cam, 50.0);
+}
 
 /*!
  * \brief lsScene::Draw

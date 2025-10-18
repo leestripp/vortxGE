@@ -30,9 +30,6 @@ public:
 	lsShader( lsRender *render );
 	virtual ~lsShader();
 	
-	// render
-	lsRender *m_render;
-	
 	void UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch *batch );
 	void Load_Shader( const string& name );
 	void debug( GLuint s );
@@ -50,6 +47,9 @@ public:
 	void setName( const string& val ) { this->name = val; }
 	
 	GLuint getProgram() const { return shader; }
+	
+	// render
+	lsRender *m_render;
 	
 private:
 	string name;

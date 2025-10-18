@@ -142,7 +142,10 @@ public:
 		node_type = val;
 	}
 	
-	// Public Data *****************************************************************
+	void setActive(bool val) { m_active = val; }
+	bool getActive() const { return m_active; }
+	
+	// Public Data ********************************
 	lsMatrix4x4 ModelMatrix;
 	lsVector3 position;
 	lsVector3 rotation;

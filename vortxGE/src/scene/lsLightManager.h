@@ -21,9 +21,12 @@ public:
 	void Del_Light( lsLight* light );
 	void ClearLights();
 	
+	//  Filter lights based on camera range
+	void setActiveLights(lsCamera* camera, float maxDistance);
+	
 	const vector<lsLight*>& getLights() const { return m_light_list; }
 	int getLight_count() const { return m_light_list.size(); }
-
+	
 private:
 	vector<lsLight*> m_light_list;
 };
