@@ -28,8 +28,12 @@ lsPass_ShadowMap::~lsPass_ShadowMap()
 
 void lsPass_ShadowMap::Update()
 {
+	if(! getLight()) return;
+	// Skip shadow map rendering if light is not active
+	if(! getLight()->getActive()) return;
+	
 	if (getScene()) getScene()->InitDrawlist();
-
+	
 	if (getScene() && getCull_camera())
 	{
 		// We use the light as the cull camera for the shadow pass
@@ -44,6 +48,10 @@ void lsPass_ShadowMap::Update()
 
 void lsPass_ShadowMap::Render()
 {
+	if(! getLight()) return;
+	// Skip shadow map rendering if light is not active
+	if(! getLight()->getActive()) return;
+	
 	if (fbo && getLight())
 	{
 		getRender()->StoreDefaultFramebuffer();
@@ -78,6 +86,10 @@ void lsPass_ShadowMap::Render()
 
 void lsPass_ShadowMap::Resize(int x, int y, int width, int height)
 {
+	if(! getLight()) return;
+	// Skip shadow map rendering if light is not active
+	if(! getLight()->getActive()) return;
+	
 	// This pass might have a fixed size FBO, but we can still set viewport info
 	setPosition(lsVector2(x, y));
 	// The size is determined by FBO creation, but we can update ratio for camera
@@ -102,3 +114,4 @@ const string& lsPass_ShadowMap::toString()
 	setSave_string("pass_shadowmap");
 	return getSave_string();
 }
+
