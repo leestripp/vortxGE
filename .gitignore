@@ -3,5 +3,6 @@
 build/
 secrets/
 blender/
+game/
 
 prompt.txt

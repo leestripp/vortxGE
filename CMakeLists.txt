@@ -37,6 +37,17 @@ add_subdirectory(tools/obj2vbm)
 add_subdirectory(demos/vortxGEdemo_gtkmm)
 add_subdirectory(demos/vortxGEdemo_glfw3)
 
+# build game
+set(GAME_DIR "game")
+# Check if the directory exists using the 'EXISTS' command
+if(EXISTS "${GAME_DIR}")
+	message(STATUS "Found optional subdirectory: ${GAME_DIR}. Including it in the build.")
+	add_subdirectory(${GAME_DIR})
+else()
+	# If the directory does not exist, provide a message for clarity
+	message(STATUS "Optional subdirectory '${GAME_DIR}' not found. Skipping build for game module.")
+endif()
+
 # Add links for data.
 ADD_CUSTOM_TARGET(symlink_gtkmm ALL COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_BINARY_DIR}/../demos/data" "${CMAKE_BINARY_DIR}/demos/vortxGEdemo_gtkmm/data")
 ADD_CUSTOM_TARGET(symlink_glfw3 ALL COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_BINARY_DIR}/../demos/data" "${CMAKE_BINARY_DIR}/demos/vortxGEdemo_glfw3/data")
