@@ -1,3 +1,16 @@
+/**
+ * @file lsMesh.h
+ * @brief Mesh data container
+ * 
+ * Container class for mesh geometry, managing batches of
+ * renderable geometry.
+ * 
+ * @author vortxGE
+ * @date 2024
+ * @see lsBatch
+ * @see lsAsset_Mesh
+ */
+
 #pragma once
 
 #include <iostream>
@@ -8,6 +21,7 @@
 
 #include "lsData.h"
 
+// Forward declarations
 class lsBatch;
 class lsObject;
 class lsCamera;
@@ -18,45 +32,131 @@ class lsShaderManager;
 
 using namespace std;
 
-/*!
- * \brief The lsMesh class
- *
- * Manage a list of lsBatch objects for rendering.\n
- *  Subclassed from lsData.\n
- *
+/**
+ * @class lsMesh
+ * @brief Mesh geometry container
+ * 
+ * Manages a list of lsBatch objects that make up a complete mesh.
+ * Each batch represents a draw call with specific shader and material.
+ * 
+ * Supported formats:
+ * - VBM (vortxGE native)
+ * - glTF (standard 3D format)
+ * 
+ * @note Inherits from lsData for memory tracking
+ * 
+ * @example
+ * @code
+ * lsMesh* mesh = new lsMesh(renderer);
+ * mesh->LoadVBM("models/cube.vbm", assetManager, shaderManager);
+ * 
+ * // In render loop
+ * mesh->Draw(camera, pass, object);
+ * @endcode
  */
 class lsMesh : public lsData
 {
 public:
+	/**
+	 * @brief Construct mesh
+	 * @param render Pointer to renderer
+	 */
 	lsMesh( lsRender *render );
+	
+	/// Destructor
 	virtual ~lsMesh();
 
+    //=========================================================================
+    // Rendering
+    //=========================================================================
+    
+    /**
+     * @brief Draw mesh
+     * 
+     * @param cam Camera
+     * @param pass Render pass
+     * @param object Object being rendered
+     */
 	void Draw( lsCamera *cam, lsPass *pass, lsObject *object );
+	
+    /**
+     * @brief Update mesh animation
+     * 
+     * Advances skeletal animation if mesh has bones.
+     */
 	void Update_Animation();
 
+    //=========================================================================
+    // Loading
+    //=========================================================================
+    
+    /**
+     * @brief Load VBM mesh
+     * 
+     * @param filename Path to VBM file
+     * @param am Asset manager
+     * @param sm Shader manager
+     */
 	void LoadVBM( const string& filename, lsAssetManager *am, lsShaderManager *sm );
+	
+    /**
+     * @brief Load glTF mesh
+     * 
+     * @param filename Path to glTF/glb file
+     * @param am Asset manager
+     * @param sm Shader manager
+     */
 	void LoadGLTF( const string& filename, lsAssetManager *am, lsShaderManager *sm );
+	
+    /**
+     * @brief Add batch to mesh
+     * 
+     * @param batch Batch to add
+     */
 	void Add_Batch( lsBatch* batch );
 
+    //=========================================================================
+    // Accessors
+    //=========================================================================
+	
+    /**
+     * @brief Get bounding sphere
+     * @return Bounding sphere encompassing all batches
+     */
 	const lsBoundingSphere& getBSphere()
 	{
 		return bSphere;
 	}
 
+	/**
+	 * @brief Get batch list
+	 * @return First batch in list
+	 */
 	lsBatch* getBatch_list() const
 	{
 		return batch_list;
 	}
 
+	/**
+	 * @brief Get renderer
+	 * @return Pointer to renderer
+	 */
 	lsRender *getRender() const;
+	
+	/**
+	 * @brief Set renderer
+	 * @param value Pointer to renderer
+	 */
 	void setOgl(lsRender *value);
 
 private:
+	/// List of batches making up this mesh
 	lsBatch* batch_list;
 
-	// Overall around all batches : Needs implementing
+	/// Bounding sphere encompassing all batches
 	lsBoundingSphere bSphere;
-	// render
+	
+	/// Renderer reference
 	lsRender *m_render;
 
 };

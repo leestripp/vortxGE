@@ -1,0 +1,9 @@
+{
+  "approved_commands": [
+    "cmake --build * -j4 2>&1",
+    "cmake --build * -j4 2>&1 | head -60",
+    "cmake --build * -j4 2>&1 | tail -30",
+    "cmake -S * -B * 2>&1 | head -50",
+    "g++ -std=c++20 * * -c * -fsyntax-only 2>&1"
+  ]
+}

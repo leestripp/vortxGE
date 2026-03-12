@@ -1,6 +1,10 @@
 #include "lsKeyFrame.h"
 #include "lsCubicCurve.h"
 
+#include <iostream>
+
+using namespace std;
+
 
 lsCubicCurve::lsCubicCurve()
 {
