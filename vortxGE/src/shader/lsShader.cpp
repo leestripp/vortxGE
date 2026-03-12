@@ -338,6 +338,35 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 	}
 }
 
+/**
+ * @brief Load and compile shader from file
+ * 
+ * Loads vertex and fragment shaders from the data/shaders directory.
+ * The shader files are named as:
+ * - name.vert (vertex shader)
+ * - name.frag (fragment shader)
+ * 
+ * The function:
+ * 1. Reads .vert and .frag files from disk
+ * 2. Compiles each shader with OpenGL
+ * 3. Checks for compilation errors
+ * 4. Links them into a shader program
+ * 5. Determines shader kind based on filename
+ * 
+ * Shader loading process:
+ * 1. glCreateShader() - Create shader objects
+ * 2. glShaderSource() - Load GLSL source code
+ * 3. glCompileShader() - Compile to GPU bytecode
+ * 4. glCreateProgram() - Create program object
+ * 5. glAttachShader() - Attach shaders to program
+ * 6. glLinkProgram() - Link into executable
+ * 
+ * @param name Shader name (without extension)
+ * 
+ * @note Shader files expected in: data/shaders/{name}.vert and .frag
+ * @note Use setKind() to configure uniforms after loading
+ */
+
 void lsShader::Load_Shader( const string& name )
 {
 	this->name = name;
@@ -472,6 +501,19 @@ void lsShader::Load_Shader( const string& name )
 		setKind( ShaderKind::Skybox );
 	}
 }
+
+/**
+ * @brief Check shader compilation/link status
+ * 
+ * Queries the OpenGL info log for shader compilation or linking errors.
+ * If any errors are found, they are printed to console.
+ * 
+ * This should be called after:
+ * - glCompileShader() to check for compilation errors
+ * - glLinkProgram() to check for linking errors
+ * 
+ * @param s Shader or program object to check
+ */
 
 void lsShader::debug( GLuint s )
 {

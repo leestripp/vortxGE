@@ -1,3 +1,29 @@
+/**
+ * @file demoscene.cpp
+ * @brief Demo scene implementation
+ * 
+ * This file implements a demo scene that showcases the vortxGE engine's
+ * capabilities. It demonstrates:
+ * - Engine initialization and setup
+ * - Scene creation and object management
+ * - Camera and lighting setup
+ * - Physics integration
+ * - Asset loading (meshes, textures)
+ * - Animation system
+ * - Post-processing pipeline
+ * - User controls and input handling
+ * 
+ * The demo creates a 3D scene with various objects including:
+ * - Ground plane with physics
+ * - Various mesh objects (cubes, spheres, etc.)
+ * - Directional and point lights
+ * - Shadow mapping
+ * - Physics-enabled objects
+ * 
+ * @see demoscene.h
+ * @see vortxGE.h
+ */
+
 #include <iostream>
 
 // GLEW
@@ -81,7 +107,22 @@
 #include "demoscene.h"
 
 
-// Callback for OpenGL errors.
+/**
+ * @brief OpenGL debug message callback
+ * 
+ * This callback is called by OpenGL when debug messages are generated.
+ * It filters out notification-level messages and prints errors
+ * and warnings to stderr.
+ * 
+ * @param source OpenGL message source
+ * @param type Message type (error, warning, etc.)
+ * @param id Message ID
+ * @param severity Message severity
+ * @param length Message length
+ * @param message Message string
+ * @param userParam User parameter (unused)
+ */
+
 void GLAPIENTRY MessageCallback( GLenum source,
 	GLenum type,
 	GLuint id,
@@ -105,6 +146,12 @@ void GLAPIENTRY MessageCallback( GLenum source,
 	cerr << endl;
 }
 
+/**
+ * @brief Construct demo scene
+ * 
+ * Initializes pointers to null. The actual scene setup
+ * happens in Init().
+ */
 DemoScene::DemoScene()
 {
 	m_quad_viewer = nullptr;
@@ -131,6 +178,24 @@ DemoScene::~DemoScene()
 // ************************************
 //  Setup
 // ************************************
+
+/**
+ * @brief Initialize demo scene
+ * 
+ * This is the main initialization function that sets up:
+ * 1. Creates vortxGE engine instance
+ * 2. Initializes GLEW for OpenGL extension handling
+ * 3. Enables OpenGL debug output
+ * 4. Initializes the vortxGE engine
+ * 5. Sets OpenGL default state (face culling)
+ * 6. Sets up user controls
+ * 7. Creates the test scene
+ * 
+ * @return true if initialization successful, false otherwise
+ * 
+ * @note Must be called after OpenGL context is created
+ * @note Must be called before any rendering
+ */
 
 bool DemoScene::Init()
 {

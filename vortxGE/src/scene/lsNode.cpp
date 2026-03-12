@@ -1,3 +1,22 @@
+/**
+ * @file lsNode.cpp
+ * @brief Scene graph node implementation
+ * 
+ * This file implements the lsNode class which is the base class for all
+ * scene graph elements. Nodes form a hierarchical tree structure where
+ * each node can have children and a single parent.
+ * 
+ * Key functionality:
+ * - Hierarchical transform management (position, rotation, scale)
+ * - Parent-child relationships with transform propagation
+ * - Multi-threaded transform updates
+ * - Lifecycle management (creation, deletion, lifetime)
+ * 
+ * @see lsNode.h
+ * @see lsObject.h
+ * @see lsScene.h
+ */
+
 #include <iostream>
 #include <sstream>
 
@@ -14,6 +33,21 @@
 #include "lsNode.h"
 
 
+/**
+ * @brief Construct a node with optional parent
+ * 
+ * Initializes a new node in the scene graph. If parent is specified,
+ * the new node becomes a child of that parent.
+ * 
+ * Default values:
+ * - Position: (0, 0, 0)
+ * - Rotation: (0, 0, 0) - Euler angles in degrees
+ * - Scale: (1, 1, 1)
+ * - Active: true
+ * - Not marked for deletion
+ * 
+ * @param parent Optional parent node (can be nullptr)
+ */
 lsNode::lsNode( lsNode* parent )
 {
 #ifdef VORTX_DEBUG_NODES
@@ -47,6 +81,22 @@ lsNode::~lsNode()
 	// Nodes never self deletes
 }
 
+/**
+ * @brief Clean up deleted child nodes
+ * 
+ * Removes children marked for deletion from the children list.
+ * This is called during the scene update to safely remove
+ * nodes that were marked for deletion during the frame.
+ * 
+ * The cleanup process:
+ * 1. Iterate through all children
+ * 2. Check if child is marked for deletion (m_delete flag)
+ * 3. If marked, remove parent reference and erase from vector
+ * 4. Otherwise, continue to next child
+ * 
+ * @note Uses iterator invalidation-safe erase pattern
+ * @note Does not immediately delete - lets unique_ptr handle memory
+ */
 void lsNode::CleanupDeletedNodes()
 {
 #ifdef VORTX_DEBUG_NODES
@@ -92,8 +142,28 @@ bool lsNode::IsMarkedForDeletion() const
 	return m_delete;
 }
 
-//**************
-// Move
+/**
+ * @brief Update node transform (Model Matrix)
+ * 
+ * Computes the world model matrix for this node based on:
+ * 1. Local position, rotation, and scale
+ * 2. Parent's model matrix (if parent exists)
+ * 
+ * The transform is computed as:
+ * ModelMatrix = ParentModelMatrix * Translation * Rotation * Scale
+ * 
+ * Transform order (applied right to left):
+ * 1. Scale first (affects size)
+ * 2. Rotate second (around local axes)
+ * 3. Translate last (moves to world position)
+ * 
+ * This order ensures scaling and rotation happen relative to
+ * the object's local origin before translation moves it.
+ * 
+ * @param scn Pointer to scene (unused, for interface compatibility)
+ * @param render Pointer to renderer (unused)
+ * @param delta Time since last frame (seconds)
+ */
 
 void lsNode::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render, __attribute__((unused)) double delta )
 {
@@ -131,15 +201,32 @@ void lsNode::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused))
 	checkLife(scn);
 }
 
-/*!
- * \brief lsNode::MoveThread
- *
- * Calls the Move function on all children nodes to update the ModelMatrix.\n
- * Thread count can be set in the base lsScene, if not set then the system default is used.\n
- *
- * \param scn
- * \param render
- * \param delta
+/**
+ * @brief Multi-threaded transform update for children
+ * 
+ * Updates transform matrices for all child nodes using parallel
+ * execution. This exploits multi-core CPUs by distributing
+ * the transform calculation across multiple threads.
+ * 
+ * Threading strategy:
+ * 1. Detect available hardware threads (thread::hardware_concurrency())
+ * 2. Collect children (filtering out deleted ones)
+ * 3. Launch up to N threads where N = CPU core count
+ * 4. Each thread calls Move() on one child
+ * 5. Join threads before returning
+ * 
+ * The parent matrix must be computed BEFORE calling this method
+ * (it's already set by the parent's Move call).
+ * 
+ * This enables hierarchical transform updates in parallel:
+ * Parent Matrix -> Child1, Child2, Child3... (in parallel)
+ * 
+ * @param scn Pointer to scene
+ * @param render Pointer to renderer
+ * @param delta Time since last frame (seconds)
+ * 
+ * @note Thread count is hardware-dependent
+ * @note Children without parent reference are still processed
  */
 
 void lsNode::MoveThread( lsScene* scn, lsRender* render, double delta )

@@ -1,3 +1,16 @@
+/**
+ * @file glfwApp.cpp
+ * @brief GLFW application implementation
+ * 
+ * This file implements the GLFW-based demo application, handling:
+ * - Window creation and event processing
+ * - Input callback registration
+ * - Main render loop
+ * - Application lifecycle (init, run, cleanup)
+ * 
+ * @see glfwApp.h
+ */
+
 #include <iostream>
 
 #include "glfwApp.h"

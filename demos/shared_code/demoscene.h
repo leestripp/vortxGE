@@ -1,3 +1,19 @@
+/**
+ * @file demoscene.h
+ * @brief Demo scene class declaration
+ * 
+ * This class manages the demo scene that showcases the vortxGE engine.
+ * It provides a complete example of how to use the engine for:
+ * - Scene setup and management
+ * - Object creation and manipulation
+ * - Camera and lighting
+ * - Physics integration
+ * - User input handling
+ * - Animation
+ * 
+ * @see demoscene.cpp
+ */
+
 #pragma once
 
 // math

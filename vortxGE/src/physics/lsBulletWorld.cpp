@@ -1,3 +1,22 @@
+/**
+ * @file lsBulletWorld.cpp
+ * @brief Bullet physics world implementation
+ * 
+ * This file implements the physics world that manages all physics
+ * simulation using the Bullet Physics engine.
+ * 
+ * Key components:
+ * - Collision detection dispatcher
+ * - Broadphase collision detection (AxisSweep3)
+ * - Constraint solver for joints
+ * - Discrete dynamics world
+ * - Collision filtering
+ * 
+ * @see lsBulletWorld.h
+ * @see lsBulletObject.h
+ * @see lsFilterCallback.h
+ */
+
 // timer
 #include "../timers/lsTimer.h"
 
@@ -14,6 +33,15 @@
 #include "lsBulletWorld.h"
 
 
+/**
+ * @brief Construct physics world
+ * 
+ * Initializes Bullet physics world with default parameters:
+ * - Max collision proxies: 1024
+ * - World bounds: 10000 units in each axis
+ * 
+ * @param scn Pointer to scene (for object synchronization)
+ */
 lsBulletWorld::lsBulletWorld( lsScene* scn )
 {
 	scene = scn;
@@ -38,6 +66,36 @@ lsBulletWorld::~lsBulletWorld()
 	if( collisionConfiguration ) delete collisionConfiguration;
 	if( filterCallback ) delete filterCallback;
 }
+
+/**
+ * @brief Initialize Bullet physics world
+ * 
+ * Sets up the Bullet Physics simulation environment:
+ * 
+ * 1. Collision Configuration:
+ *    - btDefaultCollisionConfiguration: Standard memory/setup
+ * 
+ * 2. Dispatcher:
+ *    - btCollisionDispatcher: Manages collision detection
+ * 
+ * 3. Broadphase:
+ *    - btAxisSweep3: Efficient AABB sweep and prune
+ *    - Manages collision proxy overlap detection
+ *    - Ghost pair callback for character controllers
+ * 
+ * 4. Solver:
+ *    - btSequentialImpulseConstraintSolver: Resolves contacts
+ * 
+ * 5. Dynamics World:
+ *    - btDiscreteDynamicsWorld: Main simulation world
+ *    - Gravity: -19.6 (2x Earth gravity for game feel)
+ *    - Internal tick callback for synchronization
+ * 
+ * 6. Collision Filtering:
+ *    - Custom lsFilterCallback for group/mask filtering
+ * 
+ * @note Must be called before any physics simulation
+ */
 
 void lsBulletWorld::Init()
 {
@@ -71,6 +129,30 @@ void lsBulletWorld::Init()
 	dynamicsWorld->getPairCache()->setOverlapFilterCallback( filterCallback );
 }
 
+
+/**
+ * @brief Step the physics simulation
+ * 
+ * Advances the physics simulation by the specified time delta.
+ * 
+ * Simulation parameters:
+ * - time_step: Delta time in seconds (converted from milliseconds)
+ * - steps: Maximum sub-steps to catch up
+ * - fixedTimeStep: 1/60 second (60 Hz physics)
+ * 
+ * Bullet's stepSimulation handles:
+ * 1. Predictive motion integration
+ * 2. Broadphase collision detection
+ * 3. Narrowphase collision detection
+ * 4. Contact point generation
+ * 5. Constraint solving
+ * 6. Position/velocity updates
+ * 
+ * @param steps Maximum number of sub-steps
+ * @param delta Time since last frame (milliseconds)
+ * 
+ * @note Fixed timestep ensures deterministic physics
+ */
 
 void lsBulletWorld::BulletStep( int steps, double delta )
 {

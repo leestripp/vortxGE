@@ -1,3 +1,30 @@
+/**
+ * @file glfwApp.h
+ * @brief GLFW-based demo application
+ * 
+ * This class wraps the GLFW window management library and provides
+ * a complete demo application framework for vortxGE.
+ * 
+ * Features:
+ * - GLFW window creation and management
+ * - OpenGL context initialization via GLEW
+ * - Keyboard input handling (WASD, Space, Shift, Ctrl)
+ * - Mouse input (movement, buttons)
+ * - Fullscreen toggle (F1)
+ * - Main game loop with timing
+ * 
+ * Key bindings:
+ * - WASD: Movement
+ * - Space: Jump
+ * - Shift: Sprint
+ * - Ctrl: Crouch
+ * - F1: Toggle fullscreen
+ * - ESC: Exit
+ * 
+ * @see glfwApp.cpp
+ * @see DemoScene
+ */
+
 #pragma once
 
 #include <GL/glew.h>

@@ -1,3 +1,22 @@
+/**
+ * @file lsAsset_Mesh.cpp
+ * @brief Mesh asset implementation
+ * 
+ * This file implements the mesh asset loader which handles
+ * loading 3D mesh data from various file formats.
+ * 
+ * Supported formats:
+ * - VBM: Custom vertex buffer mesh format
+ * - GLTF/GLB: glTF 2.0 format (embedded or binary)
+ * 
+ * The asset manager creates this asset type when loading
+ * mesh files. The actual loading is delegated to lsMesh.
+ * 
+ * @see lsAsset.h
+ * @see lsAsset_Mesh.h
+ * @see lsMesh.h
+ */
+
 // vortxGE
 #include "../vortxGE.h"
 
@@ -8,9 +27,11 @@
 
 #include "lsAsset_Mesh.h"
 
-/*! Mesh Asset
- * Asset Manager sould creat this instance.
- * */
+/**
+ * @brief Construct a mesh asset
+ * 
+ * @param render Pointer to renderer
+ */
 lsAsset_Mesh::lsAsset_Mesh( lsRender *render ) : lsAsset(render)
 {
 	setAsset_type( LSAT_MESH );
@@ -24,6 +45,27 @@ lsAsset_Mesh::~lsAsset_Mesh()
 
 // #######################
 // AllocAsset
+
+/**
+ * @brief Allocate and load mesh asset
+ * 
+ * This method loads mesh data from file based on extension:
+ * 
+ * Supported formats:
+ * - .vbm: Vertex Buffer Mesh (custom format)
+ * - .gltf: glTF JSON format
+ * - .glb: glTF binary format
+ * 
+ * Loading process:
+ * 1. Extract file extension from filename
+ * 2. Create lsMesh object
+ * 3. Call appropriate loader based on format
+ * 4. Store mesh data in asset
+ * 5. Update memory statistics
+ * 
+ * @note Loads vertex data, normals, UVs, and indices
+ * @note Also loads embedded textures for GLTF
+ */
 
 void lsAsset_Mesh::AllocAsset()
 {
@@ -76,6 +118,18 @@ void lsAsset_Mesh::AllocAsset()
 		cout << "ERROR: Could not create lsMesh instance - lsAsset_Mesh::AllocAsset()" << endl;
 	}
 }
+
+/**
+ * @brief Free mesh asset memory
+ * 
+ * Releases the mesh data and updates memory statistics.
+ * This is called when the asset is unloaded or destroyed.
+ * 
+ * Cleanup process:
+ * 1. Subtract mesh memory usage from stats
+ * 2. Delete the lsMesh object
+ * 3. Clear data pointer
+ */
 
 void lsAsset_Mesh::FreeAsset()
 {

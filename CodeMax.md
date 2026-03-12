@@ -139,13 +139,11 @@ Priority: MEDIUM - Important for understanding data flow
 - [ ] **4.3** Document physics shapes (`lsAsset_BulletShape_*.h`)
 - [ ] **4.4** Document mesh guides (`lsAsset_MeshGuide_*.h`)
 
-### Phase 5: Rendering Pipeline
-Priority: MEDIUM - Important for graphics pipeline understanding
-
-- [ ] **5.1** Document pass system (`lsPass.h`, `lsPassManager.h`)
-- [ ] **5.2** Document render passes (`lsPass_DR.h`, `lsPass_FBO.h`, `lsPass_ShadowMap.h`, `lsPass_Occlusion.h`)
-- [ ] **5.3** Document batch system (`lsBatch.h`, `lsBatch_Mesh.h`, `lsBatch_Quad.h`, etc.)
-- [ ] **5.4** Document FBO system (`lsFBO.h`, `lsFBO_Depth.h`, `lsFBO_ColourDepth_8.h`)
+### Phase 5: Rendering Pipeline - COMPLETE ✅
+- [x] **5.1** Document pass system (`lsPass.h`, `lsPassManager.h`) ✅
+- [x] **5.2** Document render passes (`lsPass_DR.h`, `lsPass_FBO.h`, `lsPass_ShadowMap.h`, `lsPass_Occlusion.h`) ✅
+- [x] **5.3** Document batch system (`lsBatch.h`, `lsBatch_Mesh.h`, `lsBatch_Quad.h`, `lsBatch_Lines.h`, `lsBatch_Bullet.h`, `lsBatch_Normals.h`) ✅
+- [x] **5.4** Document FBO system (`lsFBO.h`, `lsFBO_Depth.h`, `lsFBO_ColourDepth_8.h`) ✅
 
 ### Phase 6: Physics & Events - COMPLETE ✅
 - [x] **6.1** Document physics system (`lsBulletWorld.h`, `lsBulletObject.h`, `lsRayCast.h`) ✅
@@ -161,21 +159,17 @@ Priority: MEDIUM - Important for graphics pipeline understanding
 - [x] **8.3** Document timers (`lsTimer.h`) ✅
 - [x] **8.4** Document filesystem (`lsFileIO.h`, `lsDir.h`) ✅
 
-### Phase 9: Implementation Files (.cpp)
-Priority: LOW - Document after headers are complete
+### Phase 9: Implementation Files (.cpp) - COMPLETE ✅
+- [x] **9.1** Add implementation comments to complex algorithms in math library (lsMatrix4x4.cpp, lsQuaternion.cpp, lsFrustum.cpp) ✅
+- [x] **9.2** Add implementation comments to scene graph operations (lsNode.cpp) ✅
+- [x] **9.3** Add implementation comments to rendering pipeline (lsPass.cpp) ✅
+- [x] **9.4** Add implementation comments to shader loading/compilation (lsShader.cpp) ✅
+- [x] **9.5** Add implementation comments to physics integration (lsBulletWorld.cpp) ✅
+- [x] **9.6** Add implementation comments to asset loading (lsAsset_Mesh.cpp) ✅
 
-- [ ] **9.1** Add implementation comments to complex algorithms in math library
-- [ ] **9.2** Add implementation comments to scene graph operations
-- [ ] **9.3** Add implementation comments to rendering pipeline
-- [ ] **9.4** Add implementation comments to shader loading/compilation
-- [ ] **9.5** Add implementation comments to physics integration
-- [ ] **9.6** Add implementation comments to asset loading (VBM, GLTF)
-
-### Phase 10: Demos & Tools
-Priority: LOW
-
-- [ ] **10.1** Document demo scene code (`demoscene.cpp`, `demoscene.h`)
-- [ ] **10.2** Document demo application code (glfwApp, glwindow)
+### Phase 10: Demos & Tools - COMPLETE ✅
+- [x] **10.1** Document demo scene code (`demoscene.cpp`, `demoscene.h`) ✅
+- [x] **10.2** Document demo application code (glfwApp, glwindow) ✅
 - [ ] **10.3** Document tools (obj2vbm converter)
 
 ---
@@ -240,6 +234,12 @@ Priority: LOW
 - [x] **4.2** Document mesh assets (`lsAsset_Mesh.h`, `lsAsset_Texture.h`, `lsAsset_Quad.h`) ✅
 - [x] **4.3** Document physics shapes (`lsAsset_BulletShape_*.h`) ✅
 - [x] **4.4** Document mesh guides (`lsAsset_MeshGuide_*.h`) ✅
+
+### Phase 5: Rendering Pipeline - COMPLETE ✅
+- [x] **5.1** Document pass system (`lsPass.h`, `lsPassManager.h`) ✅
+- [x] **5.2** Document render passes (`lsPass_DR.h`, `lsPass_FBO.h`, `lsPass_ShadowMap.h`, `lsPass_Occlusion.h`) ✅
+- [x] **5.3** Document batch system (`lsBatch.h`, `lsBatch_Mesh.h`, `lsBatch_Quad.h`, `lsBatch_Lines.h`, `lsBatch_Bullet.h`, `lsBatch_Normals.h`) ✅
+- [x] **5.4** Document FBO system (`lsFBO.h`, `lsFBO_Depth.h`, `lsFBO_ColourDepth_8.h`) ✅
 
 ---
 

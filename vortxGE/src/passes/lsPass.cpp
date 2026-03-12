@@ -1,3 +1,26 @@
+/**
+ * @file lsPass.cpp
+ * @brief Rendering pass implementation
+ * 
+ * This file implements the base lsPass class which represents
+ * a single rendering pass in the engine's render pipeline.
+ * 
+ * Passes can be chained together to create complex rendering effects.
+ * Each pass can have its own:
+ * - Scene to render
+ * - Camera for view transformation
+ * - Culling camera for visibility testing
+ * - Light for shadow/lighting calculations
+ * - Viewport dimensions
+ * - Background color
+ * - Custom properties
+ * 
+ * @see lsPass.h
+ * @see lsPassManager.h
+ * @see lsPass_DR.h
+ * @see lsPass_FBO.h
+ */
+
 #include <iostream>
 
 #include "../vortx_debug.h"
@@ -12,6 +35,19 @@
 #include "../scene/lsScene.h"
 
 #include "lsPass.h"
+
+
+/**
+ * @brief Construct a rendering pass
+ * 
+ * Initializes pass with default values:
+ * - Type: LSPT_NONE
+ * - Name: "Pass"
+ * - Viewport: (0, 0) to (800, 600)
+ * - Background: Red (1, 0, 0, 1)
+ * 
+ * @param render Pointer to renderer
+ */
 
 lsPass::lsPass( lsRender* render )
 {
@@ -54,6 +90,23 @@ lsPass::~lsPass()
     if( property_list ) delete property_list;
 
 }
+
+/**
+ * @brief Add a property to the pass
+ * 
+ * Properties allow runtime customization of pass behavior.
+ * They are stored in a singly-linked list.
+ * 
+ * New properties are added to the front of the list:
+ * [new] -> [old] -> [older] -> ...
+ * 
+ * Common uses:
+ * - Post-processing parameters
+ * - Shader uniforms
+ * - Render settings
+ * 
+ * @param p Property to add
+ */
 
 void lsPass::Add_Property( lsProperty* p )
 {
