@@ -1,5 +1,6 @@
 {
   "approved_commands": [
+    "cat /projects/Programming/projects_C++/vortxGE/.gitignore",
     "cmake --build * -j4 2>&1",
     "cmake --build * -j4 2>&1 | head -60",
     "cmake --build * -j4 2>&1 | tail -30",
