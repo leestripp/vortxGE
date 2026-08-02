@@ -467,19 +467,19 @@ int lsTGA::LoadTgaImage( const char* filename, unsigned char** ppData, unsigned 
  * \param x
  * \param y
  */
-void lsTGA::frameGrab( const string& filename )
+void lsTGA::frameGrab( lsRender *render, const string& filename )
 {
     // Get current viewport size_t
-    GLint dims[4] = {0};
+    lsInt dims[4] = {0};
 
-    glGetIntegerv( GL_VIEWPORT, dims );
+    render->GetIntegerv( LS_VIEWPORT, dims );
     int x = dims[2];
     int y = dims[3];
 
     // get the image data
     long imageSize = x * y * 3;
     const char *data = new char[imageSize];
-    glReadPixels( 0, 0, x, y, GL_BGR, GL_UNSIGNED_BYTE, (void*)data );
+    render->ReadPixels( 0, 0, x, y, LS_BGR, LS_UNSIGNED_BYTE, (void*)data );
 
     // split x and y sizes into bytes
     int xa = x % 256;

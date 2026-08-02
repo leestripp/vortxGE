@@ -168,23 +168,23 @@ void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene
 	if(sky_object)
 	{
 		// Set depth function to draw the skybox (which is fixed at max depth 1.0)
-		//    We use GL_LEQUAL to allow it to pass even when its depth equals the far plane's depth.
-		glDepthFunc(GL_LEQUAL); 
-		
+		//    We use LS_LEQUAL to allow it to pass even when its depth equals the far plane's depth.
+		render->DepthFunc( LS_LEQUAL );
+
 		// Disable depth writing (We don't want the skybox to obscure other objects' depth)
-		glDepthMask(GL_FALSE); 
-		
+		render->DepthMask( LS_FALSE );
+
 		// Disable culling for skybox geometry (so we see the inside of the cube/sphere)
-		glDisable(GL_CULL_FACE); 
-		
-		sky_object->Draw(cam, pass, this, render);
+		render->Disable( LS_CULL_FACE );
+
+		sky_object->Draw( cam, pass, this, render );
 
 		// 4. Restore state after drawing skybox
-		glEnable(GL_CULL_FACE); 
-		glDepthMask(GL_TRUE); 
-		
+		render->Enable( LS_CULL_FACE );
+		render->DepthMask( LS_TRUE );
+
 		// Restore the default depth function for the rest of the scene
-		glDepthFunc(GL_LESS); 
+		render->DepthFunc( LS_LESS );
 	}
 	
 	// Draw remaining scene objects

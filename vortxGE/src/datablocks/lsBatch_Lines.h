@@ -54,7 +54,7 @@ class lsRender;
  * per-vertex colors. Each line segment has two vertices
  * with independent positions and colors.
  * 
- * @note GL_LINES primitive type
+ * @note LS_LINES primitive type
  * @note Supports per-vertex coloring for gradients
  */
 
@@ -103,7 +103,7 @@ public:
      * 
      * @param nMaxVerts Maximum number of vertices
      */
-    void Begin( GLuint nMaxVerts );
+    void Begin( lsUInt nMaxVerts );
     
     /**
      * @brief Add a line segment
@@ -132,7 +132,7 @@ public:
      * 
      * @param scale Cube size
      */
-    void buildEmpty( GLfloat scale );
+    void buildEmpty( lsFloat scale );
     
     /**
      * @brief Build grid overlay
@@ -155,20 +155,20 @@ public:
 
 private:
     /// Number of vertices
-    GLuint nNumVerts;
+    lsUInt nNumVerts;
 
     //=========================================================================
     // Buffer Objects
     //=========================================================================
     
     /** @brief Vertex Array Object */
-    GLuint m_Vao;
+    lsVAOID m_Vao;
     
     /** @brief Vertex position buffer */
-    GLuint vbo_verts;
+    lsBufferID vbo_verts;
     
     /** @brief Vertex color buffer */
-    GLuint vbo_colours;
+    lsBufferID vbo_colours;
 
     //=========================================================================
     // Host Data

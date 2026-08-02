@@ -3,7 +3,11 @@
 #include "../vortx_debug.h"
 
 // OpenGL
+// TODO(Phase 8 cleanup): replace GL_* constants with engine-level
+// constants (LS_TRUE, LS_DEPTH_TEST, etc.). Until then this file still
+// uses engine-level LS_* constants (via lsRenderConstants.h, transitively through lsRender.h).
 #include "../render/lsRender.h"
+#include "../render/lsRenderConstants.h"
 
 // datablocks
 #include "../datablocks/lsFBO_ColourDepth_8.h"
@@ -80,16 +84,16 @@ void lsPass_Occlusion::Render()
 #endif
 
 	lsObject* list;
-	GLuint id;
-	GLint r;
-	GLuint c, oc;
+	lsQueryID id;
+	lsInt r;
+	lsQueryID c, oc;
 
     if( fbo )
     {
         getRender()->StoreDefaultFramebuffer();
 		
 		// set viewport
-		glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );
+		getRender()->Viewport( getPosition().x, getPosition().y, getSize().x, getSize().y );
 		
         // Set IDs and count draw objects
         oc = 0;
@@ -100,7 +104,7 @@ void lsPass_Occlusion::Render()
             if( list->getOcclusion_type() == LSOT_NONE )
             {
                 // Generate occlusion query names
-                glGenQueries( 1, &id );
+                getRender()->GenQueries( 1, &id );
                 list->setOcclusionID( id );
             } else
             {
@@ -113,10 +117,10 @@ void lsPass_Occlusion::Render()
 
         // Draw occluders first
         fbo->Enable();
-        glClearColor( 0.0, 0.0, 0.0, 1.0 );
-        glClearDepth( 1.0 );
-        glEnable( GL_DEPTH_TEST );
-        glDepthMask( GL_TRUE );
+        getRender()->ClearColor( 0.0, 0.0, 0.0, 1.0 );
+        getRender()->ClearDepth( 1.0 );
+        getRender()->Enable( LS_DEPTH_TEST );
+        getRender()->DepthMask( LS_TRUE );
         fbo->ClearBuffers();
         // Draw occluders
         list = getScene()->getDraw_list();
@@ -133,25 +137,25 @@ void lsPass_Occlusion::Render()
         }
 
         // Draw volumes
-        glShadeModel( GL_FLAT );
-        glDepthMask( GL_FALSE );
-        glColorMask( 0, 0, 0, 0 );
+        getRender()->ShadeModel( LS_FLAT );
+        getRender()->DepthMask( LS_FALSE );
+        getRender()->ColorMask( 0, 0, 0, 0 );
 
         list = getScene()->getDraw_list();
         while( list )
         {
             if( list->getOcclusion_type() == LSOT_NONE )
             {
-                glBeginQuery( GL_SAMPLES_PASSED, list->getOcclusionID() );
+                getRender()->BeginQuery( LS_SAMPLES_PASSED, list->getOcclusionID() );
                 list->DrawSingle( getCamera(), this, getScene(), getRender() );
-                glEndQuery( GL_SAMPLES_PASSED );
+                getRender()->EndQuery( LS_SAMPLES_PASSED );
             }
             list = list->getNext_drawobject();
         }
 
-        glShadeModel( GL_SMOOTH );
-        glDepthMask( GL_TRUE );
-        glColorMask( 1, 1, 1, 1 );
+        getRender()->ShadeModel( LS_SMOOTH );
+        getRender()->DepthMask( LS_TRUE );
+        getRender()->ColorMask( 1, 1, 1, 1 );
 
         // Get and set result
         c = 0;
@@ -161,7 +165,7 @@ void lsPass_Occlusion::Render()
             if( list->getOcclusion_type() == LSOT_NONE )
             {
                 id = list->getOcclusionID();
-                glGetQueryObjectiv( id, GL_QUERY_RESULT, &r );
+                getRender()->GetQueryObjectiv( id, LS_QUERY_RESULT, &r );
                 if( r == 0 )
                 {
                     list->setOccluded( true );
@@ -171,12 +175,12 @@ void lsPass_Occlusion::Render()
 #if defined(VORTX_DEBUG_OCCLUSION)
                 cout << "Object : " << list->getName() << " - glGetQueryObjectiv Result : " << r << endl;
 #endif
-                glDeleteQueries( 1, &id );
+                getRender()->DeleteQueries( 1, &id );
             }
             list = list->getNext_drawobject();
         }
 
-        glDisable( GL_CULL_FACE );
+        getRender()->Disable( LS_CULL_FACE );
         getRender()->RestoreDefaultFramebuffer();
     }// if fbo
 

@@ -19,7 +19,7 @@ lsTexture::lsTexture( lsRender *render ) : lsData()
 
 lsTexture::~lsTexture()
 {
-    glDeleteTextures( 1, &texture );
+    if( getRender() ) getRender()->DeleteTextures( 1, &texture );
     if (float_image_data) { // Free HDR data
         stbi_image_free(float_image_data);
     }
@@ -59,9 +59,9 @@ bool lsTexture::load_image( string filename, bool mipmap, bool compressed, bool 
             bpp = comp * sizeof(float); // Use float size
             setMem_used(w * h * bpp);
 
-            // For HDR, internal format will be GL_RGB32F or GL_RGBA32F
-            GLenum format = (comp == 3) ? GL_RGB : GL_RGBA;
-            texture = MakeGlTexture( format, float_image_data, w, h, mipmap, compressed, GL_FLOAT );
+            // For HDR, internal format will be LS_RGB32F or LS_RGBA32F
+            lsEnum format = (comp == 3) ? LS_RGB : LS_RGBA;
+            texture = MakeGlTexture( format, float_image_data, w, h, mipmap, compressed, LS_FLOAT );
             
             return true;
         } else {
@@ -85,15 +85,15 @@ bool lsTexture::load_image( string filename, bool mipmap, bool compressed, bool 
             switch(bpp)
             {
             case 1:
-                texture = MakeGlTexture( GL_ALPHA, pixels, w, h, mipmap, compressed );
+                texture = MakeGlTexture( LS_ALPHA, pixels, w, h, mipmap, compressed );
                 break;
             case 2:
                 break;
             case 3:
-                texture = MakeGlTexture( GL_RGB, pixels, w, h, mipmap, compressed );
+                texture = MakeGlTexture( LS_RGB, pixels, w, h, mipmap, compressed );
                 break;
             case 4:
-                texture = MakeGlTexture( GL_RGBA, pixels, w, h, mipmap, compressed );
+                texture = MakeGlTexture( LS_RGBA, pixels, w, h, mipmap, compressed );
                 break;
             default:
                 break;
@@ -110,45 +110,45 @@ bool lsTexture::load_image( string filename, bool mipmap, bool compressed, bool 
 
 
 // Modified MakeGlTexture to accept dataType
-GLuint lsTexture::MakeGlTexture( GLenum Format, void *pixels, unsigned int w, unsigned int h, bool mipmap, bool compressed, GLenum dataType )
+lsTextureID lsTexture::MakeGlTexture( lsEnum Format, void *pixels, unsigned int w, unsigned int h, bool mipmap, bool compressed, lsEnum dataType )
 {
-    GLuint texObject;
+    lsTextureID texObject;
 
     // generate a texture object
-    glGenTextures( 1, &texObject );
+    getRender()->GenTextures( 1, &texObject );
 
-    glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-    glBindTexture( GL_TEXTURE_2D, texObject );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+    getRender()->PixelStorei( LS_UNPACK_ALIGNMENT, 1 );
+    getRender()->BindTexture( LS_TEXTURE_2D, texObject );
+    getRender()->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_WRAP_S, LS_REPEAT );
+    getRender()->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_WRAP_T, LS_REPEAT );
 
     // filter
     if( mipmap )
     {
-        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR ); // Use mipmap linear for smoother transitions
-        glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+        getRender()->TexParameterf( LS_TEXTURE_2D, LS_TEXTURE_MIN_FILTER, LS_LINEAR_MIPMAP_LINEAR ); // Use mipmap linear for smoother transitions
+        getRender()->TexParameterf( LS_TEXTURE_2D, LS_TEXTURE_MAG_FILTER, LS_LINEAR );
     } else
     {
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+        getRender()->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_MAG_FILTER, LS_LINEAR );
+        getRender()->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_MIN_FILTER, LS_LINEAR );
     }
 
     // Determine internal format
-    GLenum internalFormat;
-    if (dataType == GL_FLOAT) {
-        if (Format == GL_RGB) internalFormat = GL_RGB32F;
-        else if (Format == GL_RGBA) internalFormat = GL_RGBA32F;
+    lsEnum internalFormat;
+    if (dataType == LS_FLOAT) {
+        if (Format == LS_RGB) internalFormat = LS_RGB32F;
+        else if (Format == LS_RGBA) internalFormat = LS_RGBA32F;
         else internalFormat = Format; // Fallback for unsupported float formats
     } else {
-        if (Format == GL_RGB) internalFormat = GL_SRGB8; // Use sRGB for LDR textures
-        else if (Format == GL_RGBA) internalFormat = GL_SRGB8_ALPHA8;
-        else if (Format == GL_ALPHA) internalFormat = GL_R8; // Assuming alpha-only grayscale
+        if (Format == LS_RGB) internalFormat = LS_SRGB8; // Use sRGB for LDR textures
+        else if (Format == LS_RGBA) internalFormat = LS_SRGB8_ALPHA8;
+        else if (Format == LS_ALPHA) internalFormat = LS_R8; // Assuming alpha-only grayscale
         else internalFormat = Format; // Fallback
     }
 
-    //	glTexImage2D copies the texture data from system memory onto the graphics
+    //	getRender()->TexImage2D copies the texture data from system memory onto the graphics
     //	card. If we wish to use DXT compression then we simply change the internal
-    //	format parameter to glTexImage2D.
+    //	format parameter.
     //
     // Note: compressed parameter is generally for DXT compression, which is often for LDR.
     // For HDR or float textures, DXT is not typically used.
@@ -157,16 +157,16 @@ GLuint lsTexture::MakeGlTexture( GLenum Format, void *pixels, unsigned int w, un
         // Handle DXT compression (for LDR images) - This part remains largely the same
         switch( Format )
         {
-        case GL_RGB:
-            glTexImage2D( GL_TEXTURE_2D, 0, GL_SRGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels );
+        case LS_RGB:
+            getRender()->TexImage2D( LS_TEXTURE_2D, 0, LS_SRGB, w, h, 0, LS_RGB, LS_UNSIGNED_BYTE, pixels );
             break;
 
-        case GL_RGBA:
-            glTexImage2D( GL_TEXTURE_2D,0,GL_SRGB_ALPHA,w,h,0,GL_RGBA,GL_UNSIGNED_BYTE,pixels );
+        case LS_RGBA:
+            getRender()->TexImage2D( LS_TEXTURE_2D,0,LS_SRGB_ALPHA,w,h,0,LS_RGBA,LS_UNSIGNED_BYTE,pixels );
             break;
 
-        case GL_ALPHA:
-            glTexImage2D( GL_TEXTURE_2D, 0, GL_ALPHA, w, h, 0, GL_ALPHA, GL_UNSIGNED_BYTE, pixels );
+        case LS_ALPHA:
+            getRender()->TexImage2D( LS_TEXTURE_2D, 0, LS_ALPHA, w, h, 0, LS_ALPHA, LS_UNSIGNED_BYTE, pixels );
             break;
 
         default:
@@ -175,14 +175,14 @@ GLuint lsTexture::MakeGlTexture( GLenum Format, void *pixels, unsigned int w, un
     } else
     {
         // uncompressed textures
-        glTexImage2D( GL_TEXTURE_2D, 0, internalFormat, w, h, 0, Format, dataType, pixels );
+        getRender()->TexImage2D( LS_TEXTURE_2D, 0, internalFormat, w, h, 0, Format, dataType, pixels );
     }
 
     if( mipmap )
     {
-        glGenerateMipmap( GL_TEXTURE_2D );
+        getRender()->GenerateMipmap( LS_TEXTURE_2D );
     }
-    glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture
+    getRender()->BindTexture( LS_TEXTURE_2D, 0 ); // Unbind texture
     return texObject;
 }
 

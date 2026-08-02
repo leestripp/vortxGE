@@ -5,7 +5,6 @@
 
 // render
 #include "../render/lsRender.h"
-
 // shader
 #include "../shader/lsShader.h"
 
@@ -38,7 +37,7 @@ lsBatch_Lines::~lsBatch_Lines()
 }
 
 
-void lsBatch_Lines::Begin( GLuint nMaxVerts )
+void lsBatch_Lines::Begin( lsUInt nMaxVerts )
 {
     // cleanup
     Cleanup();
@@ -91,11 +90,11 @@ void lsBatch_Lines::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
     }
 
     // VAO
-    glBindVertexArray(m_Vao);
+    getRender()->BindVertexArray( m_Vao );
 
-    glDrawArrays( GL_LINES, 0, nNumVerts );
+    getRender()->DrawArrays( LS_LINES, 0, nNumVerts );
 
-    if( getShader() ) glUseProgram(0);
+    if( getShader() ) getRender()->UseProgram( 0 );
 
 #ifdef VORTX_DEBUG_OPENGLERRORS
     getRender()->CheckGLErrors( getName() );
@@ -111,7 +110,7 @@ void lsBatch_Lines::Update( double delta )
     if( getNext_batch() ) getNext_batch()->Update( delta );
 }
 
-void lsBatch_Lines::buildEmpty(GLfloat scale)
+void lsBatch_Lines::buildEmpty(lsFloat scale)
 {
     Vector3f vert[2];
     Vector4f colour[2];
@@ -252,36 +251,36 @@ void lsBatch_Lines::buildGrid()
 void lsBatch_Lines::Copy_GLdata()
 {
     // VAO
-    glGenVertexArrays(1, &m_Vao );
+    getRender()->GenVertexArrays( 1, &m_Vao );
     // Create the buffer objects
-    glGenBuffers( 1, &vbo_verts );
-    glGenBuffers( 1, &vbo_colours );
+    getRender()->GenBuffers( 1, &vbo_verts );
+    getRender()->GenBuffers( 1, &vbo_colours );
 
     // VAO start
-    glBindVertexArray( m_Vao );
+    getRender()->BindVertexArray( m_Vao );
 
     // Vertex data
-    glBindBuffer( GL_ARRAY_BUFFER, vbo_verts );
-    glEnableVertexAttribArray( 0 ); // vxVertex
-    glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 );
-    glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*nNumVerts*3, pVerts, GL_STATIC_DRAW );
+    getRender()->BindBuffer( LS_ARRAY_BUFFER, vbo_verts );
+    getRender()->EnableVertexAttribArray( 0 ); // vxVertex
+    getRender()->VertexAttribPointer( 0, 3, LS_FLOAT, LS_FALSE, 0, 0 );
+    getRender()->BufferData( LS_ARRAY_BUFFER, sizeof(lsFloat)*nNumVerts*3, pVerts, LS_STATIC_DRAW );
 
     // Colours
-    glBindBuffer( GL_ARRAY_BUFFER, vbo_colours );
-    glEnableVertexAttribArray( 1 ); // vxColour
-    glVertexAttribPointer( 1, 4, GL_FLOAT, GL_FALSE, 0, 0 );
-    glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*nNumVerts*4, pColours, GL_STATIC_DRAW );
+    getRender()->BindBuffer( LS_ARRAY_BUFFER, vbo_colours );
+    getRender()->EnableVertexAttribArray( 1 ); // vxColour
+    getRender()->VertexAttribPointer( 1, 4, LS_FLOAT, LS_FALSE, 0, 0 );
+    getRender()->BufferData( LS_ARRAY_BUFFER, sizeof(lsFloat)*nNumVerts*4, pColours, LS_STATIC_DRAW );
 
     // VAO end
-    glBindVertexArray( 0 );
+    getRender()->BindVertexArray( 0 );
 }
 
 void lsBatch_Lines::Clear_GLdata()
 {
     // Delete buffer objects
-    glDeleteBuffers( 1, &vbo_colours );
-    glDeleteBuffers( 1, &vbo_verts );
+    getRender()->DeleteBuffers( 1, &vbo_colours );
+    getRender()->DeleteBuffers( 1, &vbo_verts );
     // Delete VAO
-    glDeleteVertexArrays( 1, &m_Vao );
+    getRender()->DeleteVertexArrays( 1, &m_Vao );
 }
 

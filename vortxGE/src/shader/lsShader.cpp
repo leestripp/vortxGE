@@ -29,7 +29,6 @@
 
 #include "lsShader.h"
 
-
 lsShader::lsShader( lsRender *render )
 {
 	m_render = render;
@@ -37,11 +36,11 @@ lsShader::lsShader( lsRender *render )
 	name = "Not set";
 	kind = ShaderKind::None; // Initialize to None
 
-	shader_v = glCreateShader( GL_VERTEX_SHADER );
-	shader_f = glCreateShader( GL_FRAGMENT_SHADER );
-	shader = glCreateProgram();
-	glAttachShader( shader, shader_v );
-	glAttachShader( shader, shader_f );
+	shader_v = getRender()->CreateShader( LS_VERTEX_SHADER );
+	shader_f = getRender()->CreateShader( LS_FRAGMENT_SHADER );
+	shader = getRender()->CreateProgram();
+	getRender()->AttachShader( shader, shader_v );
+	getRender()->AttachShader( shader, shader_f );
 
 	// Initialize all uniform locations to -1
 	imvpMatrix = -1;
@@ -77,12 +76,12 @@ lsShader::lsShader( lsRender *render )
 
 lsShader::~lsShader()
 {
-	glDetachShader( shader, shader_v );
-	glDetachShader( shader, shader_f );
-	glDeleteShader( shader_v );
-	glDeleteShader( shader_f );
+	getRender()->DetachShader( shader, shader_v );
+	getRender()->DetachShader( shader, shader_f );
+	getRender()->DeleteShader( shader_v );
+	getRender()->DeleteShader( shader_f );
 	
-	glDeleteProgram( shader );
+	getRender()->DeleteProgram( shader );
 }
 
 void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
@@ -90,82 +89,82 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 	kind = val; // Store the new kind
 
 	// Bind shader
-	glUseProgram( shader );
+	getRender()->UseProgram( shader );
 
 	// by shader kind
 	switch( kind )
 	{
 		case ShaderKind::LightTexDNS:
 			// Texture 'S' combined roughness (r), metallic (g) and AO (b).
-			iTex_roughness_metallic = glGetUniformLocation( shader, "tex_roughness_metallic" );
+			iTex_roughness_metallic = getRender()->GetUniformLocation( shader, "tex_roughness_metallic" );
 			[[fallthrough]];
 		case ShaderKind::LightTexDN:
 			// Texture normal
-			iTex_normal = glGetUniformLocation( shader, "tex_normal" );
+			iTex_normal = getRender()->GetUniformLocation( shader, "tex_normal" );
 			[[fallthrough]];
 		case ShaderKind::LightTexD:
 			// Texture 'D' Albedo
-			iTex_albedo = glGetUniformLocation( shader, "tex_albedo" );
+			iTex_albedo = getRender()->GetUniformLocation( shader, "tex_albedo" );
 			[[fallthrough]];
 		case ShaderKind::LightTexNone:
 		case ShaderKind::DebugNormals: // Although debug_normals doesn't use all lights, keep light uniform init common
 			// Shadow Map uniforms (arrays)
 			for(int i = 0; i < 3; ++i) {
-				isMatrices[i] = glGetUniformLocation( shader, ("sMatrices[" + to_string(i) + "]").c_str() );
-				iTex_shadowmaps[i] = glGetUniformLocation( shader, ("tex_shadowmaps[" + to_string(i) + "]").c_str() );
-				iUse_shadowmap[i] = glGetUniformLocation( shader, ("use_shadowmap[" + to_string(i) + "]").c_str() );
+				isMatrices[i] = getRender()->GetUniformLocation( shader, ("sMatrices[" + to_string(i) + "]").c_str() );
+				iTex_shadowmaps[i] = getRender()->GetUniformLocation( shader, ("tex_shadowmaps[" + to_string(i) + "]").c_str() );
+				iUse_shadowmap[i] = getRender()->GetUniformLocation( shader, ("use_shadowmap[" + to_string(i) + "]").c_str() );
 			}
 			
 			// Lights uniforms (arrays)
-			iLightCount = glGetUniformLocation( shader, "vxLightCount" );
+			iLightCount = getRender()->GetUniformLocation( shader, "vxLightCount" );
 			for(int i = 0; i < 3; ++i) {
-				iLightType[i] = glGetUniformLocation( shader, ("vxLightType[" + to_string(i) + "]").c_str() );
-				iLightPos[i] = glGetUniformLocation( shader, ("vxLightPos[" + to_string(i) + "]").c_str() );
-				iLightDir[i] = glGetUniformLocation( shader, ("vxLightDir[" + to_string(i) + "]").c_str() );
-				iLightCutoff[i] = glGetUniformLocation( shader, ("vxLightCutoff[" + to_string(i) + "]").c_str() );
-				iLightOuterCutoff[i] = glGetUniformLocation( shader, ("vxLightOuterCutoff[" + to_string(i) + "]").c_str() );
-				iLightDiffuse[i] = glGetUniformLocation( shader, ("vxLightDiffuse[" + to_string(i) + "]").c_str() );
-				iLightSpecular[i] = glGetUniformLocation( shader, ("vxLightSpecular[" + to_string(i) + "]").c_str() );
-				iLightIntensity[i] = glGetUniformLocation( shader, ("vxLightIntensity[" + to_string(i) + "]").c_str() );
+				iLightType[i] = getRender()->GetUniformLocation( shader, ("vxLightType[" + to_string(i) + "]").c_str() );
+				iLightPos[i] = getRender()->GetUniformLocation( shader, ("vxLightPos[" + to_string(i) + "]").c_str() );
+				iLightDir[i] = getRender()->GetUniformLocation( shader, ("vxLightDir[" + to_string(i) + "]").c_str() );
+				iLightCutoff[i] = getRender()->GetUniformLocation( shader, ("vxLightCutoff[" + to_string(i) + "]").c_str() );
+				iLightOuterCutoff[i] = getRender()->GetUniformLocation( shader, ("vxLightOuterCutoff[" + to_string(i) + "]").c_str() );
+				iLightDiffuse[i] = getRender()->GetUniformLocation( shader, ("vxLightDiffuse[" + to_string(i) + "]").c_str() );
+				iLightSpecular[i] = getRender()->GetUniformLocation( shader, ("vxLightSpecular[" + to_string(i) + "]").c_str() );
+				iLightIntensity[i] = getRender()->GetUniformLocation( shader, ("vxLightIntensity[" + to_string(i) + "]").c_str() );
 			}
 			
 			// Material
-			iMatAlbedo = glGetUniformLocation( shader, "vxMatAlbedo" );
-			iMatRoughness = glGetUniformLocation( shader, "vxMatRoughness" );
-			iMatMetallic = glGetUniformLocation( shader, "vxMatMetallic" );
+			iMatAlbedo = getRender()->GetUniformLocation( shader, "vxMatAlbedo" );
+			iMatRoughness = getRender()->GetUniformLocation( shader, "vxMatRoughness" );
+			iMatMetallic = getRender()->GetUniformLocation( shader, "vxMatMetallic" );
 			
 			// Need ModelViewMatrix and ProjectionMatrix
-			imvMatrix = glGetUniformLocation( shader, "mvMatrix" );
-			imMatrix = glGetUniformLocation( shader, "mMatrix" );
-			ipMatrix = glGetUniformLocation( shader, "pMatrix" );
+			imvMatrix = getRender()->GetUniformLocation( shader, "mvMatrix" );
+			imMatrix = getRender()->GetUniformLocation( shader, "mMatrix" );
+			ipMatrix = getRender()->GetUniformLocation( shader, "pMatrix" );
 			// Normal Matrix
-			inMatrix = glGetUniformLocation( shader, "nMatrix" );
+			inMatrix = getRender()->GetUniformLocation( shader, "nMatrix" );
 			break;
 
 		case ShaderKind::Quad:
 			// Texture
-			iTex_albedo = glGetUniformLocation( shader, "tex_albedo" );
+			iTex_albedo = getRender()->GetUniformLocation( shader, "tex_albedo" );
 			[[fallthrough]];
 		case ShaderKind::Debug:
 			// Need ModelViewMatrix and ProjectionMatrix
-			imvpMatrix = glGetUniformLocation( shader, "mvpMatrix" );
+			imvpMatrix = getRender()->GetUniformLocation( shader, "mvpMatrix" );
 			break;
 
 		case ShaderKind::ShadowMap:
-			imvpMatrix = glGetUniformLocation( shader, "mvpMatrix" );
+			imvpMatrix = getRender()->GetUniformLocation( shader, "mvpMatrix" );
 			break;
 
 		case ShaderKind::Skybox: // Initialize uniforms for skybox shader
-			ipMatrix = glGetUniformLocation(shader, "pMatrix");
-			imvMatrix = glGetUniformLocation(shader, "mvMatrix");
-			iTex_albedo = glGetUniformLocation(shader, "tex_skybox");
+			ipMatrix = getRender()->GetUniformLocation(shader, "pMatrix");
+			imvMatrix = getRender()->GetUniformLocation(shader, "mvMatrix");
+			iTex_albedo = getRender()->GetUniformLocation(shader, "tex_skybox");
 			break;
 			
 		default:
 			break;
 	} // switch kind
 	
-	glUseProgram(0);
+	getRender()->UseProgram(0);
 }
 
 void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, lsBatch *batch )
@@ -189,27 +188,27 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 	batch_mesh = (lsBatch_Mesh*)batch;
 	batch_quad = (lsBatch_Quad*)batch;
 
-	glUseProgram( shader );
+	getRender()->UseProgram( shader );
 	
 	switch( kind ) // Changed from shader_type to kind
 	{
 		case ShaderKind::LightTexDNS:
 			// Texture 'S' combined roughness (r), metallic (g) and AO (b).
-			glActiveTexture( GL_TEXTURE2 );
-			glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_roughness_metallic );
-			glUniform1i( iTex_roughness_metallic, 2 );
+			getRender()->ActiveTexture( LS_TEXTURE2 );
+			getRender()->BindTexture( LS_TEXTURE_2D, batch_mesh->tex_roughness_metallic );
+			getRender()->Uniform1i( iTex_roughness_metallic, 2 );
 			[[fallthrough]];
 		case ShaderKind::LightTexDN:
 			// Texture normal
-			glActiveTexture( GL_TEXTURE1 );
-			glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_normal );
-			glUniform1i( iTex_normal, 1 );
+			getRender()->ActiveTexture( LS_TEXTURE1 );
+			getRender()->BindTexture( LS_TEXTURE_2D, batch_mesh->tex_normal );
+			getRender()->Uniform1i( iTex_normal, 1 );
 			[[fallthrough]];
 		case ShaderKind::LightTexD:
 			// Texture 'D' Albedo
-			glActiveTexture( GL_TEXTURE0 );
-			glBindTexture( GL_TEXTURE_2D, batch_mesh->tex_albedo );
-			glUniform1i( iTex_albedo, 0 );
+			getRender()->ActiveTexture( LS_TEXTURE0 );
+			getRender()->BindTexture( LS_TEXTURE_2D, batch_mesh->tex_albedo );
+			getRender()->Uniform1i( iTex_albedo, 0 );
 			[[fallthrough]];
 		case ShaderKind::LightTexNone:
 			// Shadow Map & Light Uniforms
@@ -224,28 +223,28 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 						// Bind shadow map texture for this light
 						if (light->getHas_shadowmap())
 						{
-							glActiveTexture(GL_TEXTURE3 + i); // Use texture units 3, 4, 5 for shadow maps
-							glBindTexture(GL_TEXTURE_2D, light->getTex_shadowmap());
-							glUniform1i(iTex_shadowmaps[i], 3 + i);
-							glUniform1i(iUse_shadowmap[i], 1);
-							glUniformMatrix4fv(isMatrices[i], 1, GL_FALSE, light->ShadowmapMatrix.matrix);
+							getRender()->ActiveTexture(LS_TEXTURE3 + i); // Use texture units 3, 4, 5 for shadow maps
+							getRender()->BindTexture(LS_TEXTURE_2D, light->getTex_shadowmap());
+							getRender()->Uniform1i(iTex_shadowmaps[i], 3 + i);
+							getRender()->Uniform1i(iUse_shadowmap[i], 1);
+							getRender()->UniformMatrix4fv(isMatrices[i], 1, LS_FALSE, light->ShadowmapMatrix.matrix);
 						} else {
-							glUniform1i(iUse_shadowmap[i], 0);
+							getRender()->Uniform1i(iUse_shadowmap[i], 0);
 						}
 						active_lights_count++; // Count actual lights processed
 					}
 				}
 				// Pass the count of active lights to the shader
-				glUniform1i(iLightCount, active_lights_count);
+				getRender()->Uniform1i(iLightCount, active_lights_count);
 				Setup_Lights(cam, object); // Now Setup_Lights will pass all light properties
 			}
 			
 			// Material
 			if( batch->getBatch_type() == LSBT_MESH )
 			{
-				glUniform4f( iMatAlbedo, batch_mesh->m_albedo.x, batch_mesh->m_albedo.y, batch_mesh->m_albedo.z, batch_mesh->m_albedo.w );
-				glUniform1f( iMatRoughness, batch_mesh->m_roughness );
-				glUniform1f( iMatMetallic, batch_mesh->m_metallic );
+				getRender()->Uniform4f( iMatAlbedo, batch_mesh->m_albedo.x, batch_mesh->m_albedo.y, batch_mesh->m_albedo.z, batch_mesh->m_albedo.w );
+				getRender()->Uniform1f( iMatRoughness, batch_mesh->m_roughness );
+				getRender()->Uniform1f( iMatMetallic, batch_mesh->m_metallic );
 			}
 			
 			// Matrix data
@@ -257,19 +256,19 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 			m_iMatrix.Inverse( m_eMatrix );
 			nMatrix.Transpose( m_iMatrix );
 			
-			glUniformMatrix4fv( ipMatrix, 1, GL_FALSE, pMatrix.matrix );
-			glUniformMatrix4fv( imvMatrix, 1, GL_FALSE, mvMatrix.matrix );
-			glUniformMatrix4fv( imMatrix, 1, GL_FALSE, mMatrix.matrix );
-			glUniformMatrix3fv( inMatrix, 1, GL_FALSE, nMatrix.matrix );
+			getRender()->UniformMatrix4fv( ipMatrix, 1, LS_FALSE, pMatrix.matrix );
+			getRender()->UniformMatrix4fv( imvMatrix, 1, LS_FALSE, mvMatrix.matrix );
+			getRender()->UniformMatrix4fv( imMatrix, 1, LS_FALSE, mMatrix.matrix );
+			getRender()->UniformMatrix3fv( inMatrix, 1, LS_FALSE, nMatrix.matrix );
 			break;
 
 		case ShaderKind::DebugNormals:
 			// Material
 			if( batch->getBatch_type() == LSBT_MESH )
 			{
-				glUniform4f( iMatAlbedo, batch_mesh->m_albedo.x, batch_mesh->m_albedo.y, batch_mesh->m_albedo.z, batch_mesh->m_albedo.w );
-				glUniform1f( iMatRoughness, batch_mesh->m_roughness );
-				glUniform1f( iMatMetallic, batch_mesh->m_metallic );
+				getRender()->Uniform4f( iMatAlbedo, batch_mesh->m_albedo.x, batch_mesh->m_albedo.y, batch_mesh->m_albedo.z, batch_mesh->m_albedo.w );
+				getRender()->Uniform1f( iMatRoughness, batch_mesh->m_roughness );
+				getRender()->Uniform1f( iMatMetallic, batch_mesh->m_metallic );
 			}
 			
 			// Matrix data
@@ -280,35 +279,35 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 			m_iMatrix.Inverse( m_eMatrix );
 			nMatrix.Transpose( m_iMatrix );
 			
-			glUniformMatrix4fv( ipMatrix, 1, GL_FALSE, pMatrix.matrix );
-			glUniformMatrix4fv( imvMatrix, 1, GL_FALSE, mvMatrix.matrix );
-			glUniformMatrix3fv( inMatrix, 1, GL_FALSE, nMatrix.matrix );
+			getRender()->UniformMatrix4fv( ipMatrix, 1, LS_FALSE, pMatrix.matrix );
+			getRender()->UniformMatrix4fv( imvMatrix, 1, LS_FALSE, mvMatrix.matrix );
+			getRender()->UniformMatrix3fv( inMatrix, 1, LS_FALSE, nMatrix.matrix );
 			break;
 
 		case ShaderKind::Quad:
 			pMatrix = cam->frustum.getProjectionMatrix();
 			mvMatrix = cam->ViewMatrix * object->ModelMatrix;
 			mvpMatrix = pMatrix * mvMatrix;
-			glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
+			getRender()->UniformMatrix4fv( imvpMatrix, 1, LS_FALSE, mvpMatrix.matrix );
 			
 			// Textures
-			glActiveTexture( GL_TEXTURE0 );
-			glBindTexture( GL_TEXTURE_2D, batch_quad->getTex_albedo() );
-			glUniform1i( iTex_albedo, 0 );
+			getRender()->ActiveTexture( LS_TEXTURE0 );
+			getRender()->BindTexture( LS_TEXTURE_2D, batch_quad->getTex_albedo() );
+			getRender()->Uniform1i( iTex_albedo, 0 );
 			break;
 		
 		case ShaderKind::Debug:
 			pMatrix = cam->frustum.getProjectionMatrix();
 			mvMatrix = cam->ViewMatrix * object->ModelMatrix;
 			mvpMatrix = pMatrix * mvMatrix;
-			glUniformMatrix4fv( imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix );
+			getRender()->UniformMatrix4fv( imvpMatrix, 1, LS_FALSE, mvpMatrix.matrix );
 			break;
 
 		case ShaderKind::ShadowMap:
 			pMatrix = cam->frustum.getProjectionMatrix();
 			mvMatrix = cam->ViewMatrix * object->ModelMatrix;
 			mvpMatrix = pMatrix * mvMatrix;
-			glUniformMatrix4fv(imvpMatrix, 1, GL_FALSE, mvpMatrix.matrix);
+			getRender()->UniformMatrix4fv(imvpMatrix, 1, LS_FALSE, mvpMatrix.matrix);
 			break;
 
 		case ShaderKind::Skybox:
@@ -317,17 +316,17 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 			// This keeps the skybox centered on the camera, giving infinite distance
 			mvMatrix = cam->ViewMatrix.extractRotation(); 
 			
-			glUniformMatrix4fv(ipMatrix, 1, GL_FALSE, pMatrix.matrix);
-			glUniformMatrix4fv(imvMatrix, 1, GL_FALSE, mvMatrix.matrix);
+			getRender()->UniformMatrix4fv(ipMatrix, 1, LS_FALSE, pMatrix.matrix);
+			getRender()->UniformMatrix4fv(imvMatrix, 1, LS_FALSE, mvMatrix.matrix);
 
 			// Bind skybox texture
-			glActiveTexture(GL_TEXTURE0);
+			getRender()->ActiveTexture(LS_TEXTURE0);
 			// Assuming tex_albedo holds the skybox texture, cast batch to lsBatch_Mesh
 			if (batch->getBatch_type() == LSBT_MESH) {
 				lsBatch_Mesh* mesh_batch = static_cast<lsBatch_Mesh*>(batch);
-				glBindTexture(GL_TEXTURE_2D, mesh_batch->tex_albedo); 
+				getRender()->BindTexture(LS_TEXTURE_2D, mesh_batch->tex_albedo); 
 			}
-			glUniform1i(iTex_albedo, 0);
+			getRender()->Uniform1i(iTex_albedo, 0);
 			break;
 
 		default:
@@ -354,12 +353,12 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
  * 5. Determines shader kind based on filename
  * 
  * Shader loading process:
- * 1. glCreateShader() - Create shader objects
- * 2. glShaderSource() - Load GLSL source code
- * 3. glCompileShader() - Compile to GPU bytecode
- * 4. glCreateProgram() - Create program object
- * 5. glAttachShader() - Attach shaders to program
- * 6. glLinkProgram() - Link into executable
+ * 1. getRender()->CreateShader() - Create shader objects
+ * 2. getRender()->ShaderSource() - Load GLSL source code
+ * 3. getRender()->CompileShader() - Compile to GPU bytecode
+ * 4. getRender()->CreateProgram() - Create program object
+ * 5. getRender()->AttachShader() - Attach shaders to program
+ * 6. getRender()->LinkProgram() - Link into executable
  * 
  * @param name Shader name (without extension)
  * 
@@ -408,15 +407,15 @@ void lsShader::Load_Shader( const string& name )
 		str += "\n";
 	}
 
-	const GLchar* source = (GLchar*)str.c_str();
-	glShaderSource( shader_v, 1, &source, NULL );
+	const lsChar* source = (lsChar*)str.c_str();
+	getRender()->ShaderSource( shader_v, 1, &source, NULL );
 
 	// Compile it
 	#ifdef VORTX_DEBUG_SHADERS
 	cout << "Compile Vertex Shader" << endl;
 	#endif
 	
-	glCompileShader( shader_v );
+	getRender()->CompileShader( shader_v );
 	debug( shader_v );
 
 	// Fragment shader
@@ -441,15 +440,15 @@ void lsShader::Load_Shader( const string& name )
 		str += "\n";
 	}
 
-	source = (GLchar*)str.c_str();
-	glShaderSource( shader_f, 1, &source, NULL );
+	source = (lsChar*)str.c_str();
+	getRender()->ShaderSource( shader_f, 1, &source, NULL );
 
 	// Compile it
 	#ifdef VORTX_DEBUG_SHADERS
 	cout << "Compile Fragment Shader" << endl;
 	#endif
 	
-	glCompileShader( shader_f );
+	getRender()->CompileShader( shader_f );
 	debug( shader_f );
 
 	// Link Program
@@ -457,7 +456,7 @@ void lsShader::Load_Shader( const string& name )
 	cout << "Linking shader" << endl;
 	#endif
 	
-	glLinkProgram( shader );
+	getRender()->LinkProgram( shader );
 
 	// Set shader kind based on name (will be replaced by manager's map)
 	if(! debugProgram() )
@@ -509,23 +508,23 @@ void lsShader::Load_Shader( const string& name )
  * If any errors are found, they are printed to console.
  * 
  * This should be called after:
- * - glCompileShader() to check for compilation errors
- * - glLinkProgram() to check for linking errors
+ * - getRender()->CompileShader() to check for compilation errors
+ * - getRender()->LinkProgram() to check for linking errors
  * 
  * @param s Shader or program object to check
  */
 
-void lsShader::debug( GLuint s )
+void lsShader::debug( lsShaderID s )
 {
 	int infologLength = 0;
 	int charsWritten  = 0;
 	char *infoLog;
 
-	glGetShaderiv( s, GL_INFO_LOG_LENGTH, &infologLength );
+	getRender()->GetShaderiv( s, LS_INFO_LOG_LENGTH, &infologLength );
 	if( infologLength > 1 )
 	{
 		infoLog = new char[ infologLength+1 ];
-		glGetShaderInfoLog( s, infologLength, &charsWritten, infoLog );
+		getRender()->GetShaderInfoLog( s, infologLength, &charsWritten, infoLog );
 		cout << "InfoLog Shader....." << endl;
 		cout << infoLog << endl;
 		delete [] infoLog;
@@ -538,11 +537,11 @@ bool lsShader::debugProgram()
 	int charsWritten  = 0;
 	char *infoLog;
 
-	glGetProgramiv( shader, GL_INFO_LOG_LENGTH, &infologLength );
+	getRender()->GetProgramiv( shader, LS_INFO_LOG_LENGTH, &infologLength );
 	if( infologLength > 1 )
 	{
 		infoLog = new char[ infologLength+1 ];
-		glGetProgramInfoLog( shader, infologLength, &charsWritten, infoLog );
+		getRender()->GetProgramInfoLog( shader, infologLength, &charsWritten, infoLog );
 		cout << "InfoLog Program....." << endl;
 		cout << infoLog << endl;
 		delete [] infoLog;
@@ -570,7 +569,7 @@ void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 		}
 	}
 	// Set light count i should be the light count.
-	glUniform1i(iLightCount, i);
+	getRender()->Uniform1i(iLightCount, i);
 }
 
 void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__((unused)) lsObject *object )
@@ -601,17 +600,17 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 		lightDir_view_space.normalize();
 	}
 	
-	if (iLightPos[i] != -1) glUniform3f( iLightPos[i], light_in_view_space_matrix.matrix[12], light_in_view_space_matrix.matrix[13], light_in_view_space_matrix.matrix[14] );
-	if (iLightType[i] != -1) glUniform1i( iLightType[i], light->getLight_type() );
-	if (iLightDiffuse[i] != -1) glUniform4f( iLightDiffuse[i], light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
-	if (iLightSpecular[i] != -1) glUniform4f( iLightSpecular[i], light->specular.x, light->specular.y, light->specular.z, light->specular.w );
-	if (iLightIntensity[i] != -1) glUniform1f( iLightIntensity[i], light->getIntensity() );
+	if (iLightPos[i] != -1) getRender()->Uniform3f( iLightPos[i], light_in_view_space_matrix.matrix[12], light_in_view_space_matrix.matrix[13], light_in_view_space_matrix.matrix[14] );
+	if (iLightType[i] != -1) getRender()->Uniform1i( iLightType[i], light->getLight_type() );
+	if (iLightDiffuse[i] != -1) getRender()->Uniform4f( iLightDiffuse[i], light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
+	if (iLightSpecular[i] != -1) getRender()->Uniform4f( iLightSpecular[i], light->specular.x, light->specular.y, light->specular.z, light->specular.w );
+	if (iLightIntensity[i] != -1) getRender()->Uniform1f( iLightIntensity[i], light->getIntensity() );
 
 	// Only set direction and cutoff for spot/direct lights
 	if (light->getLight_type() == LSLT_SPOT || light->getLight_type() == LSLT_DIRECT)
 	{
-		if (iLightDir[i] != -1) glUniform3f( iLightDir[i], lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
-		if (iLightCutoff[i] != -1) glUniform1f( iLightCutoff[i], cos(light->spot_cutoff * ANG2RAD) );
-		if (iLightOuterCutoff[i] != -1) glUniform1f( iLightOuterCutoff[i], cos(light->spot_outer_cutoff * ANG2RAD) );
+		if (iLightDir[i] != -1) getRender()->Uniform3f( iLightDir[i], lightDir_view_space.x, lightDir_view_space.y, lightDir_view_space.z );
+		if (iLightCutoff[i] != -1) getRender()->Uniform1f( iLightCutoff[i], cos(light->spot_cutoff * ANG2RAD) );
+		if (iLightOuterCutoff[i] != -1) getRender()->Uniform1f( iLightOuterCutoff[i], cos(light->spot_outer_cutoff * ANG2RAD) );
 	}
 }

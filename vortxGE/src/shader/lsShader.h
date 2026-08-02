@@ -37,7 +37,6 @@
 
 // Render
 #include "../render/lsRender.h"
-#include "../render/lsOpenGL.h"
 
 // Shader kinds
 #include "lsShaderKinds.h"
@@ -109,7 +108,7 @@ public:
      * @brief Debug a shader object
      * @param s Shader handle to inspect
      */
-	void debug( GLuint s );
+	void debug( lsShaderID s );
 	
     /**
      * @brief Check shader program for errors
@@ -174,9 +173,9 @@ public:
 	
     /**
      * @brief Get OpenGL shader program
-     * @return GLuint program handle
+     * @return Renderer program handle (lsProgramID = uint32_t)
      */
-	GLuint getProgram() const { return shader; }
+	lsProgramID getProgram() const { return shader; }
 	
     /**
      * @brief Get renderer
@@ -190,7 +189,7 @@ public:
 	
     /** @brief Renderer reference */
 	lsRender *m_render;
-	
+
 private:
     //=========================================================================
 	// Private Members
@@ -207,100 +206,100 @@ private:
 	//=========================================================================
 	
     /** @brief Compiled vertex shader */
-	GLuint shader_v;
+	lsShaderID shader_v;
     
     /** @brief Compiled fragment shader */
-	GLuint shader_f;
+	lsShaderID shader_f;
     
     /** @brief Linked shader program */
-	GLuint shader;
+	lsProgramID shader;
 	
 	//=========================================================================
 	// Matrix Uniforms
 	//=========================================================================
 	
     /** @brief Model-View-Projection matrix location */
-	GLint imvpMatrix;
+	lsUniformID imvpMatrix;
     
     /** @brief Projection matrix location */
-	GLint ipMatrix;
+	lsUniformID ipMatrix;
     
     /** @brief Model-View matrix location */
-	GLint imvMatrix;
+	lsUniformID imvMatrix;
     
     /** @brief Model matrix location */
-	GLint imMatrix;
+	lsUniformID imMatrix;
     
     /** @brief Normal matrix location */
-	GLint inMatrix;
+	lsUniformID inMatrix;
     
     /** @brief Shadow matrices (up to 3) */
-	GLint isMatrices[3];
+	lsUniformID isMatrices[3];
 	
 	//=========================================================================
 	// PBR Texture Uniforms
 	//=========================================================================
 	
     /** @brief Albedo texture location */
-	GLint iTex_albedo;
+	lsUniformID iTex_albedo;
     
     /** @brief Roughness/Metallic texture location */
-	GLint iTex_roughness_metallic;
+	lsUniformID iTex_roughness_metallic;
     
     /** @brief Normal map texture location */
-	GLint iTex_normal;
+	lsUniformID iTex_normal;
 	
 	//=========================================================================
 	// Shadow Uniforms
 	//=========================================================================
 	
     /** @brief Shadow map textures (up to 3) */
-	GLint iTex_shadowmaps[3];
+	lsUniformID iTex_shadowmaps[3];
     
     /** @brief Shadow map usage flags (up to 3) */
-	GLint iUse_shadowmap[3];
+	lsUniformID iUse_shadowmap[3];
 	
 	//=========================================================================
 	// Material Uniforms
 	//=========================================================================
 	
     /** @brief Material albedo color */
-	GLint iMatAlbedo;
+	lsUniformID iMatAlbedo;
     
     /** @brief Material roughness */
-	GLint iMatRoughness;
+	lsUniformID iMatRoughness;
     
     /** @brief Material metallic */
-	GLint iMatMetallic;
+	lsUniformID iMatMetallic;
 	
 	//=========================================================================
 	// Light Uniforms
 	//=========================================================================
 	
     /** @brief Number of active lights */
-	GLint iLightCount;
+	lsUniformID iLightCount;
     
     /** @brief Light types (up to 3) */
-	GLint iLightType[3];
+	lsUniformID iLightType[3];
     
     /** @brief Light positions (up to 3) */
-	GLint iLightPos[3];
+	lsUniformID iLightPos[3];
     
     /** @brief Light directions (up to 3) */
-	GLint iLightDir[3];
+	lsUniformID iLightDir[3];
     
     /** @brief Light inner cutoffs (spotlights) */
-	GLint iLightCutoff[3];
+	lsUniformID iLightCutoff[3];
     
     /** @brief Light outer cutoffs (spotlights) */
-	GLint iLightOuterCutoff[3];
+	lsUniformID iLightOuterCutoff[3];
     
     /** @brief Light diffuse colors (up to 3) */
-	GLint iLightDiffuse[3];
+	lsUniformID iLightDiffuse[3];
     
     /** @brief Light specular colors (up to 3) */
-	GLint iLightSpecular[3];
+	lsUniformID iLightSpecular[3];
     
     /** @brief Light intensities (up to 3) */
-	GLint iLightIntensity[3];
+	lsUniformID iLightIntensity[3];
 };

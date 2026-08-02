@@ -84,7 +84,7 @@ public:
      * 
      * @param val OpenGL texture ID
      */
-    void Set_texture( GLuint val );
+    void Set_texture( lsTextureID val );
 
     //=========================================================================
     // Accessors

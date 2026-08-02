@@ -58,6 +58,10 @@ protected:
 	
 private:
     vortxGE     *m_vortxge;
+
+    // Framebuffer pixel dimensions (set by Init() / Resize()).
+    int m_view_width;
+    int m_view_height;
 	
 	// Quad controls.
     lsScene *m_quad_scene;

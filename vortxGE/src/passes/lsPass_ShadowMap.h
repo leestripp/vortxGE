@@ -41,7 +41,7 @@ class lsFBO_Depth;
  * shadowPass->setScene(scene);
  * shadowPass->setLight(light);
  * // Get the shadow map texture for use in shader
- * GLuint shadowMap = shadowPass->getFBO()->getDepthTexture();
+ * lsUInt shadowMap = shadowPass->getFBO()->getDepthTexture();
  * @endcode
  * 
  * @note Shadow map resolution affects shadow quality (higher = better)

@@ -1,8 +1,11 @@
 #include "../vortx_debug.h"
 
 // Render
+// TODO(Phase 8 cleanup): replace GL_* constants with engine-level
+// constants (LS_TRUE, LS_DEPTH_TEST, etc.). Until then this file still
+// uses engine-level LS_* constants (via lsRenderConstants.h, transitively through lsRender.h).
 #include "../render/lsRender.h"
-#include "../render/lsOpenGL.h"
+#include "../render/lsRenderConstants.h"
 
 // datablocks
 #include "../datablocks/lsStats.h"
@@ -75,18 +78,18 @@ void lsPass_DR::Render()
     getRender()->RestoreDefaultFramebuffer();
 
     // set viewport
-    glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );
+    getRender()->Viewport( getPosition().x, getPosition().y, getSize().x, getSize().y );
 
     // Clear viewport
-    glClearColor( getBackground_colour().x, getBackground_colour().y, getBackground_colour().z, getBackground_colour().w );
-    glClearDepth( 1.0 );
-    glEnable( GL_DEPTH_TEST );
-    glDepthMask( GL_TRUE );
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+    getRender()->ClearColor( getBackground_colour().x, getBackground_colour().y, getBackground_colour().z, getBackground_colour().w );
+    getRender()->ClearDepth( 1.0 );
+    getRender()->Enable( LS_DEPTH_TEST );
+    getRender()->DepthMask( LS_TRUE );
+    getRender()->Clear( LS_COLOR_BUFFER_BIT | LS_DEPTH_BUFFER_BIT );
+    getRender()->BlendFunc( LS_SRC_ALPHA, LS_ONE_MINUS_SRC_ALPHA );
 
 #ifdef VORTX_DEBUG_OPENGLERRORS
-    getRender()->CheckGLErrors( getName() );
+    getRender()->CheckErrors( getName() );
 #endif // VORTX_DEBUG_OPENGLERRORS
 
     // Draw
@@ -137,7 +140,7 @@ void lsPass_DR::Resize( int x, int y, int width, int height  )
     }
 
     // set viewport
-    glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y );
+    getRender()->Viewport( getPosition().x, getPosition().y, getSize().x, getSize().y );
 
 #ifdef VORTX_DEBUG_RENDER
     cout << "lsPass_DR::Resize - ";

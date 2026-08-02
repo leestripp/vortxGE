@@ -1,5 +1,9 @@
 #include "../vortx_debug.h"
+// TODO(Phase 8 cleanup): replace GL_* constants with engine-level
+// constants (LS_TRUE, LS_DEPTH_TEST, etc.). Until then this file still
+// uses engine-level LS_* constants (via lsRenderConstants.h, transitively through lsRender.h).
 #include "../render/lsRender.h"
+#include "../render/lsRenderConstants.h"
 #include "../datablocks/lsStats.h"
 #include "../datablocks/lsFBO_Depth.h"
 #include "../scene/lsScene.h"
@@ -57,19 +61,19 @@ void lsPass_ShadowMap::Render()
 		getRender()->StoreDefaultFramebuffer();
 		fbo->Enable();
 		
-		glViewport(getPosition().x, getPosition().y, getSize().x, getSize().y);
-		
-		glEnable(GL_DEPTH_TEST);
+		getRender()->Viewport( getPosition().x, getPosition().y, getSize().x, getSize().y );
+
+		getRender()->Enable( LS_DEPTH_TEST );
 		// default depth range.
-		glDepthRangef(0.0f, 1.0f);
-		// glCullFace(GL_FRONT);
-		
+		getRender()->DepthRangef( 0.0f, 1.0f );
+		// getRender()->CullFace( LS_FRONT );
+
 		// This pushes the depth values back, away from the light, to prevent shadow acne.
-		glEnable(GL_POLYGON_OFFSET_FILL);
+		getRender()->Enable( LS_POLYGON_OFFSET_FILL );
 		// Tune these values for your scene. Common starting points are (1.0f, 1.0f) or (2.0f, 2.0f).
 		// A larger factor is good for geometry at a steep angle to the light.
 		// A larger units value helps for geometry parallel to the light.
-		glPolygonOffset(2.0f, 5.0f);
+		getRender()->PolygonOffset( 2.0f, 5.0f );
 		
 		fbo->ClearBuffers();
 		
@@ -79,8 +83,8 @@ void lsPass_ShadowMap::Render()
 		getRender()->RestoreDefaultFramebuffer();
 		
 		// Restore OpenGL state
-		glDisable(GL_POLYGON_OFFSET_FILL);
-		glCullFace(GL_BACK);
+		getRender()->Disable( LS_POLYGON_OFFSET_FILL );
+		getRender()->CullFace( LS_BACK );
 	}
 }
 

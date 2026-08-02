@@ -78,19 +78,19 @@ public:
     //=========================================================================
     
     /**
-     * @brief Get OpenGL texture ID
-     * @return GLuint texture handle
+     * @brief Get renderer texture ID
+     * @return Renderer texture handle (lsTextureID = uint32_t)
      */
-    GLuint getTexture() const
+    lsTextureID getTexture() const
     {
         return texture;
     }
 
     /**
      * @brief Set texture ID
-     * @param val GLuint handle
+     * @param val Renderer texture handle
      */
-    void setTexture( GLuint val )
+    void setTexture( lsTextureID val )
     {
         texture = val;
     }
@@ -185,10 +185,10 @@ private:
      * @param h Height
      * @param mipmap Generate mipmaps
      * @param compressed Use compression
-     * @param dataType Data type (GL_UNSIGNED_BYTE or GL_FLOAT)
+     * @param dataType Data type (LS_UNSIGNED_BYTE or LS_FLOAT)
      * @return OpenGL texture ID
      */
-    GLuint MakeGlTexture( GLenum Format, void *pixels, unsigned int w, unsigned int h, bool mipmap, bool compressed, GLenum dataType = GL_UNSIGNED_BYTE );
+    lsTextureID MakeGlTexture( lsEnum Format, void *pixels, unsigned int w, unsigned int h, bool mipmap, bool compressed, lsEnum dataType = LS_UNSIGNED_BYTE );
     
     /**
      * @brief Detect image type from filename
@@ -201,7 +201,7 @@ private:
     // Private Members
     //=========================================================================
     
-    GLuint texture;	///< OpenGL texture handle
+    lsTextureID texture;	///< Renderer texture handle
     int image_type;	///< Image format type
     int width;		///< Texture width
     int height;		///< Texture height

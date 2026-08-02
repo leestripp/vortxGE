@@ -81,7 +81,7 @@ void lsAsset_Quad::FreeAsset()
     }
 }
 
-void lsAsset_Quad::Set_texture( GLuint val )
+void lsAsset_Quad::Set_texture( lsUInt val )
 {
     if( batch_quad )
     {

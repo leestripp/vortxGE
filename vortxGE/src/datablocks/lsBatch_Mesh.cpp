@@ -17,7 +17,6 @@
 
 // datablocks
 #include "lslistitem_vertexdata.h"
-
 // Properties
 #include "../properties/lsProperty.h"
 #include "../properties/lsProperty_Vector3.h"
@@ -122,11 +121,11 @@ void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
 	}
 
 	// Bind VAO vao_mesh
-	glBindVertexArray( vao_mesh );
+	getRender()->BindVertexArray( vao_mesh );
 
-	glDrawElements( GL_TRIANGLES, count_tris, GL_UNSIGNED_SHORT, 0 );
+	getRender()->DrawElements( LS_TRIANGLES, count_tris, LS_UNSIGNED_SHORT, 0 );
 
-	if( shaderToUse ) glUseProgram(0);
+	if( shaderToUse ) getRender()->UseProgram( 0 );
 
 #ifdef VORTX_DEBUG_RENDER
 	cout << "lsBatch_Mesh::Draw - END: " << object->getName() << endl;
@@ -158,7 +157,7 @@ void lsBatch_Mesh::Init_data( int vc, int fit )
 	pTexCoords = new Vector2f[vc];
 
 	// Index data
-	pIndex = new GLushort[ fit ];
+	pIndex = new std::uint16_t[ fit ];
 
 }
 
@@ -194,7 +193,7 @@ void lsBatch_Mesh::Add_Index( int index )
 void lsBatch_Mesh::Copy_GLdata()
 {
 	// create buffers
-	glGenVertexArrays( 1, &vao_mesh );
+	getRender()->GenVertexArrays( 1, &vao_mesh );
 
 	/* mesh shader code ref
 			layout (location = 0) in vec4 vxVertex;
@@ -203,54 +202,54 @@ void lsBatch_Mesh::Copy_GLdata()
 			layout (location = 3) in vec3 vxTangent;
 			layout (location = 4) in vec2 vxTexCoord;
 	*/
-	glGenBuffers( 6, bufferObjects ); // buffer 6 is for index data
+	getRender()->GenBuffers( 6, bufferObjects ); // buffer 6 is for index data
 
 	// VAO start
-	glBindVertexArray( vao_mesh );
+	getRender()->BindVertexArray( vao_mesh );
 
 	// Vertex data
-	glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[VERTEX_DATA] );
-	glEnableVertexAttribArray( 0 ); // vxVertex
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 );
-	glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*count_verts*3, pVerts, GL_STATIC_DRAW );
-	addMem_used( sizeof(GLfloat)*count_verts*3 );
+	getRender()->BindBuffer( LS_ARRAY_BUFFER, bufferObjects[VERTEX_DATA] );
+	getRender()->EnableVertexAttribArray( 0 ); // vxVertex
+	getRender()->VertexAttribPointer( 0, 3, LS_FLOAT, LS_FALSE, 0, 0 );
+	getRender()->BufferData( LS_ARRAY_BUFFER, sizeof(lsFloat)*count_verts*3, pVerts, LS_STATIC_DRAW );
+	addMem_used( sizeof(lsFloat)*count_verts*3 );
 
 	// Normal data
-	glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[NORMAL_DATA] );
-	glEnableVertexAttribArray( 2 );
-	glVertexAttribPointer( 2, 3, GL_FLOAT, GL_FALSE, 0, 0 );
-	glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*count_verts*3, pNormals, GL_STATIC_DRAW );
-	addMem_used( sizeof(GLfloat)*count_verts*3 );
+	getRender()->BindBuffer( LS_ARRAY_BUFFER, bufferObjects[NORMAL_DATA] );
+	getRender()->EnableVertexAttribArray( 2 );
+	getRender()->VertexAttribPointer( 2, 3, LS_FLOAT, LS_FALSE, 0, 0 );
+	getRender()->BufferData( LS_ARRAY_BUFFER, sizeof(lsFloat)*count_verts*3, pNormals, LS_STATIC_DRAW );
+	addMem_used( sizeof(lsFloat)*count_verts*3 );
 
 	// Tangent data
-	glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[TANGENT_DATA] );
-	glEnableVertexAttribArray( 3 );
-	glVertexAttribPointer( 3, 3, GL_FLOAT, GL_FALSE, 0, 0 );
-	glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*count_verts*3, pTangents, GL_STATIC_DRAW );
-	addMem_used( sizeof(GLfloat)*count_verts*3 );
+	getRender()->BindBuffer( LS_ARRAY_BUFFER, bufferObjects[TANGENT_DATA] );
+	getRender()->EnableVertexAttribArray( 3 );
+	getRender()->VertexAttribPointer( 3, 3, LS_FLOAT, LS_FALSE, 0, 0 );
+	getRender()->BufferData( LS_ARRAY_BUFFER, sizeof(lsFloat)*count_verts*3, pTangents, LS_STATIC_DRAW );
+	addMem_used( sizeof(lsFloat)*count_verts*3 );
 
 	// Texture coordinates
-	glBindBuffer( GL_ARRAY_BUFFER, bufferObjects[UV_DATA] );
-	glEnableVertexAttribArray( 4 );
-	glVertexAttribPointer( 4, 2, GL_FLOAT, GL_FALSE, 0, 0 );
-	glBufferData( GL_ARRAY_BUFFER, sizeof(GLfloat)*count_verts*2, pTexCoords, GL_STATIC_DRAW );
-	addMem_used( sizeof(GLfloat)*count_verts*2 );
+	getRender()->BindBuffer( LS_ARRAY_BUFFER, bufferObjects[UV_DATA] );
+	getRender()->EnableVertexAttribArray( 4 );
+	getRender()->VertexAttribPointer( 4, 2, LS_FLOAT, LS_FALSE, 0, 0 );
+	getRender()->BufferData( LS_ARRAY_BUFFER, sizeof(lsFloat)*count_verts*2, pTexCoords, LS_STATIC_DRAW );
+	addMem_used( sizeof(lsFloat)*count_verts*2 );
 
 	// index data
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, bufferObjects[INDEX_DATA] );
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*count_tris, pIndex, GL_STATIC_DRAW );
-	addMem_used( sizeof(GLushort)*count_tris );
+	getRender()->BindBuffer( LS_ELEMENT_ARRAY_BUFFER, bufferObjects[INDEX_DATA] );
+	getRender()->BufferData( LS_ELEMENT_ARRAY_BUFFER, sizeof(std::uint16_t)*count_tris, pIndex, LS_STATIC_DRAW );
+	addMem_used( sizeof(std::uint16_t)*count_tris );
 
 	// VAO end
-	glBindVertexArray( 0 );
+	getRender()->BindVertexArray( 0 );
 
 }
 
 void lsBatch_Mesh::Clear_GLdata()
 {
 	// Delete buffer objects
-	glDeleteBuffers( 6, bufferObjects );
-	glDeleteVertexArrays( 1, &vao_mesh );
+	getRender()->DeleteBuffers( 6, bufferObjects );
+	getRender()->DeleteVertexArrays( 1, &vao_mesh );
 
 	getRender()->getStats()->addUsed_mem( -getMem_used() );
 	setMem_used( 0 );

@@ -102,10 +102,24 @@ static void cursor_position_callback( __attribute__((unused)) GLFWwindow* window
 	glfw_app.setPos_y( ypos );
 }
 
+// Called when the framebuffer pixel size changes (i.e. when the OS
+// actually allocates a new buffer) — typically from window resize, but
+// on Wayland also from monitor-scale-factor changes. The (width, height)
+// here are PHYSICAL pixels, not logical window units.
+//
+// We forward the new size to the demo scene so the main FBO and all
+// passes get re-sized correctly. Without this, dragging the window to
+// a HiDPI monitor, or changing the desktop scale factor at runtime,
+// would leave the previous FBO size mismatched with the new framebuffer.
 static void Resize_Callback( __attribute__((unused)) GLFWwindow* window, int width, int height )
 {
 	glfw_app.setWin_width( width );
 	glfw_app.setWin_height( height );
+
+	if( glfw_app.getDemoscene() )
+	{
+		glfw_app.getDemoscene()->Resize( 0, 0, width, height );
+	}
 }
 
 void error_callback( int error, const char* description )
@@ -165,7 +179,22 @@ void glfwApp::CheckFullScreen()
 
 		glfwWindowHint( GLFW_DECORATED, false );
 		glfwSetWindowMonitor( m_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate );
-		glfwGetWindowSize( m_window, &m_win_width, &m_win_height );
+		// Query framebuffer in physical pixels (not logical window units).
+		// On HiDPI Wayland with 125% scaling, the framebuffer is
+		// 1.25x the requested monitor-mode size.
+		glfwGetFramebufferSize( m_window, &m_win_width, &m_win_height );
+
+		// Propagate immediately so the next frame uses the new size
+		// rather than waiting for the callback to fire (which it
+		// also does — glfwSetWindowMonitor schedules a resize callback
+		// on the next event-loop iteration). The callback might run
+		// AFTER the first fullscreen frame is already drawn, leaving
+		// one frame of misaligned FBO. Force-propagating now keeps
+		// the fullscreen transition seamless.
+		if( glfw_app.getDemoscene() )
+		{
+			glfw_app.getDemoscene()->Resize( 0, 0, m_win_width, m_win_height );
+		}
 
 	} else
 	{
@@ -176,7 +205,15 @@ void glfwApp::CheckFullScreen()
 		glfwSetInputMode( m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
 		glfwWindowHint( GLFW_DECORATED, true );
 		glfwSetWindowMonitor( m_window, NULL, 0, 0, m_win_width_old, m_win_height_old, 0 );
-		glfwGetWindowSize( m_window, &m_win_width, &m_win_height );
+		glfwGetFramebufferSize( m_window, &m_win_width, &m_win_height );
+
+		// Force-propagate so the next frame matches the new window
+		// dimensions (see the matching comment in the Go Fullscreen
+		// branch above for the rationale).
+		if( glfw_app.getDemoscene() )
+		{
+			glfw_app.getDemoscene()->Resize( 0, 0, m_win_width, m_win_height );
+		}
 	}
 }
 
@@ -193,9 +230,18 @@ bool glfwApp::Init()
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-	
+
 	glfwWindowHint( GLFW_DECORATED, true );
-	
+
+	// HiDPI / fractional-scale fix (Wayland + macOS):
+	// GLFW_SCALE_FRAMEBUFFER was added in GLFW 3.4 so that when the user
+	// has 125%/150% desktop scaling, the OS allocates a framebuffer at
+	// logical-size * scale rather than just logical-size. On older GLFW
+	// or buggy Wayland compositors this is a no-op, but it costs nothing
+	// to set. We still apply the content scale manually below as a
+	// belt-and-braces fallback.
+	glfwWindowHint( GLFW_SCALE_FRAMEBUFFER, GLFW_TRUE );
+
 	// glfwCreateWindow(640, 480, "My Title", NULL, NULL);
 	m_window = glfwCreateWindow( 1920, 1080, "vortxGEdemo_glfw3", NULL, NULL );
 	if(! m_window )
@@ -211,7 +257,9 @@ bool glfwApp::Init()
 	glfwSetCursorPosCallback(m_window, cursor_position_callback );
 	glfwSetMouseButtonCallback(m_window, mouse_button_callback); // Add mouse button callback
 	// resize
-	glfwSetWindowSizeCallback(m_window, Resize_Callback );
+// Note: set FRAMEBUFFER size callback (not window) so the callback
+	// receives physical pixels regardless of HiDPI scaling.
+	glfwSetFramebufferSizeCallback( m_window, Resize_Callback );
 
 	glfwMakeContextCurrent( m_window );
 	glfwSwapInterval( 1 ); // vSync
@@ -231,7 +279,37 @@ bool glfwApp::Init()
 		{
 			cout << "glfwApp::Init() : demoscene->Init() OK." << endl;
 			int width, height;
+			// Compute the TRUE physical pixel size of the framebuffer.
+			//
+			// On Wayland with HiDPI / fractional desktop scaling
+			// (e.g. 125%/150%), glfwGetFramebufferSize() historically
+			// returned only the logical window size — i.e. it didn't
+			// apply the compositor's content scale factor. (GLFW issue
+			// #1168 is the canonical report.) Multiplied by the scale
+			// read from glfwGetWindowContentScale(), we always get
+			// the physical pixels the OS actually allocated, regardless
+			// of whether the GLFW_SCALE_FRAMEBUFFER hint is honoured.
 			glfwGetFramebufferSize( m_window, &width, &height );
+			float xscale = 1.0f, yscale = 1.0f;
+			glfwGetWindowContentScale( m_window, &xscale, &yscale );
+
+			// Some Wayland builds (and XWayland) report scale=0.0 when no
+			// scaling is in effect; the validity check below treats that
+			// as "no extra scaling needed".
+			if( xscale > 0.0f && yscale > 0.0f &&
+			    !( xscale == 1.0f && yscale == 1.0f ) )
+			{
+				width  = (int)( width  * xscale );
+				height = (int)( height * yscale );
+			}
+
+#ifdef VORTX_DEBUG_OPENGLERRORS
+			cout << "glfwApp::Init viewport size: "
+			     << width << " x " << height
+			     << " (logical content scale "
+			     << xscale << " x " << yscale << ")"
+			     << endl;
+#endif
 			demoscene->Resize( 0, 0, width, height );
 
 		} else

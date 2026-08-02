@@ -3,7 +3,11 @@
 #include "../vortx_debug.h"
 
 // OpenGL
+// TODO(Phase 8 cleanup): replace GL_* constants with engine-level
+// constants (LS_TRUE, LS_DEPTH_TEST, etc.). Until then this file still
+// uses engine-level LS_* constants (via lsRenderConstants.h, transitively through lsRender.h).
 #include "../render/lsRender.h"
+#include "../render/lsRenderConstants.h"
 
 // datablocks
 #include "../datablocks/lsStats.h"
@@ -86,14 +90,14 @@ void lsPass_FBO::Render()
         m_lsfbo->Enable();
 		
 		// set viewport
-		glViewport( getPosition().x, getPosition().y, getSize().x, getSize().y );
+		getRender()->Viewport( getPosition().x, getPosition().y, getSize().x, getSize().y );
 
-        glClearColor( getBackground_colour().x, getBackground_colour().y, getBackground_colour().z, getBackground_colour().w );
-        glClearDepth( 1.0 );
-        glEnable( GL_DEPTH_TEST );
-        glDepthMask( GL_TRUE );
+        getRender()->ClearColor( getBackground_colour().x, getBackground_colour().y, getBackground_colour().z, getBackground_colour().w );
+        getRender()->ClearDepth( 1.0 );
+        getRender()->Enable( LS_DEPTH_TEST );
+        getRender()->DepthMask( LS_TRUE );
 		// default depth range.
-		glDepthRangef(0.0f, 1.0f);
+		getRender()->DepthRangef( 0.0f, 1.0f );
 		
         m_lsfbo->ClearBuffers();
 		
@@ -111,13 +115,25 @@ void lsPass_FBO::Render()
 
 void lsPass_FBO::Resize( int x, int y, int width, int height  )
 {
-	// // TODO: FBO are a set size for now.
-	// setPosition( lsVector2(x,y) );
-	// setSize( lsVector2( width, height ) );
 	float rw, rh;
 	rw = width-x;
 	rh = height - y;
 	setVratio( rw / rh );
+
+	// Update the FBO pass viewport to match the new framebuffer pixel
+	// size. Previously this code path was commented out as a TODO, which
+	// meant the FBO stayed at its construction size (e.g. 1920×1080) and
+	// the FBO texture covered only the top-left of the window when the
+	// framebuffer was larger (HiDPI / display scaling / window resize).
+	//
+	// If we have an FBO attached, recreate its GL resources at the new
+	// pixel dimensions, then update the pass viewport to match.
+	if( m_lsfbo && ( (double)width != m_lsfbo->getWidth() || (double)height != m_lsfbo->getHeight() ) )
+	{
+		m_lsfbo->Resize( (double)width, (double)height );
+	}
+	setPosition( lsVector2( x, y ) );
+	setSize( lsVector2( width, height ) );
 
     // update camera
     if( getCamera() )

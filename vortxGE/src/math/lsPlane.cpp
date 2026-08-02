@@ -66,17 +66,6 @@ void lsPlane::debug()
 
 }
 
-/*
-void lsPlane::drawGuide()
-{
-	glDisable( GL_LIGHTING );
-	glDisable( GL_TEXTURE_2D );
-
-	// Draw line
-	glBegin(GL_LINE);
-	glVertex3f( point.x, point.y, point.z );
-	glVertex3f( point.x + normal.x, point.y + normal.y, point.z + normal.z );
-	glEnd();
-
-}
-*/
+// drawGuide() removed: was legacy fixed-function immediate-mode GL,
+// deprecated since OpenGL 3.0 (2010).  A modern implementation should
+// route through lsBatch_Lines or the renderer abstraction.

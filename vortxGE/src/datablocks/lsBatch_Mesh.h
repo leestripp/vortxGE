@@ -193,7 +193,7 @@ public:
      * @brief Get index array
      * @return Array of indices
      */
-    GLushort* getIndices() const { return pIndex; }
+    std::uint16_t* getIndices() const { return pIndex; }
     
     /**
      * @brief Get vertex count
@@ -225,20 +225,20 @@ public:
     //=========================================================================
 	
     /** @brief Albedo/diffuse texture */
-	GLuint tex_albedo;
+	lsTextureID tex_albedo;
 	
     /** @brief Combined roughness/metallic texture */
-	GLuint tex_roughness_metallic;
+	lsTextureID tex_roughness_metallic;
 	
     /** @brief Normal map texture */
-	GLuint tex_normal;
+	lsTextureID tex_normal;
 	
 private:
     /// Vertex Array Object
-	GLuint vao_mesh;
+	lsVAOID vao_mesh;
 	
     /// OpenGL buffer objects
-	GLuint bufferObjects[6];
+	lsBufferID bufferObjects[6];
 
 	//=========================================================================
     // Vertex Data
@@ -257,7 +257,7 @@ private:
 	Vector2f *pTexCoords;
 	
     /** @brief Element indices */
-	GLushort *pIndex;
+	std::uint16_t *pIndex;
 	
     /** @brief Current vertex index for adding data */
 	int vertex_index;

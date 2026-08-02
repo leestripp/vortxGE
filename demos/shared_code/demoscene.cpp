@@ -154,12 +154,18 @@ void GLAPIENTRY MessageCallback( GLenum source,
  */
 DemoScene::DemoScene()
 {
+	// Default to 1920x1080 (logical FHD). Resize() (or the boot-time
+	// glfwGetFramebufferSize() call in glfwApp::Init()) overrides these
+	// with the real framebuffer pixel size before the FBO is created.
+	m_view_width = 1920;
+	m_view_height = 1080;
+
 	m_quad_viewer = nullptr;
 	m_quad_scene = nullptr;
-	
+
 	m_viewer = nullptr;
 	m_viewer_scene = nullptr;
-	
+
 	m_playerRig = nullptr;
 	m_speaker = nullptr; // Initialize m_speaker
 }
@@ -238,8 +244,17 @@ bool DemoScene::Init()
 void DemoScene::Resize( int x, int y, int w, int h )
 {
 	// cout << "DemoScene::Resize" << endl;
-	
+
 	if(! m_vortxge ) return;
+
+	// Remember the framebuffer pixel dimensions so subsequent code
+	// (notably the main-scene FBO at the bottom of setupTestScene) is
+	// sized correctly. The GLFW front-end calls this with the result of
+	// glfwGetFramebufferSize() so we always get physical pixels, not
+	// logical units that may differ by the desktop scale factor.
+	m_view_width  = w;
+	m_view_height = h;
+
 	m_vortxge->Resize( x, y, w, h );
 }
 
@@ -346,8 +361,18 @@ void DemoScene::setupControls()
 			lsPass_FBO *pass_fbo = new lsPass_FBO( m_vortxge->getRender() );
 			if( pass_fbo )
 			{
-				// Create FBO textures at FHD 1920x1080 8bpp
-				lsFBO_ColourDepth_8 *lsfbo = new lsFBO_ColourDepth_8( 1920, 1080, m_vortxge->getRender() );
+				// Create the main-scene FBO at the framebuffer's pixel size.
+				//
+				// Previously this was hard-coded to (1920,1080) which works
+				// on a 1920x1080 logical framebuffer but breaks on HiDPI
+				// displays (e.g. 125% desktop scaling -> 2400x1350 physical
+				// framebuffer) because the FBO texture then only covers the
+				// top-left ~80% of the window. The pass_fbo Resize() will
+				// recreate this FBO at the correct size whenever the
+				// framebuffer pixel size changes (HiDPI, window resize).
+				lsFBO_ColourDepth_8 *lsfbo = new lsFBO_ColourDepth_8(
+					(double)m_view_width, (double)m_view_height,
+					m_vortxge->getRender() );
 				if( lsfbo )
 				{
 					pass_fbo->setFBO( lsfbo );

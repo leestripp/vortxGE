@@ -18,8 +18,8 @@
  * fbo->ClearBuffers();
  * 
  * // Use rendered texture
- * GLuint colorTex = fbo->getTexture();
- * GLuint depthTex = fbo->getDepthTexture();
+ * lsTextureID colorTex = fbo->getTexture();
+ * lsTextureID depthTex = fbo->getDepthTexture();
  * @endcode
  * 
  * @note Color texture can be used for post-processing
@@ -33,8 +33,6 @@
 
 #ifndef LSFBO_COLOURDEPTH_8_H
 #define LSFBO_COLOURDEPTH_8_H
-
-#include "../render/lsRender.h"
 
 #include "lsFBO.h"
 
@@ -87,6 +85,29 @@ public:
      */
 	void ClearBuffers();
 
+    /**
+     * @brief Resize the FBO to new dimensions.
+     *
+     * Tears down the existing colour texture, depth texture, and FBO,
+     * then recreates them at the new size. Useful when the window
+     * framebuffer pixel size changes (HiDPI scaling, resize).
+     *
+     * @param width  New width in pixels
+     * @param height New height in pixels
+     */
+	void Resize( double width, double height );
+
+private:
+    /**
+     * @brief Create the GL resources (textures + FBO + attachments).
+     *
+     * Helper used by the constructor and by Resize(). Reads width and
+     * height from the FBO's stored dimensions.
+     */
+	void CreateGL();
+
+public:
+
     //=========================================================================
     // Texture Access
     //=========================================================================
@@ -100,20 +121,20 @@ public:
      * 
      * @return OpenGL texture ID
      */
-	GLuint getTexture()
+	lsTextureID getTexture()
 	{
 		return texture;
 	}
 
 	/**
      * @brief Get the depth texture
-     * 
-     * Returns the OpenGL texture ID containing depth values.
+     *
+     * Returns the renderer texture ID containing depth values.
      * Useful for depth-based effects and manual depth testing.
-     * 
-     * @return OpenGL depth texture ID
+     *
+     * @return Renderer depth texture ID (lsTextureID = uint32_t)
      */
-	GLuint getDepthTexture()
+	lsTextureID getDepthTexture()
 	{
 		return depth_texture;
 	}
@@ -121,10 +142,10 @@ public:
 
 private:
     /// Color attachment texture
-	GLuint texture;
-	
+	lsTextureID texture;
+
     /// Depth attachment texture
-	GLuint depth_texture;
+	lsTextureID depth_texture;
 
 };
 

@@ -1033,7 +1033,7 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 				
 				string shader_name_suffix = "";
 
-				auto get_texture_id = [&](int tex_idx) -> GLuint {
+				auto get_texture_id = [&](int tex_idx) -> lsTextureID {
 					if (tex_idx < 0 || static_cast<size_t>(tex_idx) >= model.textures.size()) return 0;
 					const auto& tex = model.textures[tex_idx];
 					if (tex.source < 0 || static_cast<size_t>(tex.source) >= model.images.size()) return 0;
@@ -1052,25 +1052,25 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 							return static_cast<lsTexture*>(image_asset->getData())->getTexture();
 						}
 					} else if (!img.image.empty()) {
-						GLuint tex_id = 0;
-						glGenTextures(1, &tex_id);
-						glBindTexture(GL_TEXTURE_2D, tex_id);
-						GLenum format = (img.component == 4) ? GL_RGBA : GL_RGB;
+						lsTextureID tex_id = 0;
+						getRender()->GenTextures(1, &tex_id);
+						getRender()->BindTexture(LS_TEXTURE_2D, tex_id);
+						lsEnum format = (img.component == 4) ? LS_RGBA : LS_RGB;
 						
 						if (img.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-							GLenum internal_format = (img.component == 4) ? GL_RGBA16 : GL_RGB16;
-							glTexImage2D(GL_TEXTURE_2D, 0, internal_format, img.width, img.height, 0, format, GL_UNSIGNED_SHORT, img.image.data());
+							lsEnum internal_format = (img.component == 4) ? LS_RGBA16 : LS_RGB16;
+							getRender()->TexImage2D(LS_TEXTURE_2D, 0, internal_format, img.width, img.height, 0, format, LS_UNSIGNED_SHORT, img.image.data());
 						} else {
-							GLenum internal_format = (img.component == 4) ? GL_SRGB8_ALPHA8 : GL_SRGB8;
-							glTexImage2D(GL_TEXTURE_2D, 0, internal_format, img.width, img.height, 0, format, GL_UNSIGNED_BYTE, img.image.data());
+							lsEnum internal_format = (img.component == 4) ? LS_SRGB8_ALPHA8 : LS_SRGB8;
+							getRender()->TexImage2D(LS_TEXTURE_2D, 0, internal_format, img.width, img.height, 0, format, LS_UNSIGNED_BYTE, img.image.data());
 						}
 						
-						glGenerateMipmap(GL_TEXTURE_2D);
-						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-						glBindTexture(GL_TEXTURE_2D, 0);
+						getRender()->GenerateMipmap(LS_TEXTURE_2D);
+						getRender()->TexParameteri(LS_TEXTURE_2D, LS_TEXTURE_WRAP_S, LS_REPEAT);
+						getRender()->TexParameteri(LS_TEXTURE_2D, LS_TEXTURE_WRAP_T, LS_REPEAT);
+						getRender()->TexParameteri(LS_TEXTURE_2D, LS_TEXTURE_MIN_FILTER, LS_LINEAR_MIPMAP_LINEAR);
+						getRender()->TexParameteri(LS_TEXTURE_2D, LS_TEXTURE_MAG_FILTER, LS_LINEAR);
+						getRender()->BindTexture(LS_TEXTURE_2D, 0);
 						return tex_id;
 					}
 					return 0;

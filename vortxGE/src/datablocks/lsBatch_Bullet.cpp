@@ -36,7 +36,7 @@ void lsBatch_Bullet::Update( __attribute__((unused)) double delta )
     // Not used but must exsist
 }
 
-void lsBatch_Bullet::Begin( GLuint nMaxVerts )
+void lsBatch_Bullet::Begin( lsUInt nMaxVerts )
 {
 	Cleanup();
 
@@ -45,7 +45,7 @@ void lsBatch_Bullet::Begin( GLuint nMaxVerts )
 	nNumVerts = 0;
 
 	// Allocate
-	pIndexes = new GLushort[ nMaxIndexes ];
+	pIndexes = new std::uint16_t[ nMaxIndexes ];
 	pVerts = new Vector3f[ nMaxIndexes ];
 }
 
@@ -54,9 +54,9 @@ void lsBatch_Bullet::AddTriangle( Vector3f verts[3] )
 	const float e = 0.00001; // How small a difference to equate
 
 	// Search for match - triangle consists of three verts
-	for( GLuint iVertex = 0; iVertex < 3; iVertex++ )
+	for( lsUInt iVertex = 0; iVertex < 3; iVertex++ )
 	{
-		GLuint iMatch = 0;
+		lsUInt iMatch = 0;
 		for( iMatch = 0; iMatch < nNumVerts; iMatch++ )
 		{
 			// If the vertex positions are the same
@@ -158,7 +158,7 @@ void lsBatch_Bullet::AddPoint( Vector3f vert )
 	const float e = 0.00001; // How small a difference to equate
 
     // Search for match
-    GLuint iMatch = 0;
+    lsUInt iMatch = 0;
     for( iMatch = 0; iMatch < nNumVerts; iMatch++ )
     {
         // If the vertex positions are the same

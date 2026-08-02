@@ -12,21 +12,21 @@
 
 // Data ***********************************
 
-GLfloat vertices[] = {
+lsFloat vertices[] = {
 	1, 1, 0,
 	-1,  1, 0,
 	-1, -1, 0,
 	1,  -1, 0
 };
 
-GLfloat uvs[] = {
+lsFloat uvs[] = {
 	0, 1,
 	1, 1,
 	1, 0,
 	0, 0
 };
 
-GLubyte indices[] = {
+lsUByte indices[] = {
 	0, 2, 1,
 	0, 3, 2
 };
@@ -66,11 +66,11 @@ void lsBatch_Quad::Draw( lsCamera* cam, lsObject *object, lsPass *pass )
 	}
 
 	// Bind VAO
-	glBindVertexArray( vao_quad );
+	getRender()->BindVertexArray( vao_quad );
 
-	glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0 );
+	getRender()->DrawElements( LS_TRIANGLES, 6, LS_UNSIGNED_BYTE, 0 );
 
-	if( getShader() ) glUseProgram( 0 );
+	if( getShader() ) getRender()->UseProgram( 0 );
 
 #ifdef VORTX_DEBUG_OPENGLERRORS
 	getRender()->CheckGLErrors( getName() );
@@ -91,34 +91,34 @@ void lsBatch_Quad::Update( double delta )
 void lsBatch_Quad::Copy_GLdata()
 {
 	// VAO vao_quad
-	glGenVertexArrays( 1, &vao_quad );
+	getRender()->GenVertexArrays( 1, &vao_quad );
 
 	// Create the buffer objects
-	glGenBuffers( 1, &vbo_verts );
-	glGenBuffers( 1, &vbo_uvs );
-	glGenBuffers( 1, &vbo_indices );
+	getRender()->GenBuffers( 1, &vbo_verts );
+	getRender()->GenBuffers( 1, &vbo_uvs );
+	getRender()->GenBuffers( 1, &vbo_indices );
 
 	// VAO start
-	glBindVertexArray( vao_quad );
+	getRender()->BindVertexArray( vao_quad );
 
 	// Vertex data
-	glBindBuffer( GL_ARRAY_BUFFER, vbo_verts );
-	glEnableVertexAttribArray( 0 );  // vxVertex
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 );
-	glBufferData( GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW );
+	getRender()->BindBuffer( LS_ARRAY_BUFFER, vbo_verts );
+	getRender()->EnableVertexAttribArray( 0 );  // vxVertex
+	getRender()->VertexAttribPointer( 0, 3, LS_FLOAT, LS_FALSE, 0, 0 );
+	getRender()->BufferData( LS_ARRAY_BUFFER, sizeof(vertices), vertices, LS_STATIC_DRAW );
 
 	// uv data
-	glBindBuffer( GL_ARRAY_BUFFER, vbo_uvs );
-	glEnableVertexAttribArray( 4 ); //vxTexCord
-	glVertexAttribPointer( 4, 2, GL_FLOAT, GL_FALSE, 0, 0 );
-	glBufferData( GL_ARRAY_BUFFER, sizeof(uvs), uvs, GL_STATIC_DRAW );
+	getRender()->BindBuffer( LS_ARRAY_BUFFER, vbo_uvs );
+	getRender()->EnableVertexAttribArray( 4 ); //vxTexCord
+	getRender()->VertexAttribPointer( 4, 2, LS_FLOAT, LS_FALSE, 0, 0 );
+	getRender()->BufferData( LS_ARRAY_BUFFER, sizeof(uvs), uvs, LS_STATIC_DRAW );
 
 	// Indexes
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, vbo_indices );
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW );
+	getRender()->BindBuffer( LS_ELEMENT_ARRAY_BUFFER, vbo_indices );
+	getRender()->BufferData( LS_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, LS_STATIC_DRAW );
 
 	// VAO end
-	glBindVertexArray( 0 );
+	getRender()->BindVertexArray( 0 );
 
 }
 
@@ -129,9 +129,9 @@ void lsBatch_Quad::Clear_GLdata()
 #endif
 
 	// Delete buffer objects
-	glDeleteBuffers( 1, &vbo_uvs );
-	glDeleteBuffers( 1, &vbo_verts );
-	glDeleteBuffers( 1, &vbo_indices );
+	getRender()->DeleteBuffers( 1, &vbo_uvs );
+	getRender()->DeleteBuffers( 1, &vbo_verts );
+	getRender()->DeleteBuffers( 1, &vbo_indices );
 	// VAO vao_quad
-	glDeleteVertexArrays( 1, &vao_quad );
+	getRender()->DeleteVertexArrays( 1, &vao_quad );
 }

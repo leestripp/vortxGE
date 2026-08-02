@@ -37,7 +37,6 @@
 
 // Render
 #include "../render/lsRender.h"
-#include "../render/lsOpenGL.h"
 
 //=========================================================================
 // FBO Type Constants
@@ -93,16 +92,39 @@ public:
      * @brief Bind the FBO for rendering
      * 
      * Makes this FBO the current render target.
-     * Call glBindFramebuffer(GL_FRAMEBUFFER, m_fbo) equivalent.
+     * Call glBindFramebuffer(LS_FRAMEBUFFER, m_fbo) equivalent.
      */
     virtual void Enable() = 0;
     
     /**
      * @brief Clear FBO buffers
-     * 
+     *
      * Clears color, depth, and stencil buffers.
      */
     virtual void ClearBuffers() = 0;
+
+    /**
+     * @brief Resize the FBO to new dimensions
+     *
+     * Recreates the underlying framebuffer, colour textures, and depth
+     * textures at the new size. Subclasses override to delete the old
+     * GL resources and allocate new ones at the given pixel dimensions.
+     *
+     * @param width  New width in **physical pixels** (not logical units)
+     * @param height New height in **physical pixels** (not logical units)
+     *
+     * @note Desktop-zoom / HiDPI contract:
+     *  Callers MUST pass the framebuffer's *physical* pixel size, not
+     *  the logical window size. On Wayland with 125% desktop scaling,
+     *  a 1920x1080 logical window has a 2400x1350 physical framebuffer.
+     *  Passing 1920x1080 would recreate the FBO at the wrong physical
+     *  size and the rendered scene would only cover ~80% of the screen.
+     *  The GLFW3 demo (`demos/vortxGEdemo_glfw3/src/glfwApp.cpp`) is
+     *  responsible for computing the correct physical-pixel size via
+     *  glfwGetFramebufferSize() × glfwGetWindowContentScale(). See
+     *  docs/glfw_desktop_scale_factor.md for the full rationale.
+     */
+    virtual void Resize( double width, double height ) = 0;
 
     //=========================================================================
     // Properties
@@ -186,8 +208,8 @@ public:
     // Public Members
     //=========================================================================
     
-    /** @brief OpenGL framebuffer object ID */
-	GLuint m_fbo;
+    /** @brief Renderer framebuffer object ID (lsFBOID = uint32_t). */
+	lsFBOID m_fbo;
 
 private:
     /// FBO type

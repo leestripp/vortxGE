@@ -1,9 +1,11 @@
 # project vortxGE
 
-.codemax/
 build/
 secrets/
 blender/
 game/
 
-prompt.txt
+# Agent runtime directories (must never be committed).
+# AGENTS.md §5.8 documents the convention.
+.daedalus/
+

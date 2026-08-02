@@ -15,7 +15,7 @@ lsFBO::lsFBO( lsRender *render )
 lsFBO::~lsFBO()
 {
   // cleanup
-  if( m_fbo ) glDeleteFramebuffers( 1, &m_fbo );
+  if( m_fbo && m_render ) getRender()->DeleteFramebuffers( 1, &m_fbo );
   // never delete m_render;
 }
 

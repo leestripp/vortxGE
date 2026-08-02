@@ -118,45 +118,45 @@ public:
     
     /**
      * @brief Get albedo texture
-     * @return OpenGL texture ID
+     * @return Renderer texture ID (lsTextureID = uint32_t)
      */
-    GLuint getTex_albedo() const
+    lsTextureID getTex_albedo() const
     {
         return tex_albedo;
     }
 
     /**
      * @brief Set albedo texture
-     * @param val OpenGL texture ID
+     * @param val Renderer texture ID
      */
-    void setTex_albedo( GLuint val )
+    void setTex_albedo( lsTextureID val )
     {
         tex_albedo = val;
     }
 
 private:
     /// Vertex Array Object
-    GLuint vao_quad;
+    lsVAOID vao_quad;
 	
     //=========================================================================
     // Buffer Objects
     //=========================================================================
 	
     /** @brief Vertex buffer */
-	GLuint vbo_verts;
+	lsBufferID vbo_verts;
 	
     /** @brief UV coordinate buffer */
-	GLuint vbo_uvs;
+	lsBufferID vbo_uvs;
 	
     /** @brief Index buffer */
-	GLuint vbo_indices;
+	lsBufferID vbo_indices;
 	
     //=========================================================================
     // Textures
     //=========================================================================
 	
     /** @brief Albedo/diffuse texture */
-    GLuint      tex_albedo;
+    lsTextureID   tex_albedo;
 };
 
 

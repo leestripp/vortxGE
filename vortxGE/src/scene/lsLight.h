@@ -33,7 +33,6 @@
 
 // Render
 #include "../render/lsRender.h"
-#include "../render/lsOpenGL.h"
 
 // math
 #include "../math/lsVector3.h"
@@ -170,18 +169,18 @@ public:
 	
     /**
      * @brief Get shadow map texture
-     * @return OpenGL texture ID
+     * @return Renderer texture ID (lsTextureID = uint32_t)
      */
-    GLuint getTex_shadowmap() const
+    lsTextureID getTex_shadowmap() const
     {
         return tex_shadowmap;
     }
 
     /**
      * @brief Set shadow map texture
-     * @param val OpenGL texture ID
+     * @param val Renderer texture ID
      */
-    void setTex_shadowmap(GLuint val)
+    void setTex_shadowmap( lsTextureID val )
     {
         tex_shadowmap = val;
     }
@@ -303,7 +302,7 @@ private:
     int light_type;
 
     /** @brief Shadow map texture ID */
-    GLuint tex_shadowmap;
+    lsTextureID tex_shadowmap;
     
     /** @brief Shadow bias value */
     float shadow_bias;

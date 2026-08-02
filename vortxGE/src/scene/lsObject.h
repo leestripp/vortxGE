@@ -324,19 +324,19 @@ public:
 	}
 
     /**
-     * @brief Get OpenGL occlusion query ID
-     * @return GLuint query ID
+     * @brief Get renderer occlusion query ID
+     * @return Renderer query ID (lsQueryID = uint32_t)
      */
-	GLuint getOcclusionID() const
+	lsQueryID getOcclusionID() const
 	{
 		return occlusion_id;
 	}
 
     /**
      * @brief Set occlusion query ID
-     * @param val GLuint ID
+     * @param val Renderer query ID
      */
-	void setOcclusionID( GLuint val )
+	void setOcclusionID( lsQueryID val )
 	{
 		occlusion_id = val;
 	}
@@ -450,7 +450,7 @@ private:
 	int occlusion_type;
     
     /** @brief OpenGL occlusion query ID */
-	GLuint occlusion_id;
+	lsQueryID occlusion_id;
 	
 	//=========================================================================
 	// Shadows

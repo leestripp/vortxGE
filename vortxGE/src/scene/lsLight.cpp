@@ -72,7 +72,7 @@ void lsLight::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((un
 
 void lsLight::buildShadowmap_matrix()
 {
-    const GLfloat bias[] = {0.5, 0.0, 0.0, 0.0,
+    const lsFloat bias[] = {0.5, 0.0, 0.0, 0.0,
                             0.0, 0.5, 0.0, 0.0,
                             0.0, 0.0, 0.5, 0.0,
                             0.5, 0.5, 0.5, 1.0 };

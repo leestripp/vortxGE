@@ -19,7 +19,7 @@
  * lsFBO_Depth* shadowMap = new lsFBO_Depth(2048, 2048, renderer);
  * shadowMap->Enable();
  * // Render from light's view...
- * GLuint depthTex = shadowMap->getDepthTexture();
+ * lsTextureID depthTex = shadowMap->getDepthTexture();
  * // Use in shadow shader...
  * @endcode
  * 
@@ -31,8 +31,6 @@
 #ifndef LSFBO_DEPTH_H
 #define LSFBO_DEPTH_H
 
-#include "../render/lsRender.h"
-
 #include "lsFBO.h"
 
 /**
@@ -43,7 +41,7 @@
  * optimized for shadow map generation. This is more efficient
  * than storing color data which is unnecessary for shadows.
  * 
- * @note Depth texture uses GL_DEPTH_COMPONENT format
+ * @note Depth texture uses LS_DEPTH_COMPONENT format
  * @note Commonly used with PCF (Percentage Closer Filtering) for soft shadows
  */
 
@@ -80,6 +78,19 @@ public:
      */
     void ClearBuffers();
 
+    /**
+     * @brief Resize the FBO to new dimensions.
+     *
+     * @param width  New width in pixels
+     * @param height New height in pixels
+     */
+    void Resize( double width, double height );
+
+private:
+    void CreateGL();
+
+public:
+
     //=========================================================================
     // Texture Access
     //=========================================================================
@@ -92,14 +103,14 @@ public:
      * 
      * @return OpenGL texture ID
      */
-    GLuint getDepthTexture()
+    lsTextureID getDepthTexture()
     {
         return depth_texture;
     }
 
 private:
     /// Depth texture ID
-    GLuint depth_texture;
+    lsTextureID depth_texture;
 };
 
 #endif // LSFBO_DEPTH_H

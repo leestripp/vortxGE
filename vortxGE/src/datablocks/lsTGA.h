@@ -140,7 +140,7 @@ public:
      * 
      * @param filename Output filename
      */
-    void frameGrab( const string& filename );
+    void frameGrab( lsRender *render, const string& filename );
 
     //=========================================================================
     // Image Processing

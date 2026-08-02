@@ -105,7 +105,7 @@ public:
      * 
      * @param nMaxVerts Maximum number of vertices to allocate
      */
-	void Begin( GLuint nMaxVerts );
+	void Begin( lsUInt nMaxVerts );
 	
     /**
      * @brief Add a single vertex point
@@ -176,20 +176,20 @@ public:
 	
 private:
     /// Maximum number of indices
-	GLuint nMaxIndexes;
+	lsUInt nMaxIndexes;
 	
     /// Current index count
-	GLuint nNumIndexes;
+	lsUInt nNumIndexes;
 	
     /// Current vertex count
-	GLuint nNumVerts;
+	lsUInt nNumVerts;
 	
     //=========================================================================
     // Host Data
     //=========================================================================
 	
     /** @brief Index array */
-	GLushort *pIndexes;
+	std::uint16_t *pIndexes;
 	
     /** @brief Vertex array */
 	Vector3f *pVerts;

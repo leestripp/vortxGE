@@ -267,7 +267,7 @@ void lsBulletShape::Make_TriMesh_FromMesh( lsMesh* mesh )
         if (currentBatch->getBatch_type() == LSBT_MESH) {
             lsBatch_Mesh* meshBatch = static_cast<lsBatch_Mesh*>(currentBatch);
             Vector3f* verts = meshBatch->getVerts();
-            GLushort* indices = meshBatch->getIndices();
+            std::uint16_t* indices = meshBatch->getIndices();
             int indexCount = meshBatch->getIndexCount();
 
             for (int i = 0; i < indexCount; i += 3) {
