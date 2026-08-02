@@ -1,5 +1,3 @@
-![image](screenshots/vortxGE.png)
-
 # vortxGE
 
 vortxGE is a lightweight, modern 3D graphics engine written in C++20. It is designed for creating real-time graphics applications and simulations on Linux, featuring a flexible rendering pipeline, physics integration, and a straightforward asset workflow with Blender.
@@ -11,6 +9,9 @@ vortxGE is a lightweight, modern 3D graphics engine written in C++20. It is desi
     *   Pass-based rendering system (e.g., direct-to-screen, render-to-texture with FBOs).
     *   Physically Based Rendering (PBR) using a Cook-Torrance BRDF model, supporting albedo, normal, and metallic/roughness/AO maps.
     *   Dynamic shadow mapping for spot lights.
+*   **Renderer Abstraction:** All GPU access goes through the backend-agnostic `lsRender` interface
+    (75 methods). `lsOpenGL` is the only translation unit containing raw GL calls, so alternate
+    backends (Vulkan, Metal, …) can be added without touching engine code. See `Plan.md`.
 *   **Hierarchical Scene Graph:**
     *   A node-based system (`lsNode`) for managing scenes, objects, lights, and cameras.
     *   Supports Point and Spot light types.
@@ -25,6 +26,14 @@ vortxGE is a lightweight, modern 3D graphics engine written in C++20. It is desi
     *   Keyframe-based animation for node properties (position, rotation, scale) and material properties using cubic curve interpolation.
 *   **Demos:**
     *   Includes demos for both **GTKmm 4.0** and **GLFW3**, showcasing how to integrate the engine into different windowing and UI toolkits.
+
+## Documentation
+
+*   **[CHANGELOG.md](CHANGELOG.md)** — Release history (latest: **0.1.0**).
+*   **[docs/](docs/vortxGE.md)** — In-depth architecture notes per subsystem
+    (scene graph, rendering pipeline, physics, shaders, assets, animation, audio, and more).
+*   **[AGENTS.md](AGENTS.md)** — Guide for AI coding agents (build, layout, conventions).
+*   **[Plan.md](Plan.md)** — The completed renderer-abstraction refactor plan (Phases 0-8).
 
 ## Building vortxGE
 

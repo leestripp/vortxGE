@@ -338,9 +338,9 @@ A light source node that extends `lsCamera` (since lights need position and orie
 ### Shadow Mapping
 
 ```cpp
-// Shadow map texture
-GLuint getTex_shadowmap() const;
-void setTex_shadowmap(GLuint val);
+// Shadow map texture (renderer-agnostic handle, see render/lsGLTypes.h)
+lsTextureID getTex_shadowmap() const;
+void setTex_shadowmap(lsTextureID val);
 bool getHas_shadowmap() const;
 void setHas_shadowmap(bool val);
 

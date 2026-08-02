@@ -12,4 +12,7 @@ target_include_directories(vortxGE
 	PUBLIC
 	src/
 	src/datablocks/tinygltf/
+	# Generated config.h lives here (version derived from git tag —
+	# see root CMakeLists.txt and src/config.h.in)
+	${CMAKE_BINARY_DIR}/generated
 )

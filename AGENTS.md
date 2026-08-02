@@ -34,8 +34,16 @@ Highlights (see `Readme.md` for the full feature list):
   and material properties.
 * Two reference demo front-ends: **GLFW3** and **GTKmm 4.0**.
 
-The current engine version is defined in `vortxGE/src/config.h`
-(`vortxGE_VERSION_MAJOR/MINOR/PATCH`, currently **0.7.2**).
+The engine version is **derived from the latest git tag** at CMake
+configure time (tag `0.1.0` → version `0.1.0`). CMake generates
+`config.h` from the template `vortxGE/src/config.h.in` into
+`build/generated/`, defining `vortxGE_VERSION_MAJOR/MINOR/PATCH` plus
+`vortxGE_VERSION_STRING` and `vortxGE_VERSION_GIT` (full `git describe`
+output). To cut a release: create a semver git tag and re-run CMake —
+no code edits needed. Builds without git metadata (tarball/zip) use the
+fallback version pinned in the root `CMakeLists.txt`. Do **not** create
+or commit a static `vortxGE/src/config.h` — it would shadow the
+generated header.
 
 ### Coordinate system
 Right-handed, view along **-Z** (`+X` right, `+Y` up). Documented in
@@ -50,7 +58,7 @@ Right-handed, view along **-Z** (`+X` right, `+Y` up). Documented in
 | Language | **C++20** (`-std=c++20`, `-Wall -Wextra`) | All sources |
 | Compiler | GCC or Clang (any C++20-capable) | Toolchain |
 | Build system | **CMake ≥ 3.29** | Root + per-module `CMakeLists.txt` |
-| Rendering | **OpenGL 4.3+** (GLVND preference) | `vortxGE/src/render/`, `vortxGE/src/opengl/` |
+| Rendering | **OpenGL 4.3+** (GLVND preference) | `vortxGE/src/render/` |
 | GL loading | **GLEW** | `vortxGE/src/render/`, demos |
 | Math | Custom (`lsVector2/3/4`, `lsMatrix3x3/4x4`, `lsQuaternion`, `lsPlane`, `lsFrustum`, `lsBoundingSphere`) | `vortxGE/src/math/` |
 | Physics | **Bullet Physics** | `vortxGE/src/physics/` |

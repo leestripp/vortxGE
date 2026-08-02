@@ -1,7 +1,10 @@
 # vortxGE
 
 ## Version
-vortxGE v0.7.2
+The engine version is derived from the latest git tag at CMake configure
+time (see the root `CMakeLists.txt` and `vortxGE/src/config.h.in`) and is
+available to code as the `vortxGE_VERSION_*` macros in the generated
+`config.h`. See `CHANGELOG.md` for the release history.
 
 ## Overall Architecture & Philosophy
 

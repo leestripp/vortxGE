@@ -68,21 +68,19 @@ A mesh batch for general 3D geometry. Defined in `vortxGE/src/datablocks/lsBatch
 ### Public Data
 
 ```cpp
-// Vertex data
-GLuint vbo_vertex;      // Positions
-GLuint vbo_normal;      // Normals
-GLuint vbo_texcoord;   // UV coordinates
-GLuint vbo_tangent;    // Tangents for normal mapping
-GLuint ibo_index;      // Index buffer
+// GPU mesh data — renderer-agnostic handles (see render/lsGLTypes.h)
+lsVAOID vao_mesh;               // Vertex array object
+lsBufferID bufferObjects[6];    // VBOs (vertex, normal, UV, tangent, …) + index buffer
 
-// PBR Textures
-lsTexture* tex_albedo;
-lsTexture* tex_normal;
-lsTexture* tex_roughness_metallic;
+// PBR Textures (renderer texture handles, not pointers)
+lsTextureID tex_albedo;
+lsTextureID tex_normal;
+lsTextureID tex_roughness_metallic;
 
-// Material properties
-lsVector4 matDiffuse;
-float matShininess;
+// Material properties (PBR)
+lsVector4 m_albedo;
+float m_roughness;
+float m_metallic;
 ```
 
 ### Usage
@@ -192,16 +190,24 @@ public:
     lsFBO(lsRender* render);
     virtual ~lsFBO();
 
-    virtual void Init(int width, int height) = 0;
-    virtual void Bind() = 0;
-    virtual void Unbind() = 0;
+    virtual void Enable() = 0;        // Bind FBO as the render target
+    virtual void ClearBuffers() = 0;  // Clear colour/depth/stencil
+    virtual void Resize(double width, double height) = 0;
+                                      // Recreate at new physical pixel size
 
-    GLuint getFbo() const;
-    lsTexture* getTexture() const;
-    int getWidth() const;
-    int getHeight() const;
+    double getWidth() const;
+    double getHeight() const;
+
+protected:
+    lsFBOID m_fbo;   // Renderer framebuffer handle (uint32_t)
 };
 ```
+
+> **Renderer abstraction:** engine code never touches GL handles
+> directly. All GPU resources are engine-level types (`lsFBOID`,
+> `lsTextureID`, `lsBufferID`, `lsVAOID`, … — all `uint32_t`) defined in
+> `vortxGE/src/render/lsGLTypes.h`, and all GPU calls go through the
+> `lsRender` interface (`getRender()->Xxx(...)`).
 
 ---
 
@@ -212,17 +218,16 @@ Depth-only FBO for shadow maps. Defined in `vortxGE/src/datablocks/lsFBO_Depth.h
 ### Usage
 
 ```cpp
-lsFBO_Depth* depthFBO = new lsFBO_Depth(render);
-depthFBO->Init(2048, 2048);
+lsFBO_Depth* depthFBO = new lsFBO_Depth(2048, 2048, render);
 
 // Render to depth texture
-depthFBO->Bind();
+depthFBO->Enable();
 // ... render scene from light perspective ...
-depthFBO->Unbind();
+// (restore the default framebuffer via the render pass)
 
-// Use in main pass
-glActiveTexture(GL_TEXTURE0 + shadowUnit);
-glBindTexture(GL_TEXTURE_2D, depthFBO->getTexture()->getID());
+// Use in main pass — through the renderer abstraction, no raw GL calls
+render->ActiveTexture(LS_TEXTURE0 + shadowUnit);
+render->BindTexture(LS_TEXTURE_2D, depthFBO->getDepthTexture());
 ```
 
 ---
@@ -245,13 +250,12 @@ class lsTexture
 {
 public:
     lsTexture(lsRender* render);
-    ~lsTexture();
+    virtual ~lsTexture();
 
-    void Create(int width, int height, int format, const void* data);
-    void Bind(int unit);
-    void Unbind();
+    bool load_image(string filename, bool mipmap, bool compressed,
+                    bool is_hdr = false);
 
-    GLuint getID() const;
+    lsTextureID getTexture() const;   // Renderer texture handle (uint32_t)
     int getWidth() const;
     int getHeight() const;
 };

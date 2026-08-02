@@ -1,6 +1,63 @@
 cmake_minimum_required(VERSION 3.29)
 
-project(vortxGE_all LANGUAGES CXX)
+# --- Version from git tag ---------------------------------------------------
+# The project version is derived from the latest git tag (e.g. "0.1.0").
+# To cut a release: create a semver git tag and re-run CMake — no code
+# edits needed. When git metadata is unavailable (tarball/zip build) the
+# fallback below is used instead. Keep the fallback at the latest release.
+set(vortxGE_VERSION_MAJOR 0)   # --- fallback version ---
+set(vortxGE_VERSION_MINOR 1)
+set(vortxGE_VERSION_PATCH 0)
+set(vortxGE_VERSION_GIT "unknown")
+
+find_package(Git QUIET)
+if(GIT_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} describe --tags --always --dirty
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_DESCRIBE
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_LATEST_TAG
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    # Accept "1.2.3" and tolerate a leading "v" ("v1.2.3")
+    if(GIT_LATEST_TAG MATCHES "^v?([0-9]+)\\.([0-9]+)\\.([0-9]+)")
+        set(vortxGE_VERSION_MAJOR "${CMAKE_MATCH_1}")
+        set(vortxGE_VERSION_MINOR "${CMAKE_MATCH_2}")
+        set(vortxGE_VERSION_PATCH "${CMAKE_MATCH_3}")
+        if(GIT_DESCRIBE)
+            set(vortxGE_VERSION_GIT "${GIT_DESCRIBE}")
+        endif()
+    elseif(GIT_LATEST_TAG)
+        message(WARNING
+            "Latest git tag '${GIT_LATEST_TAG}' is not semver (x.y.z); "
+            "using fallback version "
+            "${vortxGE_VERSION_MAJOR}.${vortxGE_VERSION_MINOR}.${vortxGE_VERSION_PATCH}")
+    endif()
+endif()
+
+set(vortxGE_VERSION_STRING
+    "${vortxGE_VERSION_MAJOR}.${vortxGE_VERSION_MINOR}.${vortxGE_VERSION_PATCH}")
+
+project(vortxGE_all
+    VERSION ${vortxGE_VERSION_STRING}
+    LANGUAGES CXX
+)
+
+message(STATUS "vortxGE version: ${vortxGE_VERSION_STRING} (git describe: ${vortxGE_VERSION_GIT})")
+
+# Generate config.h from the template — vortxGE/src/vortxGE.cpp includes it.
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/vortxGE/src/config.h.in
+    ${CMAKE_BINARY_DIR}/generated/config.h
+    @ONLY
+)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
