@@ -250,14 +250,16 @@ of the current eager load-everything-at-init model.
   cases. Docs: docs/assets/AsyncFileLoader.md.
 * **M2:** split `lsMesh` loading into CPU parse (vbm/gltf → buffers)
   vs GPU upload; parse stage testable.
-  *Scouted 2026-08-03:* `lsMesh` lives in `vortxGE/src/datablocks/`
-  (not graphics/). `LoadVBM(filename, lsAssetManager*, lsShaderManager*)`
-  is a ~750-line monolith: line-by-line parse interleaved with texture
-  creation via AssetManager (GL work) and shader setup. Recommended
-  approach: write a NEW clean `ParseVBM(bytes) ->
-  expected<MeshData, Error>` CPU parser + tests FIRST (format must be
-  mapped from the 750-line legacy impl), keep legacy path working,
-  hook GPU upload in M3/M4 — do NOT refactor the monolith in place.
+  *Scouted 2026-08-03:* `lsMesh` lives in `vortxGE/src/datablocks/`.
+  **DECISION (user, 2026-08-03): drop the legacy .vbm format entirely**
+  — zero .vbm assets or references in repo, demo is 100% .glb, glTF is
+  the standard pipeline (tinygltf vendored). M2 scope: glTF path ONLY
+  (`LoadGLTF`, ~251 lines) — write a NEW clean
+  `ParseGLTF(bytes) -> expected<MeshData, Error>` CPU parser (via
+  tinygltf) + tests first, keep legacy path working, GPU upload hookup
+  in M3/M4. Follow-up removal commit: delete `LoadVBM` (~750 lines),
+  the "vbm" dispatch branch in `lsAsset_Mesh::AllocAsset`, and the
+  `obj2vbm` tool — verify build + suite + demo smoke.
 * **M3:** node-driven residency — per-frame node distance updates in
   the scene pass, residency request/release, ref-aware eviction in the
   manager; priority/eviction rules unit-testable with mocked node
