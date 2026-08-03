@@ -1,0 +1,27 @@
+# .gitlab-ci.yml — vortxGE build + test pipeline (Plan.md Phase 5)
+#
+# Every push: clean-container build of the engine, tools and demos, then
+# the full doctest suite via CTest. Runs on gitlab.com shared runners
+# (Free tier: 400 CI minutes/month — one run here takes ~6-8 min).
+#
+# Note: the GLFW/GTK demos are compiled but NOT executed (no display/GL
+# on shared runners); interactive demo smoke tests stay local.
+
+image: ubuntu:24.04
+
+variables:
+  GIT_DEPTH: "0"            # full history so `git describe` finds version tags
+  CMAKE_BUILD_TYPE: Release
+
+build_and_test:
+  stage: build
+  before_script:
+    - apt-get update -qq
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends
+        build-essential cmake git pkg-config ca-certificates
+        libbullet-dev libgl-dev libglew-dev libopenal-dev
+        libglfw3-dev libgtkmm-4.0-dev libglibmm-2.68-dev
+  script:
+    - cmake -S . -B build
+    - cmake --build build -j"$(nproc)"
+    - cd build && ctest --output-on-failure
