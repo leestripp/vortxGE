@@ -1,7 +1,7 @@
 # Plan.md — Real test suite + CTest for vortxGE
 
 > **Status:** ✅ **CORE COMPLETE** (Phases 0-4 done, 2026-08-03) — Phase 5 (CI) declined by user; beyond-math (lsNode) ✅ done 2026-08-03.
-> **Next up:** Phase 6 — C++23 migration (added 2026-08-03)
+> **Next up:** incremental C++23 feature adoption (Phase 6 step 5: std::expected in asset loading, std::print in debug output)
 > **Created:** 2026-08-03, after the 0.1.0 tag + renderer abstraction
 > **Previous plan:** the completed renderer-abstraction plan (Phases 0-8)
 > is archived at [`docs/plans/renderer_abstraction.md`](docs/plans/renderer_abstraction.md).
@@ -168,7 +168,7 @@ t=0.5 halfway angle), `Lerp`, `toMatrix4x4` orthonormality.
 * **Not** GL-render tests — those need a headless GL context
   (OSMesa/EGL surfaceless) and are a separate plan.
 
-### Phase 6 — C++23 migration 🔲 **PLANNED** (added 2026-08-03)
+### Phase 6 — C++23 migration ✅ **DONE** (2026-08-03, steps 1-4; step 5 adoption ongoing)
 
 **Goal:** move the whole project from C++20 to **C++23** to unlock
 modern async and memory/error-handling facilities.

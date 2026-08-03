@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - This CHANGELOG.md (Keep a Changelog format).
+- **C++23 migration (Plan.md Phase 6):** `CMAKE_CXX_STANDARD` 20 → 23
+  (GCC 15.2). Full rebuild clean, **47 test cases / 1692 assertions
+  green**, 60 s GLFW demo smoke passed. Fixed the only new C++23
+  warnings: deprecated literal-operator space in vendored
+  `tinygltf/json.hpp` (upstream-style `operator""_json` fix). Feature
+  adoption (std::expected, std::print, …) proceeds incrementally.
 - **Beyond-math tests (lsNode):** first non-math suite
   (`tests/src/scene/lsNode_tests.cpp`, 7 cases / 1692 total assertions):
   ctor defaults, TRS setters, active/deletion flags, parent-child

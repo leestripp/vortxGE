@@ -66,7 +66,7 @@ endif()
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)   # Phase 6: C++23 migration (Plan.md)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # bullet physics
