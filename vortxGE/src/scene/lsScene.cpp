@@ -27,7 +27,6 @@
 #include "lsObject.h"
 #include "lsScene.h"
 #include "lsCamera.h"
-#include "../assets/lsStreamingManager.h"
 
 
 lsScene::lsScene( lsRender* m_render, float world_size, int maxProxies ) : lsNode( NULL )
@@ -93,10 +92,16 @@ lsScene::~lsScene()
 	cout << "lsScene::~lsScene() START - Name: " << getName() << endl;
 #endif
 	
-	// Scene Manager cleans up nodes
-	// But not the sky_object
+	// Destroy all child nodes FIRST. Physics-backed nodes (lsBulletObject
+	// dtors) call dynamicsWorld->removeRigidBody(), so they must die while
+	// the Bullet world is still alive. Without this, base-class ~lsNode
+	// destroys m_children AFTER this body has already deleted bulletworld
+	// (use-after-free on exit).
+	getChildren().clear();
+
+	// Sky object is not part of m_children
 	if(sky_object) delete sky_object;
-	
+
 	// Physics
 	if( bulletworld ) delete bulletworld;
 	
@@ -146,14 +151,12 @@ void lsScene::Optimize( lsCamera* cam, __attribute__((unused)) lsPass* pass, __a
 	// TODO: create a setable distance for the user.
 	m_lightManager->setActiveLights(cam, 50.0);
 
-	// M3: node-driven asset residency (same camera-position pattern).
-	if (m_streamingManager)
-	{
-		lsVector3 camPos( cam->ModelMatrix.matrix[12],
-						  cam->ModelMatrix.matrix[13],
-						  cam->ModelMatrix.matrix[14] );
-		m_streamingManager->update( camPos );
-	}
+	// NOTE: asset streaming is NOT driven from here. Optimize() runs
+	// per-pass with whatever cull camera is active (including shadow-pass
+	// light cameras), which made the streaming manager see conflicting
+	// camera positions and flap load/evict. The app drives
+	// lsStreamingManager::update() once per frame from the main thread
+	// with the viewer camera (see DemoScene::Update).
 }
 
 /*!

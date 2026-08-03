@@ -159,6 +159,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `AGENTS.md` (removed stale `src/opengl/` path), `Readme.md`
   (renderer-abstraction feature bullet, new Documentation section).
 
+### Fixed
+- **Shutdown crash (use-after-free):** `~lsScene` deleted the Bullet
+  world before its child nodes were destroyed (base-class member
+  destruction runs after the derived-class body), so `lsBulletObject`
+  destructors called `removeRigidBody()` on a dead world — segfault on
+  every clean exit. `~lsScene` now clears its child nodes first.
+- **Streaming load/evict flapping:** the M3 residency hook ran inside
+  `lsScene::Optimize()`, which passes invoke per-pass with the active
+  cull camera — including shadow-pass light cameras — so the streaming
+  manager saw alternating camera positions each frame and flapped
+  load/evict decisions. Residency is now driven by the app once per
+  frame from the main thread with the viewer camera
+  (`DemoScene::Update`); the `lsScene::setStreamingManager` hook was
+  removed. Exposed by testing with a 10/20 load/evict radius — the
+  shipped 50/80 config had kept light-camera distances inside the
+  hysteresis dead zone, hiding the bug.
+
 ### Removed
 - Hardcoded `vortxGE/src/config.h` (pinned at 0.7.2) — replaced by the
   generated header.

@@ -129,12 +129,6 @@ public:
      */
     void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
 
-    /** @brief Set the streaming manager (M3) — nullptr disables streaming.
-     *  When set, Optimize() drives node-distance asset residency each frame.
-     *  Not owned by the scene; caller manages lifetime. */
-    void setStreamingManager( class lsStreamingManager* sm ) { m_streamingManager = sm; }
-    lsStreamingManager* getStreamingManager() const { return m_streamingManager; }
-    
     /**
      * @brief Render the scene
      * 
@@ -378,7 +372,6 @@ private:
      * @brief Light manager for scene lights
      */
     lsLightManager* m_lightManager;
-    lsStreamingManager* m_streamingManager = nullptr;	///< optional, not owned (M3)
     
     /**
      * @brief Node found during search

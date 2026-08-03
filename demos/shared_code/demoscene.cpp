@@ -523,7 +523,6 @@ void DemoScene::setupTestScene()
 			}
 		};
 		walk( m_viewer_scene );
-		m_viewer_scene->setStreamingManager( &m_streamingManager );
 		cout << "INFO: DemoScene streaming enabled ("
 			 << m_streamingManager.entries().size() << " objects, load < "
 			 << streamCfg.loadRadius << ", evict > " << streamCfg.unloadRadius
@@ -685,6 +684,15 @@ void DemoScene::Update( double delta )
 	if( m_vortxge )
 	{
 		m_vortxge->Update( delta );
+	}
+
+	// M3/M5: drive asset streaming exactly once per frame, on this (main/GL)
+	// thread, with the viewer camera only. (The old lsScene::Optimize hook
+	// was also fed shadow-pass cull cameras, causing load/evict flapping.)
+	if( m_playerRig && m_playerRig->getCamera() )
+	{
+		const lsMatrix4x4& cm = m_playerRig->getCamera()->ModelMatrix;
+		m_streamingManager.update( lsVector3( cm.matrix[12], cm.matrix[13], cm.matrix[14] ) );
 	}
 }
 
