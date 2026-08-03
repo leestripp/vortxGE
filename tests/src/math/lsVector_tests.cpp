@@ -8,9 +8,8 @@
 //     (documented in lsVector3.cpp) — same result as Cross()
 //   - lsVector4 is HOMOGENEOUS: all ops act on xyz and preserve w;
 //     length()/distance() are 3D; normalize() has a zero guard
-//   - INCONSISTENCY FOUND: lsVector3::normalize() has NO zero guard
-//     (div-by-zero → NaN/Inf) while lsVector4::normalize() guards.
-//     Reported as engine finding (Plan.md §7: no engine fixes here)
+//   - FIXED 2026-08-03: lsVector3::normalize() now has a zero-length
+//     guard (was div-by-zero → NaN/Inf), matching lsVector4/lsQuaternion
 
 #include "doctest/doctest.h"
 
@@ -213,6 +212,15 @@ TEST_CASE( "lsVector3: length, normalize, distance" )
     {
         lsVector3 a( 0.0f, 0.0f, 0.0f ), b( 3.0f, 4.0f, 0.0f );
         CHECK( a.distance( b ) == Approx( 5.0f ) );
+    }
+
+    SUBCASE( "normalize of zero vector is guarded (no NaN) — regression" )
+    {
+        lsVector3 z( 0.0f, 0.0f, 0.0f );
+        z.normalize();
+        CHECK( z.x == Approx( 0.0f ) );
+        CHECK( z.y == Approx( 0.0f ) );
+        CHECK( z.z == Approx( 0.0f ) );
     }
 }
 

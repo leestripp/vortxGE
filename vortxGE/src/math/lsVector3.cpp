@@ -218,7 +218,12 @@ float lsVector3::length()
 
 lsVector3& lsVector3::normalize()
 {
-	return (*this = *this / sqrt(x * x + y * y + z * z));
+	// Zero-length guard, consistent with lsVector4::normalize() and
+	// lsQuaternion::normalize() (was missing — found by the test suite)
+	float len = sqrt(x * x + y * y + z * z);
+	if (len)
+		*this = *this / len;
+	return *this;
 }
 
 void lsVector3::copy(const lsVector3 &v)

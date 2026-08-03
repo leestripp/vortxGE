@@ -44,6 +44,10 @@ public:
 	/// Default constructor - initializes random seed
 	lsRandom();
 	
+	/// Set a fixed seed for reproducible sequences.
+	/// NOTE: uses global rand() state — affects all lsRandom instances.
+	void SetSeed( unsigned int seed );
+	
 	/// Destructor
 	virtual ~lsRandom();
 

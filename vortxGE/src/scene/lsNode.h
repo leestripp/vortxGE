@@ -138,8 +138,8 @@ public:
      * @brief Construct a node with optional parent
      * @param parent Parent node (can be nullptr for root)
      * 
-     * If parent is provided, this node is automatically added
-     * to the parent's children list.
+     * Only the parent pointer is stored — the node is NOT added to
+     * the parent's children list. Use Add_Node() to register a child.
      */
 	lsNode( lsNode* parent );
 	

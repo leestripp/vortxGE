@@ -440,8 +440,15 @@ lsQuaternion lsQuaternion::conjugate() const
  */
 lsQuaternion lsQuaternion::inverse() const
 {
-    // For a unit quaternion, the inverse is the conjugate.
-    // Assuming this quaternion represents a rotation, it should be a unit quaternion.
+    // True inverse is conjugate / |q|². Plain conjugate is only correct
+    // for UNIT quaternions (non-unit case found by the test suite).
+    float mag2 = w * w + x * x + y * y + z * z;
+    if (mag2 > 0.0f)
+    {
+        lsQuaternion c = conjugate();
+        float invMag2 = 1.0f / mag2;
+        return lsQuaternion(c.w * invMag2, c.x * invMag2, c.y * invMag2, c.z * invMag2);
+    }
     return conjugate();
 }
 

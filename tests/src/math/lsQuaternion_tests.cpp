@@ -88,6 +88,18 @@ TEST_CASE( "lsQuaternion: conjugate and inverse (unit quats)" )
         CHECK( id.y == Approx( 0.0f ).epsilon( 1e-5 ) );
         CHECK( id.z == Approx( 0.0f ).epsilon( 1e-5 ) );
     }
+
+    SUBCASE( "inverse of NON-unit quaternion also gives identity — regression" )
+    {
+        // inverse() used to be plain conjugate() — wrong when |q| != 1.
+        lsQuaternion big = q;
+        big.w *= 3.0f;  big.x *= 3.0f;  big.y *= 3.0f;  big.z *= 3.0f;
+        lsQuaternion id = big * big.inverse();
+        CHECK( id.w == Approx( 1.0f ).epsilon( 1e-5 ) );
+        CHECK( id.x == Approx( 0.0f ).epsilon( 1e-5 ) );
+        CHECK( id.y == Approx( 0.0f ).epsilon( 1e-5 ) );
+        CHECK( id.z == Approx( 0.0f ).epsilon( 1e-5 ) );
+    }
 }
 
 TEST_CASE( "lsQuaternion: multiplication composes rotations, non-commutative" )

@@ -26,6 +26,11 @@ lsRandom::~lsRandom()
  * \param max
  * \return
  */
+void lsRandom::SetSeed( unsigned int seed )
+{
+	srand( seed );
+}
+
 int lsRandom::Range( int max )
 {
 	return (rand()%max);

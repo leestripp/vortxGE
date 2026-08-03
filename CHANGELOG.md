@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - This CHANGELOG.md (Keep a Changelog format).
+- **Deferred test-suite findings fixed (48 cases / 1710 assertions):**
+  `lsVector3::normalize()` now has a zero-length guard (was div-by-zero
+  → NaN), matching lsVector4/lsQuaternion; `lsQuaternion::inverse()` is
+  now the true inverse (conjugate/|q|²) — correct for non-unit
+  quaternions; `lsRandom::SetSeed()` added for reproducible sequences
+  (documents global rand() state caveat); stale `lsNode` ctor doc
+  comment corrected (no auto-registration). Regression tests added for
+  each.
 - **C++23 migration (Plan.md Phase 6):** `CMAKE_CXX_STANDARD` 20 → 23
   (GCC 15.2). Full rebuild clean, **47 test cases / 1692 assertions
   green**, 60 s GLFW demo smoke passed. Fixed the only new C++23
