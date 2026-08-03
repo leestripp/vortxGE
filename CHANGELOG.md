@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - This CHANGELOG.md (Keep a Changelog format).
+- **Math tests Phase 2 (lsMatrix4x4 full coverage):** 12 more test
+  cases (348 total assertions): transform composition (post-multiply),
+  degrees-based `RotateMatrix`/`PerspectiveProjection`, GL-form
+  perspective/ortho NDC invariants, `LookAt` orthonormality,
+  `extractRotation`, `Set(quaternion)` cross-check,
+  `getLocalTransformFromParent` round-trip, float[16] operators.
+  **BUG FIXED:** `lsMatrix4x4::transpose()` corrupted the matrix when
+  source aliased destination (`m.transpose(m)`, used by
+  `getLocalTransformFromParent`) — now alias-safe via a source copy,
+  with a regression test. Findings pinned: `ToEulerZYX` returns degrees;
+  `lsQuaternion(axis, angle)` takes degrees.
 - **Math tests Phase 1 (lsVector2/3/4):** 6 more test cases (228 total
   assertions) pinning real engine semantics discovered by the suite:
   `lsVector3::operator*(vec)` is intentionally the cross product;

@@ -539,11 +539,22 @@ void lsMatrix4x4::LookAt( const lsVector3& eyePosition, const lsVector3& lookAt,
  */
 lsMatrix4x4& lsMatrix4x4::transpose( const lsMatrix4x4& m )
 {
-    // Swap elements across main diagonal
-    matrix[0] = m.matrix[0]; matrix[4] = m.matrix[1]; matrix[8] = m.matrix[2]; matrix[12] = m.matrix[3];
-    matrix[1] = m.matrix[4]; matrix[5] = m.matrix[5]; matrix[9] = m.matrix[6]; matrix[13] = m.matrix[7];
-    matrix[2] = m.matrix[8]; matrix[6] = m.matrix[9]; matrix[10] = m.matrix[10]; matrix[14] = m.matrix[11];
-    matrix[3] = m.matrix[12]; matrix[7] = m.matrix[13]; matrix[11] = m.matrix[14]; matrix[15] = m.matrix[15];
+    // Swap elements across main diagonal.
+    // Copy the source first: m may ALIAS *this (e.g. m.transpose(m), used
+    // by getLocalTransformFromParent). Reading slots after they have been
+    // overwritten produced a silently corrupted matrix (found by the
+    // test suite, Phase 2 — self-aliasing regression test in
+    // tests/src/math/lsMatrix4x4_tests.cpp).
+    const float s[16] = {
+        m.matrix[0],  m.matrix[1],  m.matrix[2],  m.matrix[3],
+        m.matrix[4],  m.matrix[5],  m.matrix[6],  m.matrix[7],
+        m.matrix[8],  m.matrix[9],  m.matrix[10], m.matrix[11],
+        m.matrix[12], m.matrix[13], m.matrix[14], m.matrix[15]
+    };
+    matrix[0] = s[0];  matrix[4] = s[1];  matrix[8] = s[2];  matrix[12] = s[3];
+    matrix[1] = s[4];  matrix[5] = s[5];  matrix[9] = s[6];  matrix[13] = s[7];
+    matrix[2] = s[8];  matrix[6] = s[9];  matrix[10] = s[10]; matrix[14] = s[11];
+    matrix[3] = s[12]; matrix[7] = s[13]; matrix[11] = s[14]; matrix[15] = s[15];
     return *this;
 }
 

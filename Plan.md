@@ -1,6 +1,6 @@
 # Plan.md — Real test suite + CTest for vortxGE
 
-> **Status:** 🚧 **IN PROGRESS** — Phase 0-1 ✅ done (2026-08-03), Phase 2 next
+> **Status:** 🚧 **IN PROGRESS** — Phase 0-2 ✅ done (2026-08-03), Phase 3 next
 > **Created:** 2026-08-03, after the 0.1.0 tag + renderer abstraction
 > **Previous plan:** the completed renderer-abstraction plan (Phases 0-8)
 > is archived at [`docs/plans/renderer_abstraction.md`](docs/plans/renderer_abstraction.md).
@@ -131,7 +131,7 @@ zero-length guard), lerp, index/accessor sanity, equality.
 * **Acceptance:** all four-component paths covered; edge cases
   (normalize(0), cross of parallel vectors) asserted.
 
-### Phase 2 — lsMatrix4x4 🔲
+### Phase 2 — lsMatrix4x4 ✅ **DONE** (2026-08-03)
 Identity (`isIdentity`, `isEqual`), `transpose` round-trip, `operator*`
 (hand-computed 4×4 product; non-commutativity), matrix×`lsVector3`,
 `Translate/Rotate/ScaleMatrix` composition order, `Set(quaternion)`
