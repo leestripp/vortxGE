@@ -1,6 +1,6 @@
 # Plan.md — Real test suite + CTest for vortxGE
 
-> **Status:** 🔲 **NOT STARTED** (Phase 0 next)
+> **Status:** 🚧 **IN PROGRESS** — Phase 0 ✅ done (2026-08-03), Phase 1 next
 > **Created:** 2026-08-03, after the 0.1.0 tag + renderer abstraction
 > **Previous plan:** the completed renderer-abstraction plan (Phases 0-8)
 > is archived at [`docs/plans/renderer_abstraction.md`](docs/plans/renderer_abstraction.md).
@@ -112,7 +112,7 @@ Engine source code does **not** change. Tests link the existing
 
 ## 6. Phases
 
-### Phase 0 — Skeleton: framework + CTest wiring 🔲
+### Phase 0 — Skeleton: framework + CTest wiring ✅ **DONE** (2026-08-03)
 * Vendor `doctest.h` into `tests/third_party/doctest/`.
 * New `tests/src/test_main.cpp` (`DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN`).
 * `CMakeLists.txt` (root): `enable_testing()` before `add_subdirectory(tests)`.

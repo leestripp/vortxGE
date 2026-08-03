@@ -146,7 +146,8 @@ vortxGE/                      ← repo root
 │       ├── shader/           ← lsShader, lsShaderManager, lsShaderKinds
 │       └── timers/           ← lsTimer (high-resolution timing)
 │
-├── tests/                    ← Math sanity test program (linked against the engine lib)
+├── tests/                    ← doctest test suite (CTest-wired; src/math/*_tests.cpp,
+│                               test_main.cpp entry, vendored third_party/doctest/)
 │   ├── CMakeLists.txt
 │   └── src/main.cpp
 │
@@ -225,13 +226,20 @@ then `cmake .. && make -j`. The release flags are `-O3`; debug is `-g`.
 
 ### Run the tests
 
+The test suite uses **doctest** (vendored single header,
+`tests/third_party/doctest/doctest.h`) and is registered with **CTest**:
+
 ```bash
 cd build
-./tests/tests
+ctest --output-on-failure      # run everything via CTest
+./tests/tests                  # run the doctest binary directly
+./tests/tests --test-case="lsMatrix4x4*" --success   # doctest CLI filters
 ```
 
-(There is currently a small smoke test in `tests/src/main.cpp` exercising
-`lsMatrix4x4`.)
+Tests live in `tests/src/` (entry point `test_main.cpp`, suites under
+`tests/src/math/`). Conventions — float compares use `doctest::Approx`,
+oracles are hand-computed, tests are deterministic — are documented in
+`Plan.md` §5, which also holds the phased coverage plan (Phases 0-5).
 
 ### Run the demos
 

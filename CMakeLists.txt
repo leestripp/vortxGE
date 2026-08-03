@@ -89,6 +89,9 @@ include_directories(
 )
 
 add_subdirectory(vortxGE)
+
+# CTest — test suite lives in tests/ (Plan.md Phase 0)
+enable_testing()
 add_subdirectory(tests)
 add_subdirectory(tools/obj2vbm)
 add_subdirectory(demos/vortxGEdemo_gtkmm)

@@ -3,12 +3,13 @@ project(tests LANGUAGES CXX)
 include_directories(
     src/
 	../vortxGE/src/
+    third_party/            # vendored doctest (tests/third_party/doctest/doctest.h)
     ${BULLET_INCLUDE_DIR}
     ${GLEW_INCLUDE_DIRS}
     ${OPENGL_INCLUDE_DIRS}
 )
 
-file(GLOB MySources
+file(GLOB_RECURSE MySources
     src/*.cpp
 )
 
@@ -26,4 +27,7 @@ target_link_libraries(tests
 add_dependencies(tests
 	vortxGE
 )
+
+# CTest registration — run with: ctest --output-on-failure
+add_test(NAME vortxGE_tests COMMAND tests)
 

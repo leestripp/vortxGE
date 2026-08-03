@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - This CHANGELOG.md (Keep a Changelog format).
+- **Real test suite + CTest (Plan.md Phase 0):** doctest 2.4.12 vendored
+  (`tests/third_party/doctest/`), new doctest entry point
+  `tests/src/test_main.cpp`, `enable_testing()` + `add_test()` wiring,
+  and the first assertion-based suites for `lsMatrix4x4` (transpose,
+  identity, operator* — 4 test cases / 71 assertions), converted from
+  the old visual-debug `tests/main.cpp`. Run with
+  `ctest --output-on-failure`.
 - **`lsVulkan` placeholder backend** (`vortxGE/src/render/lsVulkan.{h,cpp}`):
   a skeleton subclass of `lsRender` overriding all 64 pure-virtual
   methods with no-op stubs, as a scaffold/reminder for the future Vulkan
