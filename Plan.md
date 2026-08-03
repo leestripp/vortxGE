@@ -262,6 +262,33 @@ of the current eager load-everything-at-init model.
   `obj2vbm` tool — verify build + suite + demo smoke.
   **VBM removal DONE 2026-08-03** (LoadVBM + dispatch + obj2vbm deleted;
   build/suite/demo all green).
+* **M2 implementation brief (scouted 2026-08-03, LoadGLTF fully read):**
+  * Parse side (GL-free): tinygltf `LoadBinaryFromMemory` (glb) /
+    `LoadASCIIFromString` (gltf). Per `mesh.primitives[]`: POSITION
+    (required — skip primitive if absent), NORMAL, TEXCOORD_0, TANGENT;
+    respect `accessor.ByteStride(bufferView)` (0 → packed default
+    3/3/2/4 floats). Indices: u8/u16/u32 componentTypes.
+    **QUIRK: legacy adds +1 to EVERY index (1-based)** — pin/replicate.
+  * Material (if `primitive.material >= 0`): `pbrMetallicRoughness`
+    baseColorFactor (→ lsVector4 albedo), roughnessFactor, metallicFactor.
+  * Textures: `pbr.baseColorTexture.index` / `mat.normalTexture.index` →
+    `textures[i].source` → `images[j]`: URI (non-DataURI) → resolve
+    relative to mesh file dir + urldecode; embedded (`img.image` bytes)
+    → keep bytes + width/height/component/pixel_type for later GL upload.
+  * AABB: min/max over all POSITION floats.
+  * GL side (stays legacy until M3): `lsBatch_Mesh(lsRender*)`,
+    Init_data/Add_VertexData/Add_Index/Copy_GLdata, GenTextures/
+    TexImage2D embedded uploads, am->CreateAsset_Texture for URIs,
+    shader suffix "d"(albedo)/"n"(normal).
+  * Suggested types: `lsMeshPrimitiveData {positions,normals,uvs,
+    tangents: vector<float>; indices: vector<uint32_t>; albedo:
+    lsVector4; roughness,metallic: float; texAlbedoUri,texNormalUri:
+    string; embedded tex structs}`, `lsMeshData {primitives; aabbMin;
+    aabbMax}`, `ParseGLTF(bytes, isGlb) -> expected<lsMeshData,string>`.
+  * Home: `vortxGE/src/datablocks/lsGLTFParser.{h,cpp}`; tests:
+    `tests/src/datablocks/` — parse real `demos/data/meshes/*.glb`
+    bytes via lsAsyncFileLoader::LoadFile; assert primitive/vertex/
+    index counts, AABB, albedo factors, error on garbage bytes.
 * **M3:** node-driven residency — per-frame node distance updates in
   the scene pass, residency request/release, ref-aware eviction in the
   manager; priority/eviction rules unit-testable with mocked node
