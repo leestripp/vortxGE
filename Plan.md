@@ -1,6 +1,6 @@
 # Plan.md — Real test suite + CTest for vortxGE
 
-> **Status:** ✅ **CORE COMPLETE** (Phases 0-4 done, 2026-08-03) — Phase 5 (CI) optional
+> **Status:** ✅ **CORE COMPLETE** (Phases 0-4 done, 2026-08-03) — Phase 5 (CI) declined by user; beyond-math (lsNode) ✅ done 2026-08-03
 > **Created:** 2026-08-03, after the 0.1.0 tag + renderer abstraction
 > **Previous plan:** the completed renderer-abstraction plan (Phases 0-8)
 > is archived at [`docs/plans/renderer_abstraction.md`](docs/plans/renderer_abstraction.md).

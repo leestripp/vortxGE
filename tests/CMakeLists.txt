@@ -21,6 +21,7 @@ target_link_libraries(tests
     vortxGE
     ${BULLET_LIBRARIES}
     ${GLEW_LIBRARIES}
+    ${OPENAL_LIBRARY}         # scene/ classes (lsListener) pull in OpenAL
     OpenGL::EGL
 )
 

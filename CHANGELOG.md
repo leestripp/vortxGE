@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - This CHANGELOG.md (Keep a Changelog format).
+- **Beyond-math tests (lsNode):** first non-math suite
+  (`tests/src/scene/lsNode_tests.cpp`, 7 cases / 1692 total assertions):
+  ctor defaults, TRS setters, active/deletion flags, parent-child
+  hierarchy, and `RotateWorld` (degrees; parent-relative path exercises
+  the transpose fix). **Findings:** lsNode ctor doc comment claims
+  auto-registration with parent but doesn't do it (stale docs);
+  `Move/Optimize/Draw`/`ModelMatrix` composition untestable without a
+  scene/render pass (documented scope limit). tests target now links
+  OpenAL (lsListener dependency).
 - **Math tests Phase 4 (remaining math — PLAN COMPLETE):** 11 more
   test cases (**40 cases / 1655 assertions total**): `lsMatrix3x3`
   (transpose/inverse/extract from 4x4), `lsPlane` (signed distance,
