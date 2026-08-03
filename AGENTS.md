@@ -527,6 +527,9 @@ Quick recipes you'll likely need:
 
 ## 7. Where to Read More
 
+**Start at [docs/index.md](docs/index.md)** — the catalog of all
+project documentation (updated as we go).
+
 | Topic | File |
 |-------|------|
 | Engine lifecycle, subsystems, init order | `docs/vortxGE.md` |
