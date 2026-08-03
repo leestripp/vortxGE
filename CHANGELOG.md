@@ -7,11 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- **Phase 5 (partial) — GitLab CI:** `.gitlab-ci.yml` builds the full
-  project and runs the doctest suite on every push (gitlab.com shared
-  runners; demos compiled but not executed — no display in CI).
-
 ## [0.2.0] - 2026-08-03
 
 ### Added

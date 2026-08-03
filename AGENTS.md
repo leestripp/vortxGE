@@ -272,6 +272,16 @@ against the `vortxGE` target.
 
 ---
 
+### CI/CD policy: deliberately NONE (user decision, 2026-08-03)
+
+This project has **no CI pipelines** — do not add `.gitlab-ci.yml` or
+recommend hosted CI. Rationale: GitLab Free tier (400 CI min/month) is
+too small for this build size, and hosted Windows/macOS runners are
+Premium-only anyway. Builds and the full doctest suite are run **locally
+before every push** — that discipline replaces CI. If the engine is ever
+ported to Windows/Mac, revisit with **self-hosted runners** (free,
+unlimited minutes), not hosted CI.
+
 ## 5. Code Style and Conventions
 
 These rules are derived from the existing source — please follow them when
