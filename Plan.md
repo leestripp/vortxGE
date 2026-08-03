@@ -1,7 +1,7 @@
 # Plan.md — Real test suite + CTest for vortxGE
 
 > **Status:** ✅ **CORE COMPLETE** (Phases 0-4 done, 2026-08-03) — Phase 5 (CI) declined by user; beyond-math (lsNode) ✅ done 2026-08-03.
-> **Next up:** incremental C++23 feature adoption (Phase 6 step 5: std::expected in asset loading, std::print in debug output)
+> **Next up:** Phase 7 — Dynamic streaming Asset Manager (end goal set by user 2026-08-03: load/unload by distance from camera/player). Phase 6 step 5 (std::expected) lands inside Phase 7 M1.
 > **Created:** 2026-08-03, after the 0.1.0 tag + renderer abstraction
 > **Previous plan:** the completed renderer-abstraction plan (Phases 0-8)
 > is archived at [`docs/plans/renderer_abstraction.md`](docs/plans/renderer_abstraction.md).
@@ -203,6 +203,49 @@ C++23 compiler + libstdc++ support. Current standard is C++20
 
 **Rollback:** single-line revert of the standard flag; feature-adoption
 commits are independent and individually revertable.
+
+### Phase 7 — Dynamic streaming Asset Manager 🔲 **VISION** (added 2026-08-03)
+
+**End goal (user):** assets load and unload **dynamically based on
+distance from the camera/player** — open-world style streaming instead
+of the current eager load-everything-at-init model.
+
+**Current state (scouted 2026-08-03):**
+* `lsAssetManager` = raw-pointer factory registry (`CreateAsset_*` per
+  type, `Find_Asset`, `Add_Asset`) — eager loading, no lifetime mgmt.
+* `lsAsset::AllocAsset()` = polymorphic virtual, ~8 overrides,
+  GL-coupled (needs `getOpenGL()`), errors via `void` + `cout`.
+* Demo evidence: whole scene (13 objects, all meshes) loads at init.
+* Bullet shape assets depend on mesh assets (dependency tracking needed).
+
+**Design pillars:**
+1. **Two-stage pipeline** — Stage A (worker threads, async): file I/O +
+   parse into CPU-side buffers. Stage B (main thread only): GPU upload
+   (GL context lives on the main thread). This split is what makes
+   async loading possible at all.
+2. **Distance-based priority queue** — each streamable asset gets a
+   world position (from its node); load priority = f(distance to
+   camera); eviction beyond a radius, with a hysteresis band to avoid
+   load/unload thrash.
+3. **Async via C++23** — start with a thread pool + futures (simple,
+   safe); coroutine task/scheduler types later once designed
+   (Phase 6 step 5 feeds this).
+4. **`std::expected` error handling** — new async load APIs return
+   `expected<Data, Error>`; this is where Phase 6 step 5 actually lands
+   (replaces the void+cout pattern for new code).
+5. **Lifetime** — shared/weak ownership or handle-based refs; LRU
+   eviction for far assets; dependency tracking (bullet shapes → meshes).
+
+**Milestones (each independently committable):**
+* **M1:** async file loader — worker-thread file I/O returning
+  `std::expected`; pure CPU → **unit-testable in the suite**.
+* **M2:** split `lsMesh` loading into CPU parse (vbm/gltf → buffers)
+  vs GPU upload; parse stage testable.
+* **M3:** distance-based priority + eviction logic in the manager;
+  priority/eviction rules unit-testable with mocked distances.
+* **M4:** demo integration — objects stream in/out as the player moves.
+
+**Regression gate:** full ctest suite + 60 s demo smoke per milestone.
 
 ---
 
