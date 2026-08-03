@@ -15,6 +15,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the `obj2vbm` tool. Verified: full build clean, 52 test cases /
   1737 assertions green, 60 s demo smoke with all 9 `.glb` meshes
   loading. glTF is the sole mesh pipeline going forward.
+- **Phase 7 M3 — node-driven asset residency:** new
+  `lsStreamingManager` (assets/) — registers (lsNode, lsAsset) pairs and
+  drives residency per frame from `lsScene::Optimize` (camera position
+  via the ModelMatrix translation column, same pattern as the light
+  manager). Hysteresis (load < loadRadius / evict > unloadRadius),
+  budget cap with farthest-first eviction, and ref-aware protection
+  (assets with users above their registration baseline are never
+  evicted). Eviction is FreeAsset() in place — nodes keep their
+  reference and Draw's getData() null-check simply skips evicted
+  objects. `lsScene::setStreamingManager` hook (nullptr = disabled,
+  zero overhead). 5 new test cases (42 assertions) with mocked
+  assets/nodes: registration, distance load/evict, hysteresis
+  stability, ref-aware block/release, budget ordering. Verified: 62
+  cases / 1854 assertions green, 60 s demo smoke clean.
 - **Phase 7 M2 — glTF CPU-parse/GL-upload split:** new
   `lsGLTFParser.{h,cpp}` (datablocks/) — GL-free
   `ParseGLTF(bytes, isGlb, baseDir) -> expected<lsGLTFMeshData, string>`

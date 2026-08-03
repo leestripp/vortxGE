@@ -26,6 +26,8 @@
 
 #include "lsObject.h"
 #include "lsScene.h"
+#include "lsCamera.h"
+#include "../assets/lsStreamingManager.h"
 
 
 lsScene::lsScene( lsRender* m_render, float world_size, int maxProxies ) : lsNode( NULL )
@@ -143,6 +145,15 @@ void lsScene::Optimize( lsCamera* cam, __attribute__((unused)) lsPass* pass, __a
 	// Update Actice light based on distance from camera.
 	// TODO: create a setable distance for the user.
 	m_lightManager->setActiveLights(cam, 50.0);
+
+	// M3: node-driven asset residency (same camera-position pattern).
+	if (m_streamingManager)
+	{
+		lsVector3 camPos( cam->ModelMatrix.matrix[12],
+						  cam->ModelMatrix.matrix[13],
+						  cam->ModelMatrix.matrix[14] );
+		m_streamingManager->update( camPos );
+	}
 }
 
 /*!

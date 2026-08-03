@@ -290,7 +290,8 @@ of the current eager load-everything-at-init model.
     `tests/src/datablocks/` — parse real `demos/data/meshes/*.glb`
     bytes via lsAsyncFileLoader::LoadFile; assert primitive/vertex/
     index counts, AABB, albedo factors, error on garbage bytes.
-* **M3:** node-driven residency — per-frame node distance updates in
+* **M3:** ✅ **DONE** (2026-08-03) — `lsStreamingManager` + scene hook
+  (see CHANGELOG). Original scope: node-driven residency — per-frame node distance updates in
   the scene pass, residency request/release, ref-aware eviction in the
   manager; priority/eviction rules unit-testable with mocked node
   distances (lsNode already testable — see tests/src/scene/).
