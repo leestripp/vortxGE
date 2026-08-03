@@ -223,10 +223,18 @@ of the current eager load-everything-at-init model.
    parse into CPU-side buffers. Stage B (main thread only): GPU upload
    (GL context lives on the main thread). This split is what makes
    async loading possible at all.
-2. **Distance-based priority queue** — each streamable asset gets a
-   world position (from its node); load priority = f(distance to
-   camera); eviction beyond a radius, with a hysteresis band to avoid
-   load/unload thrash.
+2. **lsNode-driven streaming (user's design)** — only assets referenced
+   by nodes need updating. Nodes carry transforms, are visited every
+   frame by the Move/Optimize passes, and can compute distance-to-camera
+   from the active camera. Each frame, in-range nodes *request* their
+   assets and out-of-range nodes *release* them; requests feed the
+   priority queue (priority = node distance).
+   * Assets are **shared** (demo log: "Re-using existing mesh asset") —
+     eviction must be ref-aware: an asset unloads only when NO
+     referencing node is in range. Hysteresis band to avoid thrash.
+   * Not-yet-loaded nodes need a graceful state: skip draw, or render a
+     placeholder (`lsAsset_MeshGuide_Grid`/`_Empty` already exist and
+     fit this role).
 3. **Async via C++23** — start with a thread pool + futures (simple,
    safe); coroutine task/scheduler types later once designed
    (Phase 6 step 5 feeds this).
@@ -241,8 +249,10 @@ of the current eager load-everything-at-init model.
   `std::expected`; pure CPU → **unit-testable in the suite**.
 * **M2:** split `lsMesh` loading into CPU parse (vbm/gltf → buffers)
   vs GPU upload; parse stage testable.
-* **M3:** distance-based priority + eviction logic in the manager;
-  priority/eviction rules unit-testable with mocked distances.
+* **M3:** node-driven residency — per-frame node distance updates in
+  the scene pass, residency request/release, ref-aware eviction in the
+  manager; priority/eviction rules unit-testable with mocked node
+  distances (lsNode already testable — see tests/src/scene/).
 * **M4:** demo integration — objects stream in/out as the player moves.
 
 **Regression gate:** full ctest suite + 60 s demo smoke per milestone.
