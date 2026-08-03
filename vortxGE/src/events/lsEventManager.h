@@ -70,9 +70,14 @@ public:
     
     /**
      * @brief Get next event from queue
-     * 
+     *
      * Removes and returns the oldest event from queue.
-     * 
+     *
+     * @warning **Ownership stays with the manager.** The previously
+     * returned event is deleted on the *next* call to Poll_Event()
+     * (and the final one in ~lsEventManager). Callers must NOT delete
+     * the returned pointer and must not hold it across polls.
+     *
      * @return Pointer to next event, or nullptr if queue empty
      */
     lsEvent* Poll_Event();

@@ -46,22 +46,19 @@ const string& lsProperty_Float::toString()
 
 const string& lsProperty_Float::fromString( const string& str )
 {
-    vector<string> list;
-    lsString convert;
-    float rx;
-
     if( str != "" )
     {
-        list.clear();
-        // split line into parts
-        convert.SplitString( str, ' ', list );
+        // Accept both bare ("7.25") and toString ("( 7.25 )") formats:
+        // strip tuple decoration before parsing.
+        string cleaned = str;
+        for (auto& ch : cleaned)
+            if (ch == '(' || ch == ')' || ch == ',') ch = ' ';
 
-        if( list.size() == 1 )
-        {
-            rx = convert.toFloat( list[0] );
-
-            Set_X(rx);
-        }
+        stringstream ss( cleaned );
+        float rx;
+        string leftover;
+        if( (ss >> rx) && !(ss >> leftover) )
+            Set_X( rx );
     }
     return toString();
 }

@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-03
+
 ### Added
+- **Phase 5 (partial) — beyond-math test coverage:** new doctest suites
+  for `lsEventManager` (queue FIFO, dispatch, ownership semantics) and
+  `lsProperty_Float` / `lsProperty_Vector3` (reflective set/get,
+  toString/fromString round-trips). `lsEventManager::Poll_Event`
+  ownership contract now explicitly documented (manager deletes the
+  previously polled event; callers must not).
 - This CHANGELOG.md (Keep a Changelog format).
 - **Legacy .vbm format removed (user decision):** deleted
   `lsMesh::LoadVBM` (~750 lines), the vbm dispatch branch in
@@ -160,6 +168,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (renderer-abstraction feature bullet, new Documentation section).
 
 ### Fixed
+- **`lsProperty_Float`/`lsProperty_Vector3::fromString` silently
+  discarded toString-formatted input:** the parsers only accepted bare
+  numbers, so a `toString()` → `fromString()` round-trip (the
+  serialization contract) was a no-op. Both now strip `( ) ,`
+  decoration before parsing; bare formats still accepted.
 - **Shutdown crash (use-after-free):** `~lsScene` deleted the Bullet
   world before its child nodes were destroyed (base-class member
   destruction runs after the derived-class body), so `lsBulletObject`
@@ -284,5 +297,6 @@ set developed since the project's first public commit (2023-10-13).
 - Stray threads are now joined at their correct locations instead of at
   the end of `Move`/`Optimise`.
 
-[Unreleased]: https://gitlab.com/leestripp/vortxGE/-/compare/0.1.0...main
+[Unreleased]: https://gitlab.com/leestripp/vortxGE/-/compare/0.2.0...main
+[0.2.0]: https://gitlab.com/leestripp/vortxGE/-/compare/0.1.0...0.2.0
 [0.1.0]: https://gitlab.com/leestripp/vortxGE/-/tags/0.1.0

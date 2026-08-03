@@ -55,24 +55,18 @@ const string& lsProperty_Vector3::toString()
 
 const string& lsProperty_Vector3::fromString( const string& str )
 {
-    vector<string> list;
-    lsString convert;
-    float rx, ry, rz;
-
     if( str != "" )
     {
-        list.clear();
-        // split line into parts
-        convert.SplitString( str, ' ', list );
+        // Accept both bare ("x y z") and toString ("( x , y , z )") formats.
+        string cleaned = str;
+        for (auto& ch : cleaned)
+            if (ch == '(' || ch == ')' || ch == ',') ch = ' ';
 
-        if( list.size() == 3 )
-        {
-            rx = convert.toFloat( list[0] );
-            ry = convert.toFloat( list[1] );
-            rz = convert.toFloat( list[2] );
-
-            Set(rx, ry, rz);
-        }
+        stringstream ss( cleaned );
+        float rx, ry, rz;
+        string leftover;
+        if( (ss >> rx >> ry >> rz) && !(ss >> leftover) )
+            Set( rx, ry, rz );
     }
     return toString();
 }
