@@ -48,7 +48,7 @@ using namespace std;
  * @example
  * @code
  * lsMesh* mesh = new lsMesh(renderer);
- * mesh->LoadVBM("models/cube.vbm", assetManager, shaderManager);
+ * mesh->LoadGLTF("models/cube.glb", assetManager, shaderManager);
  * 
  * // In render loop
  * mesh->Draw(camera, pass, object);
@@ -97,7 +97,6 @@ public:
      * @param am Asset manager
      * @param sm Shader manager
      */
-	void LoadVBM( const string& filename, lsAssetManager *am, lsShaderManager *sm );
 	
     /**
      * @brief Load glTF mesh

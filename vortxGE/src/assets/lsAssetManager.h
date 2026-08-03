@@ -18,7 +18,7 @@
  * lsAssetManager* am = new lsAssetManager(render);
  * 
  * // Load mesh (cached)
- * lsAsset_Mesh* mesh = am->CreateAsset_Mesh("cube.vbm");
+ * lsAsset_Mesh* mesh = am->CreateAsset_Mesh("cube.glb");
  * 
  * // Load texture (cached)
  * lsAsset_Texture* tex = am->CreateAsset_Texture("wood.png");

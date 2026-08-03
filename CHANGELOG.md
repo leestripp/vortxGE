@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - This CHANGELOG.md (Keep a Changelog format).
+- **Legacy .vbm format removed (user decision):** deleted
+  `lsMesh::LoadVBM` (~750 lines), the vbm dispatch branch in
+  `lsAsset_Mesh::AllocAsset` (glTF/glb is now the only mesh path), and
+  the `obj2vbm` tool. Verified: full build clean, 52 test cases /
+  1737 assertions green, 60 s demo smoke with all 9 `.glb` meshes
+  loading. glTF is the sole mesh pipeline going forward.
 - **Phase 7 M1 — async file loader:** new `lsAsyncFileLoader`
   (assets/): worker-thread pool, `std::future` +
   `std::expected<std::vector<std::byte>, std::string>` results,

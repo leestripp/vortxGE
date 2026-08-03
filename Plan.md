@@ -260,6 +260,8 @@ of the current eager load-everything-at-init model.
   in M3/M4. Follow-up removal commit: delete `LoadVBM` (~750 lines),
   the "vbm" dispatch branch in `lsAsset_Mesh::AllocAsset`, and the
   `obj2vbm` tool — verify build + suite + demo smoke.
+  **VBM removal DONE 2026-08-03** (LoadVBM + dispatch + obj2vbm deleted;
+  build/suite/demo all green).
 * **M3:** node-driven residency — per-frame node distance updates in
   the scene pass, residency request/release, ref-aware eviction in the
   manager; priority/eviction rules unit-testable with mocked node

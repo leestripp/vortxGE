@@ -52,7 +52,6 @@ lsAsset_Mesh::~lsAsset_Mesh()
  * This method loads mesh data from file based on extension:
  * 
  * Supported formats:
- * - .vbm: Vertex Buffer Mesh (custom format)
  * - .gltf: glTF JSON format
  * - .glb: glTF binary format
  * 
@@ -95,10 +94,7 @@ void lsAsset_Mesh::AllocAsset()
 		
 		cout << "INFO: Loading mesh '" << filename << "' with extension '" << ext << "'" << endl;
 		
-		if (ext == "vbm")
-		{
-			mesh->LoadVBM( filename, getAssetManager(), getOpenGL()->getShaderManager() );
-		} else if (ext == "gltf" || ext == "glb")
+		if (ext == "gltf" || ext == "glb")
 		{
 			mesh->LoadGLTF( filename, getAssetManager(), getOpenGL()->getShaderManager() );
 		} else
