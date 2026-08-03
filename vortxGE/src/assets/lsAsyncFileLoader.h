@@ -28,6 +28,8 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
+#include <memory>
+#include <type_traits>
 
 class lsAsyncFileLoader
 {
@@ -48,6 +50,22 @@ public:
 
     /** Synchronous load (same code path the workers use). */
     static LoadResult LoadFile( const std::string& path );
+
+    /** Queue an arbitrary task on the worker pool (e.g. load + parse);
+     *  the future yields the task's return value. */
+    template<typename F>
+    auto Queue( F&& f ) -> std::future<std::invoke_result_t<F>>
+    {
+        using R = std::invoke_result_t<F>;
+        auto task = std::make_shared<std::packaged_task<R()>>( std::forward<F>( f ) );
+        std::future<R> fut = task->get_future();
+        {
+            std::lock_guard<std::mutex> lock( m_mutex );
+            m_tasks.push( [task]() { (*task)(); } );
+        }
+        m_cv.notify_one();
+        return fut;
+    }
 
 private:
     void WorkerLoop();

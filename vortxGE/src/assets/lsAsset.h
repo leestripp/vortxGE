@@ -153,6 +153,20 @@ public:
      */
     virtual void FreeAsset() = 0;
 
+    /**
+     * @brief Async alloc (M5) — default falls back to sync AllocAsset().
+     *  Subclasses with a CPU-parse stage (meshes) queue load+parse on the
+     *  loader's workers; AsyncPoll() completes the GL upload.
+     */
+    virtual void AllocAsset_Async( class lsAsyncFileLoader& loader ) { (void)loader; AllocAsset(); }
+
+    /**
+     * @brief Poll async completion — GL-thread side effects (upload) happen
+     *  here. Returns true when the asset is done (success or failure).
+     *  Sync assets are always done.
+     */
+    virtual bool AsyncPoll() { return true; }
+
     //=========================================================================
     // Navigation
     //=========================================================================

@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the `obj2vbm` tool. Verified: full build clean, 52 test cases /
   1737 assertions green, 60 s demo smoke with all 9 `.glb` meshes
   loading. glTF is the sole mesh pipeline going forward.
+- **Phase 7 M5 — async parse→upload pipeline:** streaming loads no
+  longer hitch the GL thread. `lsAsyncFileLoader::Queue` (generic worker
+  tasks); `lsMesh::UploadGLTF` extracted from LoadGLTF (GL upload from
+  parsed data); `lsAsset::AllocAsset_Async`/`AsyncPoll` virtuals (sync
+  fallback by default); `lsAsset_Mesh` async impl (worker: LoadFile +
+  ParseGLTF → GL thread: UploadGLTF); `lsStreamingManager` LOADING
+  state + `setLoader` (polls AsyncPoll in update; no double-queue;
+  mid-flight entries never evicted — an out-of-range completion evicts
+  in the same frame, pinned). DemoScene runs a 2-worker pool. 1 new
+  test case (12 assertions: async lifecycle, mid-flight protection,
+  sync fallback unchanged). Verified: 63 cases / 1874 assertions green,
+  60 s demo smoke shows the full async cycle live.
 - **Phase 7 M4 — demo streaming integration:** DemoScene walks the
   loaded scene graph and registers every mesh-bearing lsObject (skybox
   excluded) with an `lsStreamingManager` (load < 50, evict > 80, budget

@@ -46,6 +46,19 @@ static lsVector3 nodeWorldPos( const lsNode* node )
 
 void lsStreamingManager::update( const lsVector3& camPos )
 {
+	// 0. Poll in-flight async loads (M5) — AsyncPoll uploads on this (GL) thread.
+	for (auto& e : m_entries)
+	{
+		if (e.loading && e.asset->AsyncPoll())
+		{
+			e.loading = false;
+			e.resident = (e.asset->getData() != nullptr);
+			if (e.resident)
+				cout << "INFO: Stream resident (async) '" << e.asset->getAsset_name()
+					 << "' (dist " << e.lastDistance << ")" << endl;
+		}
+	}
+
 	// 1. Distance refresh + hysteresis decisions.
 	for (auto& e : m_entries)
 	{
@@ -62,12 +75,22 @@ void lsStreamingManager::update( const lsVector3& camPos )
 				e.resident = false;
 			}
 		}
-		else if (!e.resident && e.lastDistance < m_config.loadRadius)
+		else if (!e.resident && !e.loading && e.lastDistance < m_config.loadRadius)
 		{
-			cout << "INFO: Stream load '" << e.asset->getAsset_name()
-				 << "' (dist " << e.lastDistance << ")" << endl;
-			e.asset->AllocAsset();
-			e.resident = true;
+			if (m_loader)
+			{
+				cout << "INFO: Stream load (async) '" << e.asset->getAsset_name()
+					 << "' (dist " << e.lastDistance << ")" << endl;
+				e.asset->AllocAsset_Async( *m_loader );
+				e.loading = true;
+			}
+			else
+			{
+				cout << "INFO: Stream load '" << e.asset->getAsset_name()
+					 << "' (dist " << e.lastDistance << ")" << endl;
+				e.asset->AllocAsset();
+				e.resident = true;
+			}
 		}
 	}
 

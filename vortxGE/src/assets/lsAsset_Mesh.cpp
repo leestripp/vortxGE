@@ -26,6 +26,9 @@
 #include "../datablocks/lsStats.h"
 
 #include "lsAsset_Mesh.h"
+#include "lsAsyncFileLoader.h"
+#include "../filesystem/lsDir.h"
+#include <chrono>
 
 /**
  * @brief Construct a mesh asset
@@ -139,3 +142,58 @@ void lsAsset_Mesh::FreeAsset()
 	}
 }
 
+
+void lsAsset_Mesh::AllocAsset_Async( lsAsyncFileLoader& loader )
+{
+	if (getData() || m_asyncLoading) return;	// already loaded or in flight
+	if (!getOpenGL()) return;
+
+	string ext;
+	size_t pos = filename.find_last_of(".");
+	if (pos != string::npos) ext = filename.substr(pos + 1);
+	if (ext != "gltf" && ext != "glb") {
+		cout << "ERROR: lsAsset_Mesh::AllocAsset_Async() - Unsupported mesh format: " << ext << endl;
+		return;
+	}
+
+	// Path resolution on the calling thread (getexepath), heavy work off-thread.
+	lsDir dir;
+	const string path = dir.getexepath() + filename;
+	size_t slash = filename.find_last_of("/\\");
+	const string baseDir = (slash == string::npos) ? "" : filename.substr(0, slash);
+	const bool isGlb = (ext == "glb");
+
+	cout << "INFO: Async load queued for mesh '" << filename << "'" << endl;
+	m_loadFuture = loader.Queue( [path, baseDir, isGlb]() -> std::expected<lsGLTFMeshData, std::string> {
+		auto bytes = lsAsyncFileLoader::LoadFile( path );
+		if (!bytes) return std::unexpected( bytes.error() );
+		return ParseGLTF( *bytes, isGlb, baseDir );
+	} );
+	m_asyncLoading = true;
+}
+
+bool lsAsset_Mesh::AsyncPoll()
+{
+	if (!m_asyncLoading) return true;
+	if (m_loadFuture.wait_for( std::chrono::seconds(0) ) != std::future_status::ready)
+		return false;
+
+	auto result = m_loadFuture.get();
+	m_asyncLoading = false;
+	if (!result) {
+		cout << "ERROR: Async mesh load failed for '" << filename << "': " << result.error() << endl;
+		return true;	// done, no data — residency stays false
+	}
+
+	// GL upload on the calling (GL) thread.
+	lsMesh* mesh = new lsMesh( getOpenGL() );
+	if (!mesh) {
+		cout << "ERROR: Could not create lsMesh instance - lsAsset_Mesh::AsyncPoll()" << endl;
+		return true;
+	}
+	mesh->UploadGLTF( *result, getAssetManager(), getOpenGL()->getShaderManager() );
+	setData( mesh );
+	getOpenGL()->getStats()->addUsed_mem( mesh->getMem_used() );
+	cout << "INFO: Async mesh upload complete '" << filename << "'" << endl;
+	return true;
+}

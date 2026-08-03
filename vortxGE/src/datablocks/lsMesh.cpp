@@ -131,6 +131,13 @@ void lsMesh::LoadGLTF(const string& filename, lsAssetManager *am, lsShaderManage
 		return;
 	}
 
+	UploadGLTF( *parsed, am, sm );
+}
+
+void lsMesh::UploadGLTF( const lsGLTFMeshData& data, lsAssetManager *am, lsShaderManager *sm )
+{
+	const lsGLTFMeshData* parsed = &data;
+
 	for (const auto& prim : parsed->primitives)
 	{
 		lsBatch_Mesh* batch = new lsBatch_Mesh(getRender());

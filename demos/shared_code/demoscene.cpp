@@ -509,6 +509,7 @@ void DemoScene::setupTestScene()
 		streamCfg.unloadRadius = 80.0f;
 		streamCfg.maxResident = 16;
 		m_streamingManager.config() = streamCfg;
+		m_streamingManager.setLoader( &m_asyncLoader );	// M5: async loads
 
 		std::function<void(lsNode*)> walk = [&]( lsNode* n ) {
 			for (auto& child : n->getChildren()) {

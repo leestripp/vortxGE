@@ -27,6 +27,7 @@
 
 class lsNode;
 class lsAsset;
+class lsAsyncFileLoader;
 
 /** Residency tuning. unloadRadius must be >= loadRadius (hysteresis). */
 struct lsResidencyConfig
@@ -51,6 +52,11 @@ public:
 	 *  Applies LOAD/EVICT decisions synchronously (GL-thread safe point). */
 	void update( const lsVector3& camPos );
 
+	/** Optional async loader (M5). When set, LOAD actions queue
+	 *  AllocAsset_Async and residency flips on AsyncPoll; when null,
+	 *  loads are synchronous (previous behaviour). Not owned. */
+	void setLoader( lsAsyncFileLoader* loader ) { m_loader = loader; }
+
 	lsResidencyConfig& config() { return m_config; }
 	const lsResidencyConfig& config() const { return m_config; }
 
@@ -61,6 +67,7 @@ public:
 		lsNode* node = nullptr;
 		lsAsset* asset = nullptr;
 		bool resident = false;
+		bool loading = false;			///< async load in flight (M5)
 		unsigned int baselineUsers = 0;
 		float lastDistance = 0.0f;
 	};
@@ -70,6 +77,7 @@ public:
 private:
 	std::vector<Entry> m_entries;
 	lsResidencyConfig m_config;
+	lsAsyncFileLoader* m_loader = nullptr;
 };
 
 #endif // LSSTREAMINGMANAGER_H

@@ -16,6 +16,11 @@
 #include "lsAsset.h"
 
 class lsShaderManager;
+class lsAsyncFileLoader;
+
+#include <future>
+#include <expected>
+#include "../datablocks/lsGLTFParser.h"
 
 /**
  * @class lsAsset_Mesh
@@ -64,6 +69,11 @@ public:
      */
     void FreeAsset();
 
+    /** M5: queue load+ParseGLTF on the loader's workers; AsyncPoll()
+     *  runs UploadGLTF on the calling (GL) thread. */
+    void AllocAsset_Async( lsAsyncFileLoader& loader ) override;
+    bool AsyncPoll() override;
+
     //=========================================================================
     // Properties
     //=========================================================================
@@ -89,4 +99,7 @@ public:
 private:
     /// Path to mesh file
     string filename;
+
+    std::future<std::expected<lsGLTFMeshData, std::string>> m_loadFuture;
+    bool m_asyncLoading = false;
 };

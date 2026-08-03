@@ -106,6 +106,12 @@ public:
      * @param sm Shader manager
      */
 	void LoadGLTF( const string& filename, lsAssetManager *am, lsShaderManager *sm );
+
+	/** GL upload from CPU-parsed data (M5): creates batches, textures,
+	 *  shaders and the bounding sphere. LoadGLTF() = file read + ParseGLTF
+	 *  + UploadGLTF; the async pipeline parses off-thread and calls this
+	 *  on the GL thread. */
+	void UploadGLTF( const struct lsGLTFMeshData& data, lsAssetManager *am, lsShaderManager *sm );
 	
     /**
      * @brief Add batch to mesh

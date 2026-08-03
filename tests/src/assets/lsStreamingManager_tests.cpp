@@ -9,6 +9,7 @@
 
 #include "assets/lsStreamingManager.h"
 #include "assets/lsAsset.h"
+#include "assets/lsAsyncFileLoader.h"
 #include "scene/lsNode.h"
 
 using doctest::Approx;
@@ -43,6 +44,34 @@ public:
 		ModelMatrix.matrix[13] = y;
 		ModelMatrix.matrix[14] = z;
 	}
+};
+
+// M5: async-capable mock — AllocAsset_Async defers completion until
+// AsyncPoll has been called pollsNeeded times (simulating worker latency).
+class MockAsyncAsset : public MockAsset
+{
+public:
+	void AllocAsset_Async( lsAsyncFileLoader& ) override
+	{
+		asyncCount++;
+		pending = true;
+		pollsLeft = pollsNeeded;
+	}
+	bool AsyncPoll() override
+	{
+		if (!pending) return true;
+		if (--pollsLeft <= 0) {
+			pending = false;
+			MockAsset::AllocAsset();	// data set → manager sees resident
+			return true;
+		}
+		return false;
+	}
+	int asyncCount = 0;
+	int pollsNeeded = 2;
+private:
+	bool pending = false;
+	int pollsLeft = 0;
 };
 
 } // namespace
@@ -234,4 +263,66 @@ TEST_CASE( "lsStreamingManager: empty update is a no-op" )
 	sm.update( lsVector3( 0.0f, 0.0f, 0.0f ) );
 	CHECK( sm.entries().empty() );
 	CHECK( sm.residentCount() == 0 );
+}
+
+TEST_CASE( "lsStreamingManager: async load lifecycle (M5)" )
+{
+	lsResidencyConfig cfg;
+	cfg.loadRadius = 10.0f;
+	cfg.unloadRadius = 20.0f;
+	lsStreamingManager sm( cfg );
+	lsAsyncFileLoader loader( 1 );			// real loader; mock ignores it
+	sm.setLoader( &loader );
+
+	StreamTestNode node;
+	MockAsyncAsset asset;
+	sm.registerNode( &node, &asset );
+	const lsVector3 camPos( 0.0f, 0.0f, 0.0f );
+	node.setWorldPos( 5.0f, 0.0f, 0.0f );	// within loadRadius
+
+	SUBCASE( "LOAD queues async, residency flips when AsyncPoll completes" )
+	{
+		sm.update( camPos );
+		CHECK( asset.asyncCount == 1 );
+		CHECK( sm.entries()[0].loading );
+		CHECK_FALSE( sm.entries()[0].resident );
+		CHECK( asset.allocCount == 0 );		// not yet
+
+		sm.update( camPos );				// poll 1 of 2 — still in flight
+		CHECK( sm.entries()[0].loading );
+		CHECK( asset.asyncCount == 1 );		// no double-queue while loading
+		CHECK( asset.allocCount == 0 );
+
+		sm.update( camPos );				// poll 2 of 2 — completes
+		CHECK_FALSE( sm.entries()[0].loading );
+		CHECK( sm.entries()[0].resident );
+		CHECK( asset.allocCount == 1 );
+	}
+	SUBCASE( "entry loading mid-flight is not evicted" )
+	{
+		sm.update( camPos );				// async load queued
+		REQUIRE( sm.entries()[0].loading );
+		node.setWorldPos( 100.0f, 0.0f, 0.0f );	// leaves unloadRadius mid-load
+		sm.update( camPos );				// poll 1 — not resident → no evict
+		CHECK( asset.freeCount == 0 );
+		CHECK( sm.entries()[0].loading );
+		sm.update( camPos );				// poll 2 — completes, still far:
+		// evicted in the SAME frame (no wasted residency) — pinned behaviour
+		CHECK( asset.allocCount == 1 );
+		CHECK( asset.freeCount == 1 );
+		CHECK_FALSE( sm.entries()[0].loading );
+		CHECK_FALSE( sm.entries()[0].resident );
+	}
+	SUBCASE( "sync path unchanged when no loader is set" )
+	{
+		lsStreamingManager syncSm( cfg );	// no setLoader
+		StreamTestNode n2;
+		MockAsyncAsset a2;
+		syncSm.registerNode( &n2, &a2 );
+		n2.setWorldPos( 5.0f, 0.0f, 0.0f );
+		syncSm.update( camPos );
+		CHECK( a2.asyncCount == 0 );		// never touched async API
+		CHECK( a2.allocCount == 1 );
+		CHECK( syncSm.entries()[0].resident );
+	}
 }
