@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - This CHANGELOG.md (Keep a Changelog format).
+- **Phase 7 M1 — async file loader:** new `lsAsyncFileLoader`
+  (assets/): worker-thread pool, `std::future` +
+  `std::expected<std::vector<std::byte>, std::string>` results,
+  drain-on-destruction. First C++23 `std::expected` adoption (Phase 6
+  step 5). 4 test cases (52 cases / 1737 assertions total). Docs:
+  `docs/assets/AsyncFileLoader.md`; `docs/index.md` created as the
+  documentation catalog.
 - **Deferred test-suite findings fixed (48 cases / 1710 assertions):**
   `lsVector3::normalize()` now has a zero-length guard (was div-by-zero
   → NaN), matching lsVector4/lsQuaternion; `lsQuaternion::inverse()` is

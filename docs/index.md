@@ -31,6 +31,7 @@ this directory, project-level docs live at the repo root.
 |---|---|---|
 | Overview | [vortxGE.md](vortxGE.md) | Engine architecture overview |
 | Assets | [assets/AssetManagement.md](assets/AssetManagement.md) | Asset system (→ being reworked: Plan.md Phase 7) |
+| Assets | [assets/AsyncFileLoader.md](assets/AsyncFileLoader.md) | 🆕 Async file loader (Phase 7 M1, std::expected) |
 | Audio | [audio/AudioSystem.md](audio/AudioSystem.md) | OpenAL audio |
 | Controls | [controls/ControlsSystem.md](controls/ControlsSystem.md) | Input/controls mapping |
 | Datablocks | [datablocks/DataBlocks.md](datablocks/DataBlocks.md) | File formats & data loaders |

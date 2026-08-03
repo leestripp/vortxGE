@@ -245,8 +245,9 @@ of the current eager load-everything-at-init model.
    eviction for far assets; dependency tracking (bullet shapes → meshes).
 
 **Milestones (each independently committable):**
-* **M1:** async file loader — worker-thread file I/O returning
-  `std::expected`; pure CPU → **unit-testable in the suite**.
+* **M1:** async file loader ✅ **DONE** (2026-08-03) — `lsAsyncFileLoader`
+  (worker pool, drain-on-destruction, `std::expected` results), 4 test
+  cases. Docs: docs/assets/AsyncFileLoader.md.
 * **M2:** split `lsMesh` loading into CPU parse (vbm/gltf → buffers)
   vs GPU upload; parse stage testable.
 * **M3:** node-driven residency — per-frame node distance updates in
