@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the `obj2vbm` tool. Verified: full build clean, 52 test cases /
   1737 assertions green, 60 s demo smoke with all 9 `.glb` meshes
   loading. glTF is the sole mesh pipeline going forward.
+- **Phase 7 M4 — demo streaming integration:** DemoScene walks the
+  loaded scene graph and registers every mesh-bearing lsObject (skybox
+  excluded) with an `lsStreamingManager` (load < 50, evict > 80, budget
+  16). The manager logs INFO lines on load/evict. Verified live in the
+  60 s smoke: 9 objects registered; Cube.003 (moving physics object)
+  cycles `Stream load`/`Stream evict` as it crosses the radii — real
+  distance-driven streaming, hysteresis stable, no crashes. Phase 7
+  (M1–M4) complete.
 - **Phase 7 M3 — node-driven asset residency:** new
   `lsStreamingManager` (assets/) — registers (lsNode, lsAsset) pairs and
   drives residency per frame from `lsScene::Optimize` (camera position

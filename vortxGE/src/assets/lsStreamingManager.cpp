@@ -7,6 +7,10 @@
 #include "lsAsset.h"
 
 #include <algorithm>
+#include <iostream>
+
+using std::cout;
+using std::endl;
 
 void lsStreamingManager::registerNode( lsNode* node, lsAsset* asset )
 {
@@ -52,12 +56,16 @@ void lsStreamingManager::update( const lsVector3& camPos )
 			// Ref-aware: only evict while no extra users appeared.
 			if (e.asset->getUsers() <= e.baselineUsers)
 			{
+				cout << "INFO: Stream evict '" << e.asset->getAsset_name()
+					 << "' (dist " << e.lastDistance << ")" << endl;
 				e.asset->FreeAsset();
 				e.resident = false;
 			}
 		}
 		else if (!e.resident && e.lastDistance < m_config.loadRadius)
 		{
+			cout << "INFO: Stream load '" << e.asset->getAsset_name()
+				 << "' (dist " << e.lastDistance << ")" << endl;
 			e.asset->AllocAsset();
 			e.resident = true;
 		}
@@ -79,6 +87,8 @@ void lsStreamingManager::update( const lsVector3& camPos )
 		for (Entry* e : candidates)
 		{
 			if (residentCount() <= m_config.maxResident) break;
+			cout << "INFO: Stream evict (budget) '" << e->asset->getAsset_name()
+				 << "' (dist " << e->lastDistance << ")" << endl;
 			e->asset->FreeAsset();
 			e->resident = false;
 		}

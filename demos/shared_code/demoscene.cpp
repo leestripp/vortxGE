@@ -90,6 +90,7 @@
 #include <scene/lsSceneManager.h>
 #include <scene/lsNode.h>
 #include <scene/lsScene.h>
+#include <functional>
 #include <scene/lsObject.h>
 #include <scene/lsObjectEmitter.h>
 #include <scene/lsCamera.h>
@@ -496,6 +497,36 @@ void DemoScene::setupTestScene()
 		
 		// After loading and updating transforms, link lights to objects
 		m_viewer->getSceneManager()->LinkLightsInScene(m_viewer_scene);
+	}
+
+	// M4: register mesh objects for distance-driven streaming.
+	// Excluded: the skybox (must never unload) and the emitter's shared
+	// mesh (ref-locked by spawned clones anyway). Evicted objects simply
+	// don't draw until the player comes back within loadRadius.
+	{
+		lsResidencyConfig streamCfg;
+		streamCfg.loadRadius = 50.0f;
+		streamCfg.unloadRadius = 80.0f;
+		streamCfg.maxResident = 16;
+		m_streamingManager.config() = streamCfg;
+
+		std::function<void(lsNode*)> walk = [&]( lsNode* n ) {
+			for (auto& child : n->getChildren()) {
+				lsObject* obj = dynamic_cast<lsObject*>( child.get() );
+				if (obj && obj != skyObject && obj->getAsset()
+					&& obj->getAsset()->getAsset_type() == LSAT_MESH)
+				{
+					m_streamingManager.registerNode( obj, obj->getAsset() );
+				}
+				walk( child.get() );
+			}
+		};
+		walk( m_viewer_scene );
+		m_viewer_scene->setStreamingManager( &m_streamingManager );
+		cout << "INFO: DemoScene streaming enabled ("
+			 << m_streamingManager.entries().size() << " objects, load < "
+			 << streamCfg.loadRadius << ", evict > " << streamCfg.unloadRadius
+			 << ")" << endl;
 	}
 	
 	// Add an audio speaker

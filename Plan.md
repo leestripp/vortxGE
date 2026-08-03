@@ -1,7 +1,7 @@
 # Plan.md — Real test suite + CTest for vortxGE
 
 > **Status:** ✅ **CORE COMPLETE** (Phases 0-4 done, 2026-08-03) — Phase 5 (CI) declined by user; beyond-math (lsNode) ✅ done 2026-08-03.
-> **Next up:** Phase 7 — Dynamic streaming Asset Manager (end goal set by user 2026-08-03: load/unload by distance from camera/player). Phase 6 step 5 (std::expected) lands inside Phase 7 M1.
+> **Next up:** Phase 7 M1–M4 ✅ done. Remaining: Phase 6 step 5 leftovers (std::print sweep, coroutine scheduler design — M3/M4 are sync-load; async parse→upload pipeline is the natural next milestone), Phase 5 optional test expansion, deferred findings.
 > **Created:** 2026-08-03, after the 0.1.0 tag + renderer abstraction
 > **Previous plan:** the completed renderer-abstraction plan (Phases 0-8)
 > is archived at [`docs/plans/renderer_abstraction.md`](docs/plans/renderer_abstraction.md).
@@ -204,7 +204,7 @@ C++23 compiler + libstdc++ support. Current standard is C++20
 **Rollback:** single-line revert of the standard flag; feature-adoption
 commits are independent and individually revertable.
 
-### Phase 7 — Dynamic streaming Asset Manager 🔲 **VISION** (added 2026-08-03)
+### Phase 7 — Dynamic streaming Asset Manager ✅ **CORE COMPLETE** (M1–M4, 2026-08-03)
 
 **End goal (user):** assets load and unload **dynamically based on
 distance from the camera/player** — open-world style streaming instead
@@ -295,7 +295,8 @@ of the current eager load-everything-at-init model.
   the scene pass, residency request/release, ref-aware eviction in the
   manager; priority/eviction rules unit-testable with mocked node
   distances (lsNode already testable — see tests/src/scene/).
-* **M4:** demo integration — objects stream in/out as the player moves.
+* **M4:** ✅ **DONE** (2026-08-03) — DemoScene registers mesh objects
+  (skybox excluded); live smoke shows Cube.003 load/evict cycling.
 
 **Regression gate:** full ctest suite + 60 s demo smoke per milestone.
 

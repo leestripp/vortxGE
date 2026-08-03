@@ -18,6 +18,7 @@
 
 // math
 #include <math/lsVector3.h>
+#include <assets/lsStreamingManager.h>
 
 class vortxGE;
 class lsBatch_Quad;
@@ -69,6 +70,7 @@ private:
 	
     // Main Scene controls
     lsScene *m_viewer_scene;
+    lsStreamingManager m_streamingManager;	///< M4: distance-driven mesh streaming
     lsViewer *m_viewer;
 	
     // Player Rig
