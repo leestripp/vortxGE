@@ -1,6 +1,7 @@
 # Plan.md — Real test suite + CTest for vortxGE
 
-> **Status:** ✅ **CORE COMPLETE** (Phases 0-4 done, 2026-08-03) — Phase 5 (CI) declined by user; beyond-math (lsNode) ✅ done 2026-08-03
+> **Status:** ✅ **CORE COMPLETE** (Phases 0-4 done, 2026-08-03) — Phase 5 (CI) declined by user; beyond-math (lsNode) ✅ done 2026-08-03.
+> **Next up:** Phase 6 — C++23 migration (added 2026-08-03)
 > **Created:** 2026-08-03, after the 0.1.0 tag + renderer abstraction
 > **Previous plan:** the completed renderer-abstraction plan (Phases 0-8)
 > is archived at [`docs/plans/renderer_abstraction.md`](docs/plans/renderer_abstraction.md).
@@ -166,6 +167,42 @@ t=0.5 halfway angle), `Lerp`, `toMatrix4x4` orthonormality.
   `events/` (bus dispatch), `assets/` path handling.
 * **Not** GL-render tests — those need a headless GL context
   (OSMesa/EGL surfaceless) and are a separate plan.
+
+### Phase 6 — C++23 migration 🔲 **PLANNED** (added 2026-08-03)
+
+**Goal:** move the whole project from C++20 to **C++23** to unlock
+modern async and memory/error-handling facilities.
+
+**Feasibility (checked 2026-08-03):** toolchain is GCC 15.2 — full
+C++23 compiler + libstdc++ support. Current standard is C++20
+(`CMAKE_CXX_STANDARD 20`, REQUIRED ON), so the delta is small.
+
+**Feature mapping (what actually serves the goals):**
+* *Async calls:* coroutines (`co_await`/`co_return` — language core
+  since C++20) plus C++23 library additions (`std::generator`).
+  No `std::async` replacement exists — real async adoption means
+  designing coroutine-aware task/scheduler types (separate design task).
+* *Memory/error handling:* `std::expected` for fallible APIs (mesh/
+  asset loading), `std::out_ptr`/`std::inout_ptr` for C-API interop,
+  move-only improvements. Smart-pointer story is unchanged (already
+  `unique_ptr` in scene graph).
+* *Nice-to-haves:* `std::print` (replace printf/iostream debug spam),
+  `std::mdspan` (candidate for matrix/vertex buffer views),
+  multidimensional subscript `m[i, j]`, `if consteval`, ranges `to<>`.
+
+**Steps:**
+1. Flip `CMAKE_CXX_STANDARD` 20 → 23 in root `CMakeLists.txt`.
+2. Full rebuild — zero new warnings policy stays in force.
+3. **Regression gate: entire test suite must stay green**
+   (47 cases / 1692 assertions via `ctest --output-on-failure`) —
+   this is exactly what Phases 0-4 were built for.
+4. Smoke-test `vortxGEdemo_glfw3` (runs ≥60 s without crash).
+5. Adopt C++23 features **incrementally**, one focused commit at a
+   time (no big-bang rewrite): start with `std::expected` in asset
+   loading and `std::print` in debug output.
+
+**Rollback:** single-line revert of the standard flag; feature-adoption
+commits are independent and individually revertable.
 
 ---
 
