@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - This CHANGELOG.md (Keep a Changelog format).
+- **Math tests Phase 4 (remaining math — PLAN COMPLETE):** 11 more
+  test cases (**40 cases / 1655 assertions total**): `lsMatrix3x3`
+  (transpose/inverse/extract from 4x4), `lsPlane` (signed distance,
+  3 construction paths), `lsFrustum` (public API — finding: no public
+  point-in-frustum query; `distance()` is radial from camera),
+  `lsBoundingSphere`, `lsMath` constants, `lsRandom` (ranges; finding:
+  no seed API, non-deterministic default seeding). All 11 math classes
+  covered.
 - **Math tests Phase 3 (lsQuaternion):** 7 test cases (413 total
   assertions): degrees axis-angle construction, magnitude/normalize
   (zero-guard), conjugate/inverse (unit-quat `q*q⁻¹=identity`),

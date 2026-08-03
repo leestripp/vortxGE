@@ -1,6 +1,6 @@
 # Plan.md — Real test suite + CTest for vortxGE
 
-> **Status:** 🚧 **IN PROGRESS** — Phase 0-3 ✅ done (2026-08-03), Phase 4 next
+> **Status:** ✅ **CORE COMPLETE** (Phases 0-4 done, 2026-08-03) — Phase 5 (CI) optional
 > **Created:** 2026-08-03, after the 0.1.0 tag + renderer abstraction
 > **Previous plan:** the completed renderer-abstraction plan (Phases 0-8)
 > is archived at [`docs/plans/renderer_abstraction.md`](docs/plans/renderer_abstraction.md).
@@ -151,7 +151,7 @@ t=0.5 halfway angle), `Lerp`, `toMatrix4x4` orthonormality.
 * **Acceptance:** slerp half-angle verified against `dot` of the two
   endpoint quats; all within `epsilon(1e-4)`.
 
-### Phase 4 — Remaining math 🔲
+### Phase 4 — Remaining math ✅ **DONE** (2026-08-03)
 `lsMatrix3x3`, `lsPlane` (point distance, normalize), `lsFrustum`
 (plane extraction from a known projection; contains/outside corners),
 `lsBoundingSphere` (radius growth on merge), `lsMath` helpers,
