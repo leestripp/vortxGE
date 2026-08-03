@@ -1,0 +1,199 @@
+# Plan.md — Real test suite + CTest for vortxGE
+
+> **Status:** 🔲 **NOT STARTED** (Phase 0 next)
+> **Created:** 2026-08-03, after the 0.1.0 tag + renderer abstraction
+> **Previous plan:** the completed renderer-abstraction plan (Phases 0-8)
+> is archived at [`docs/plans/renderer_abstraction.md`](docs/plans/renderer_abstraction.md).
+>
+> **Goal in one sentence:** replace the 32-line "print a matrix and
+> eyeball it" `tests/main.cpp` with a real, assertion-based test suite
+> (doctest) wired into CTest, starting with the math library — the
+> pure-CPU, deterministic foundation every other engine system trusts.
+
+---
+
+## 1. Why this is the next priority
+
+The codebase analysis (2026-08-02) found:
+
+| Signal | State |
+|--------|-------|
+| Tests | ❌ `tests/main.cpp` = 32 lines of `cout` debugging, no assertions, no framework, not wired to CTest |
+| CI | ❌ No `.gitlab-ci.yml` — nothing validates a push except the author |
+| Build | ✅ Zero warnings under `-Wall -Wextra`; clean baseline to build on |
+
+Every other roadmap item (threading-model rework, Vulkan backend,
+memory-ownership cleanup) becomes **safer and cheaper with a safety
+net**. The math library is the right beachhead:
+
+* **Pure CPU, deterministic** — no GL context, no window, no audio device.
+* **Foundation code** — `lsMatrix4x4`, `lsQuaternion`, `lsVector*`,
+  `lsPlane`, `lsFrustum` are trusted by scene graph, physics, camera,
+  and animation. A bug here corrupts everything downstream.
+* **Largest untested surface** — `lsMatrix4x4.cpp` (850 lines) and
+  `lsQuaternion.cpp` (557 lines) are two of the seven biggest engine
+  files and currently have *zero* automated verification.
+
+---
+
+## 2. Current state — inventory
+
+```
+tests/
+├── CMakeLists.txt     builds `tests` exe, links vortxGE + Bullet + GLEW + EGL
+│                      ❌ no add_test(), no enable_testing() anywhere
+└── src/
+    └── main.cpp       32 lines: prints matrices for visual inspection
+```
+
+* Test framework: **none**.
+* Assertions in engine code: 16 total (sparse).
+* `ctest` currently reports: *"No tests were found!!!"*
+
+---
+
+## 3. Framework decision: **doctest**
+
+| Candidate | Verdict | Reason |
+|-----------|---------|--------|
+| **doctest** | ✅ **Chosen** | Single header → matches the project's existing vendoring style (tinygltf, stb_image). Fastest compile times of the three. Catch2-compatible syntax (easy migration if ever needed). Ships `doctest::Approx` for float comparison. Has CTest integration. Actively maintained. |
+| Catch2 | ❌ | v3 is no longer single-header (needs build/install); v2 single-header is frozen. Heavier compile times. |
+| GoogleTest | ❌ | Heaviest weight; wants a build system of its own; over-featured for a ~24k-line engine. |
+
+**Vendor:** `tests/third_party/doctest/doctest.h` (doctest 2.4.x,
+latest stable, single header from the upstream repo).
+
+---
+
+## 4. Target layout
+
+```
+tests/
+├── CMakeLists.txt              ← + add_test(), CTest wiring
+├── third_party/
+│   └── doctest/
+│       └── doctest.h           ← vendored (Phase 0)
+└── src/
+    ├── test_main.cpp           ← DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN (replaces main.cpp)
+    └── math/
+        ├── lsVector_tests.cpp        (2/3/4 combined or split — author's choice)
+        ├── lsMatrix4x4_tests.cpp
+        ├── lsQuaternion_tests.cpp
+        ├── lsMatrix3x3_tests.cpp
+        ├── lsPlane_tests.cpp
+        ├── lsFrustum_tests.cpp
+        ├── lsBoundingSphere_tests.cpp
+        └── lsRandom_tests.cpp
+```
+
+Engine source code does **not** change. Tests link the existing
+`vortxGE` static lib and include headers via the existing
+`../vortxGE/src/` include path.
+
+---
+
+## 5. Conventions
+
+* **Naming:** one `TEST_CASE("...")` per behaviour, file per class:
+  `tests/src/math/<ClassName>_tests.cpp`.
+* **Float comparison:** never `==` on floats. Use
+  `doctest::Approx(x).epsilon(1e-5)` for general math, `epsilon(1e-4)`
+  for trig-heavy paths (slerp, axis-angle). Document any looser epsilon
+  inline with a reason.
+* **Hand-computed oracles:** every arithmetic test verifies against a
+  result computed by hand or by an independent method (e.g.
+  `transpose(transpose(m)) == m`), not against the same code path.
+* **Determinism:** no random seeds from the clock; `lsRandom` tests pin
+  the seed. No GL context, no filesystem, no threads in math tests.
+* **Old `main.cpp`:** deleted in Phase 0 — its transpose/multiply
+  print-outs are converted into real assertions first.
+
+---
+
+## 6. Phases
+
+### Phase 0 — Skeleton: framework + CTest wiring 🔲
+* Vendor `doctest.h` into `tests/third_party/doctest/`.
+* New `tests/src/test_main.cpp` (`DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN`).
+* `CMakeLists.txt` (root): `enable_testing()` before `add_subdirectory(tests)`.
+* `tests/CMakeLists.txt`: `add_test(NAME vortxGE_tests COMMAND tests)`;
+  add `third_party/` to includes. (Optional later: `doctest_discover_tests()`
+  for per-test-case CTest registration — requires vendoring doctest's
+  CMake module too; single `add_test` is sufficient for Phase 0.)
+* Convert the old `main.cpp` matrix transpose/multiply prints into the
+  first real `TEST_CASE`s; delete `main.cpp`.
+* **Acceptance:** `cd build && ctest --output-on-failure` runs green;
+  `make tests` compiles with zero new warnings.
+
+### Phase 1 — lsVector2 / lsVector3 / lsVector4 🔲
+Arithmetic (`+ - * /`), dot, cross (v3), length/normalize (incl.
+zero-length guard), lerp, index/accessor sanity, equality.
+* **Acceptance:** all four-component paths covered; edge cases
+  (normalize(0), cross of parallel vectors) asserted.
+
+### Phase 2 — lsMatrix4x4 🔲
+Identity (`isIdentity`, `isEqual`), `transpose` round-trip, `operator*`
+(hand-computed 4×4 product; non-commutativity), matrix×`lsVector3`,
+`Translate/Rotate/ScaleMatrix` composition order, `Set(quaternion)`
+vs `q.toMatrix4x4()` (cross-check with Phase 3), `PerspectiveProjection`
+/`OrthographicProjection` invariants (z-mapping of near/far planes),
+`LookAt` properties (forward = normalize(lookAt−eye)), `extractRotation`,
+`ToEulerZYX` round-trip.
+* **Acceptance:** the 850-line file has every public method touched by
+  at least one assertion; one composition test mirrors a real
+  scene-graph transform chain.
+
+### Phase 3 — lsQuaternion 🔲
+Axis-angle constructor ↔ `fromAxisAngle` consistency, `magnitude`/
+`normalize`, `conjugate`/`inverse` (`q * q.inverse() == identity`),
+multiplication non-commutativity, `Slerp` endpoints (t=0, t=1 exact;
+t=0.5 halfway angle), `Lerp`, `toMatrix4x4` orthonormality.
+* **Acceptance:** slerp half-angle verified against `dot` of the two
+  endpoint quats; all within `epsilon(1e-4)`.
+
+### Phase 4 — Remaining math 🔲
+`lsMatrix3x3`, `lsPlane` (point distance, normalize), `lsFrustum`
+(plane extraction from a known projection; contains/outside corners),
+`lsBoundingSphere` (radius growth on merge), `lsMath` helpers,
+`lsRandom` (pinned-seed determinism + range bounds).
+* **Acceptance:** `vortxGE/src/math/` — every public class has a test
+  file; no file in the directory is untested.
+
+### Phase 5 — *(follow-up, optional)* CI + beyond-math 🔲
+* `.gitlab-ci.yml`: deps image → `cmake && make && ctest` on every push
+  (this is roadmap item #2 — trivial once Phases 0-4 exist).
+* Expand to other pure-CPU systems: `properties/` (reflective set/get),
+  `events/` (bus dispatch), `assets/` path handling.
+* **Not** GL-render tests — those need a headless GL context
+  (OSMesa/EGL surfaceless) and are a separate plan.
+
+---
+
+## 7. Out of scope
+
+* Rendering/visual tests (need GL context — separate effort, OSMesa or
+  EGL surfaceless + image diff).
+* Physics integration tests (Bullet world stepping — comes with CI).
+* Threading tests (`lsNode::MoveThread`) — pending the threading-model
+  review (roadmap item #3).
+* Engine refactors — if a test reveals a bug, file it; don't fix
+  engine code inside this plan unless the fix is trivial and isolated.
+
+---
+
+## 8. Metrics
+
+| Metric | Baseline | Phase 0 | Phase 4 target |
+|--------|---------:|--------:|---------------:|
+| Assertion-based test cases | 0 | ≥ 2 | ≥ 60 |
+| `ctest` discovers tests | no | yes | yes |
+| Math classes with a test file | 0 / 11 | 0 | 11 / 11 |
+| Engine files modified | — | 0 | 0 |
+| New build warnings | — | 0 | 0 |
+
+## 9. Definition of done (whole plan)
+
+`ctest --output-on-failure` green from a clean build; every class in
+`vortxGE/src/math/` covered; conventions in §5 followed; CHANGELOG
+`[Unreleased]` updated per phase; AGENTS.md gains a "Running tests"
+section in Phase 0.

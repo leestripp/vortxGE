@@ -135,6 +135,11 @@ vortxGE/                      ← repo root
        │                        cast LS_* constants to GL_* and
        │                        reinterpret engine-level handle pointers
        │                        to GLuint*/GLint*/GLsizei*.
+       │     lsVulkan.{h,cpp}   PLACEHOLDER skeleton for the future
+       │                        Vulkan backend — overrides all lsRender
+       │                        pure virtuals with no-op stubs. NOT
+       │                        implemented; constructor warns on use.
+       │                        See docs/plans/renderer_abstraction.md §10 for the recipe.
 │       ├── scene/            ← Scene graph (lsNode base, lsObject, lsCamera, lsLight*,
 │       │                       lsScene, lsSceneManager, lsFirstPersonRig, lsAnimNode,
 │       │                       lsObjectEmitter, lsSpeaker, lsListener)
@@ -527,7 +532,7 @@ Quick recipes you'll likely need:
 | Audio (OpenAL) | `docs/audio/` |
 | Event bus | `docs/events/` |
 | Math utilities | `docs/math/`, `docs/utils/Utilities.md` |
-| Renderer abstraction (`lsRender`, `lsOpenGL`, `LS_*` constants) | §5.9 of `AGENTS.md`, `vortxGE/src/render/lsRender.h`, `Plan.md` |
+| Renderer abstraction (`lsRender`, `lsOpenGL`, `LS_*` constants) | §5.9 of `AGENTS.md`, `vortxGE/src/render/lsRender.h`, `docs/plans/renderer_abstraction.md` |
 | Shaders | `docs/shader/` |
 | Controls / input | `docs/controls/` |
 | Blender export | `docs/blender_export.md` |

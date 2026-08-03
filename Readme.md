@@ -11,7 +11,7 @@ vortxGE is a lightweight, modern 3D graphics engine written in C++20. It is desi
     *   Dynamic shadow mapping for spot lights.
 *   **Renderer Abstraction:** All GPU access goes through the backend-agnostic `lsRender` interface
     (75 methods). `lsOpenGL` is the only translation unit containing raw GL calls, so alternate
-    backends (Vulkan, Metal, …) can be added without touching engine code. See `Plan.md`.
+    backends (Vulkan, Metal, …) can be added without touching engine code. See `docs/plans/renderer_abstraction.md`.
 *   **Hierarchical Scene Graph:**
     *   A node-based system (`lsNode`) for managing scenes, objects, lights, and cameras.
     *   Supports Point and Spot light types.
@@ -33,7 +33,8 @@ vortxGE is a lightweight, modern 3D graphics engine written in C++20. It is desi
 *   **[docs/](docs/vortxGE.md)** — In-depth architecture notes per subsystem
     (scene graph, rendering pipeline, physics, shaders, assets, animation, audio, and more).
 *   **[AGENTS.md](AGENTS.md)** — Guide for AI coding agents (build, layout, conventions).
-*   **[Plan.md](Plan.md)** — The completed renderer-abstraction refactor plan (Phases 0-8).
+*   **[Plan.md](Plan.md)** — The active plan (currently: real test suite + CTest).
+*   **[docs/plans/](docs/plans/renderer_abstraction.md)** — Archived plans (renderer abstraction, Phases 0-8).
 
 ## Building vortxGE
 

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - This CHANGELOG.md (Keep a Changelog format).
+- **`lsVulkan` placeholder backend** (`vortxGE/src/render/lsVulkan.{h,cpp}`):
+  a skeleton subclass of `lsRender` overriding all 64 pure-virtual
+  methods with no-op stubs, as a scaffold/reminder for the future Vulkan
+  backend (recipe in `docs/plans/renderer_abstraction.md` §10). The constructor prints a warning
+  if instantiated; `RenderType::Vulkan` already existed in
+  `lsRenderTypes.h`.
 - **Tag-driven versioning:** the project version is now derived from the
   latest git tag at CMake configure time. `config.h` is generated from
   `vortxGE/src/config.h.in` into the build tree (`build/generated/`) and
@@ -18,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   create a semver git tag and re-run CMake — no code edits needed.
 
 ### Changed
+- **`Plan.md` re-purposed:** the completed renderer-abstraction plan
+  moved to `docs/plans/renderer_abstraction.md`; `Plan.md` now holds the active plan
+  (real test suite + CTest, Phases 0-5).
 - Synced docs with the post-abstraction API:
   `docs/datablocks/DataBlocks.md` (engine handle types `lsTextureID` /
   `lsBufferID` / `lsVAOID` / `lsFBOID`, real `lsFBO` / `lsTexture`
@@ -50,7 +59,8 @@ set developed since the project's first public commit (2023-10-13).
   engine-level handle types (`lsTextureID`, `lsShaderID`, `lsProgramID`,
   `lsFBOID`, `lsBufferID`, `lsVAOID`, `lsQueryID`, `lsUniformID`, …) and
   engine-level `LS_*` constants. 289 raw GL calls and ~250 `GL_*`
-  references removed from 16 non-renderer files. See `Plan.md` §10 for
+  references removed from 16 non-renderer files. See
+  `docs/plans/renderer_abstraction.md` §10 for
   the full metrics.
 - **HiDPI / desktop-scale fix:** the output quad now fills the window at
   125% (and any other) OS scale factor. FBOs gained engine-level
