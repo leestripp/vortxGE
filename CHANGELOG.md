@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - This CHANGELOG.md (Keep a Changelog format).
+- **Math tests Phase 3 (lsQuaternion):** 7 test cases (413 total
+  assertions): degrees axis-angle construction, magnitude/normalize
+  (zero-guard), conjugate/inverse (unit-quat `q*q⁻¹=identity`),
+  composition + non-commutativity, Slerp endpoints/halfway (45° at
+  t=0.5), Lerp, dot, `toMatrix4x4` orthonormality + consistency with
+  `RotateMatrix` + internal normalisation. Finding pinned:
+  `inverse()==conjugate()` is only valid for unit quaternions.
 - **Math tests Phase 2 (lsMatrix4x4 full coverage):** 12 more test
   cases (348 total assertions): transform composition (post-multiply),
   degrees-based `RotateMatrix`/`PerspectiveProjection`, GL-form
