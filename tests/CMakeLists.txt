@@ -32,3 +32,6 @@ add_dependencies(tests
 # CTest registration — run with: ctest --output-on-failure
 add_test(NAME vortxGE_tests COMMAND tests)
 
+# Repo-root path for tests that read real data files (demo meshes)
+target_compile_definitions(tests PRIVATE VORTXGE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+

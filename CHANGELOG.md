@@ -15,6 +15,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the `obj2vbm` tool. Verified: full build clean, 52 test cases /
   1737 assertions green, 60 s demo smoke with all 9 `.glb` meshes
   loading. glTF is the sole mesh pipeline going forward.
+- **Phase 7 M2 — glTF CPU-parse/GL-upload split:** new
+  `lsGLTFParser.{h,cpp}` (datablocks/) — GL-free
+  `ParseGLTF(bytes, isGlb, baseDir) -> expected<lsGLTFMeshData, string>`
+  via tinygltf from memory. Extracts POSITION/NORMAL/TEXCOORD_0/TANGENT,
+  u8/u16/u32 indices, PBR factors (albedo/roughness/metallic), texture
+  refs (URI → urldecoded baseDir-joined path; embedded → decoded pixels +
+  layout) and the mesh AABB. Replicates + test-pins the legacy **1-based
+  index quirk** (+1 per index) so the upload side feeds `Add_Index`
+  directly. `lsMesh::LoadGLTF` rewired onto it (251 → 153 lines; reads
+  bytes via `lsAsyncFileLoader::LoadFile`, keeps GL-side batch/texture/
+  shader/bounding-sphere logic; dead urldecode helper removed).
+  5 new test cases (74 assertions): all 8 demo .glb parse, Suzanne
+  sanity, exact ASCII-triangle data, URI/urldecode pinning, error paths.
+  Verified: 57 cases / 1812 assertions green, 60 s demo smoke — all 9
+  `.glb` meshes load through the new split.
 - **Phase 7 M1 — async file loader:** new `lsAsyncFileLoader`
   (assets/): worker-thread pool, `std::future` +
   `std::expected<std::vector<std::byte>, std::string>` results,

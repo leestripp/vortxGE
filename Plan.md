@@ -248,7 +248,8 @@ of the current eager load-everything-at-init model.
 * **M1:** async file loader ✅ **DONE** (2026-08-03) — `lsAsyncFileLoader`
   (worker pool, drain-on-destruction, `std::expected` results), 4 test
   cases. Docs: docs/assets/AsyncFileLoader.md.
-* **M2:** split `lsMesh` loading into CPU parse (vbm/gltf → buffers)
+* **M2:** ✅ **DONE** (2026-08-03) — `lsGLTFParser` + `LoadGLTF` rewired
+  (see CHANGELOG). Original scope: split `lsMesh` loading into CPU parse (vbm/gltf → buffers)
   vs GPU upload; parse stage testable.
   *Scouted 2026-08-03:* `lsMesh` lives in `vortxGE/src/datablocks/`.
   **DECISION (user, 2026-08-03): drop the legacy .vbm format entirely**
