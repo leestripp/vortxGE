@@ -1,6 +1,6 @@
 # Plan.md — Real test suite + CTest for vortxGE
 
-> **Status:** 🚧 **IN PROGRESS** — Phase 0 ✅ done (2026-08-03), Phase 1 next
+> **Status:** 🚧 **IN PROGRESS** — Phase 0-1 ✅ done (2026-08-03), Phase 2 next
 > **Created:** 2026-08-03, after the 0.1.0 tag + renderer abstraction
 > **Previous plan:** the completed renderer-abstraction plan (Phases 0-8)
 > is archived at [`docs/plans/renderer_abstraction.md`](docs/plans/renderer_abstraction.md).
@@ -125,7 +125,7 @@ Engine source code does **not** change. Tests link the existing
 * **Acceptance:** `cd build && ctest --output-on-failure` runs green;
   `make tests` compiles with zero new warnings.
 
-### Phase 1 — lsVector2 / lsVector3 / lsVector4 🔲
+### Phase 1 — lsVector2 / lsVector3 / lsVector4 ✅ **DONE** (2026-08-03)
 Arithmetic (`+ - * /`), dot, cross (v3), length/normalize (incl.
 zero-length guard), lerp, index/accessor sanity, equality.
 * **Acceptance:** all four-component paths covered; edge cases

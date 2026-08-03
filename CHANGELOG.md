@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - This CHANGELOG.md (Keep a Changelog format).
+- **Math tests Phase 1 (lsVector2/3/4):** 6 more test cases (228 total
+  assertions) pinning real engine semantics discovered by the suite:
+  `lsVector3::operator*(vec)` is intentionally the cross product;
+  `lsVector4` is homogeneous (ops act on xyz, preserve w; 3D
+  length/distance). **Finding:** `lsVector3::normalize()` lacks the
+  zero-length guard that `lsVector4::normalize()` has (div-by-zero →
+  NaN) — engine fix deferred per Plan.md §7.
 - **Real test suite + CTest (Plan.md Phase 0):** doctest 2.4.12 vendored
   (`tests/third_party/doctest/`), new doctest entry point
   `tests/src/test_main.cpp`, `enable_testing()` + `add_test()` wiring,
