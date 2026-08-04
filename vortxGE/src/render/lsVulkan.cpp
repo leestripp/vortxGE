@@ -1780,6 +1780,8 @@ VkPipeline lsVulkan::getPipeline( VkProgramObj& prog, const VkVao& vao,
 	VkPipelineDepthStencilStateCreateInfo ds{};
 	ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 	ds.depthTestEnable = m_depthTestEnabled ? VK_TRUE : VK_FALSE;
+	static const bool nodepth = getenv( "VORTX_VK_NODEPTH" ) != nullptr;
+	if( nodepth ) ds.depthTestEnable = VK_FALSE;	// DIAGNOSTIC
 	ds.depthWriteEnable = m_depthWrite ? VK_TRUE : VK_FALSE;
 	ds.depthCompareOp = lsVkMap::compareOp( m_depthFunc );
 	ds.depthBoundsTestEnable = VK_FALSE;
