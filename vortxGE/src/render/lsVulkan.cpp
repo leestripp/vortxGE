@@ -1973,6 +1973,29 @@ void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
 				pit->second.layout.blockSize );
 	}
 	// per-draw set: written NOW with the current GL texture state
+	// DIAGNOSTIC: dump texture resolution for swapchain-targeted draws
+	if( getenv( "VORTX_VK_DEBUG" ) && m_activeTarget == 0 )
+	{
+		static int s_dumped = 0;
+		if( s_dumped < 6 )
+		{
+			s_dumped++;
+			cout << "SWDRAW prog=" << m_currentProgram
+				 << " vao=" << m_currentVao << " viewport=["
+				 << m_viewport[0] << "," << m_viewport[1] << ","
+				 << m_viewport[2] << "," << m_viewport[3] << "] samplers:";
+			for( size_t k = 0; k < pit->second.layout.samplers.size(); k++ )
+			{
+				const uint32_t binding = 1 + (uint32_t)k;
+				uint32_t unit = (uint32_t)k;
+				auto uit = pit->second.samplerUnits.find( binding );
+				if( uit != pit->second.samplerUnits.end() ) unit = uit->second;
+				cout << " b" << binding << "->unit" << unit
+					 << "->tex" << ( unit < 32 ? m_textureUnits[unit] : 0 );
+			}
+			cout << endl;
+		}
+	}
 	VkDescriptorSet drawSet = allocDrawSet( pit->second );
 	vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
 							 pit->second.pipelineLayout, 0, 1,
@@ -2876,6 +2899,20 @@ void lsVulkan::beginPassForTarget( uint32_t fboID )
 	m_activeTarget = fboID;
 	m_passActive = true;
 	(void)hasDepth;
+
+	// DIAGNOSTIC: pass-open state for the swapchain target
+	if( getenv( "VORTX_VK_DEBUG" ) && fboID == 0 )
+	{
+		static int s_passDump = 0;
+		if( s_passDump++ < 4 )
+		{
+			cout << "SWPASS open: extent=" << extent.width << "x" << extent.height
+				 << " m_viewport=[" << m_viewport[0] << "," << m_viewport[1]
+				 << "," << m_viewport[2] << "," << m_viewport[3] << "] units:";
+			for( int u = 0; u < 8; u++ ) cout << " " << m_textureUnits[u];
+			cout << endl;
+		}
+	}
 }
 
 void lsVulkan::endActivePass()
