@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **V2 — Vulkan buffers, shaders, pipelines, first geometry (2026-08-04):**
+  scene geometry now renders through \`lsVulkan\`. Buffer/VAO/shader/
+  program/uniform/draw API surface implemented: host-visible coherent
+  \`VkBuffer\`s, VAO attribute-layout capture, GLSL→SPIR-V at link time
+  via glslang (loose GL uniforms source-transformed into a shared
+  std140 block at set=0/binding=0 with identical offsets in both
+  stages; samplers auto-bound at set=0/binding=1+K, sampler arrays
+  supported), per-draw dynamic-UBO upload ring, cached \`VkPipeline\`s
+  keyed by (program, VAO, topology, GL state) with depth test/cull/
+  blend baked from the GL-style state cache. Window render pass gained
+  a depth attachment; Y-flip via negative viewport height. Samplers
+  bind a dummy 1×1 white texture until V3. Requires \`glslang-dev\` +
+  \`spirv-tools-dev\` (apt). GL fallback unchanged; suite green; zero
+  validation-layer complaints on RADV.
 - **V1 — Vulkan windowed rendering core (2026-08-04):** `lsVulkan`
   is now the PRIMARY renderer when available: instance (+debug
   validation in Debug builds), GLFW surface, device/queues, swapchain

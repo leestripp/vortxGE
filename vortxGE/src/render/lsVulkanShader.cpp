@@ -23,13 +23,12 @@ namespace
 			   t.rfind( "texture", 0 ) == 0;
 	}
 
-	// std140 base alignment + packed size for the engine's uniform types
 	uint32_t alignOf( const string& t )
 	{
 		if( t == "vec2" ) return 8;
 		if( t == "vec3" || t == "vec4" ) return 16;
 		if( t == "mat3" || t == "mat4" ) return 16;
-		return 4;	// int/uint/float/bool + ivec/etc (engine doesn't use them yet)
+		return 4;
 	}
 	uint32_t sizeOf( const string& t )
 	{
@@ -49,16 +48,14 @@ namespace
 }
 
 // ---------------------------------------------------------------------
-// transform
+// parse
 // ---------------------------------------------------------------------
-lsVkShaderTransform lsVkShader::transform( const string& source )
+lsVkStageParse lsVkShader::parse( const string& source )
 {
-	lsVkShaderTransform out;
+	lsVkStageParse out;
 
-	// Split into lines, classify uniform declarations
 	std::regex uniformRe(
 		R"(^\s*uniform\s+([A-Za-z_]\w*)\s+([A-Za-z_]\w*)\s*(?:\[\s*(\d+)\s*\])?\s*;)" );
-	std::regex versionRe( R"(^\s*#version)" );
 
 	std::vector<string> bodyLines;
 	std::stringstream ss( source );
@@ -66,7 +63,9 @@ lsVkShaderTransform lsVkShader::transform( const string& source )
 	while( std::getline( ss, line ) )
 	{
 		std::smatch m;
-		if( std::regex_match( line, m, uniformRe ) )
+		// regex_search: pattern is ^-anchored but tolerates trailing
+		// comments (uniform mat4 mMatrix; // Model Matrix)
+		if( std::regex_search( line, m, uniformRe ) )
 		{
 			const string type = m[1];
 			const string name = m[2];
@@ -75,7 +74,8 @@ lsVkShaderTransform lsVkShader::transform( const string& source )
 			if( isOpaqueType( type ) )
 			{
 				out.samplers.push_back( name );
-				// declaration rewritten below (binding = 1 + index)
+				out.samplerTypes.push_back( type );
+				out.samplerArrays.push_back( arr );
 				continue;
 			}
 
@@ -85,27 +85,11 @@ lsVkShaderTransform lsVkShader::transform( const string& source )
 			mem.arraySize = arr;
 			mem.size = sizeOf( type ) * ( arr ? arr : 1 );
 			out.members.push_back( mem );
-			continue;	// declaration moves into the block
+			continue;
 		}
 		bodyLines.push_back( line );
 	}
 
-	// std140 offsets
-	uint32_t cursor = 0;
-	for( auto& mem : out.members )
-	{
-		const uint32_t a = alignOf( mem.glslType );
-		cursor = alignUp( cursor, a );
-		mem.offset = cursor;
-		// arrays: each element occupies a 16-byte-aligned slot
-		const uint32_t stride = mem.arraySize ? alignUp( sizeOf( mem.glslType ), 16 )
-											  : sizeOf( mem.glslType );
-		cursor += stride * ( mem.arraySize ? mem.arraySize : 1 );
-	}
-	out.blockSize = alignUp( cursor, 16 );
-
-	// Rewrite usages (before the block is injected so its declarations
-	// are not touched)
 	string body;
 	for( auto& l : bodyLines )
 	{
@@ -117,56 +101,117 @@ lsVkShaderTransform lsVkShader::transform( const string& source )
 		body = std::regex_replace( body,
 			std::regex( "\\b" + mem.name + "\\b" ), "_ubo." + mem.name );
 	}
-
-	// Reassemble: #version 450 + block + sampler decls + body
-	std::stringstream rebuilt;
-	bool versionWritten = false;
-	std::stringstream bodyStream( body );
-	while( std::getline( bodyStream, line ) )
-	{
-		if(! versionWritten && std::regex_search( line, versionRe ) )
-		{
-			rebuilt << "#version 450\n";
-			if(! out.members.empty() )
-			{
-				rebuilt << "layout(set=0, binding=0, std140) uniform DefaultUniforms {\n";
-				for( const auto& mem : out.members )
-				{
-					rebuilt << "    " << mem.glslType << " " << mem.name;
-					if( mem.arraySize ) rebuilt << "[" << mem.arraySize << "]";
-					rebuilt << ";\n";
-				}
-				rebuilt << "} _ubo;\n";
-			}
-			for( size_t i = 0; i < out.samplers.size(); i++ )
-			{
-				// opaque type recovered from the original source line
-				std::regex declRe( "uniform\\s+([A-Za-z_]\\w*)\\s+" + out.samplers[i] + "\\s*;" );
-				std::smatch dm;
-				string stype = "sampler2D";
-				if( std::regex_search( source, dm, declRe ) ) stype = dm[1];
-				rebuilt << "layout(set=0, binding=" << ( 1 + i ) << ") uniform "
-						<< stype << " " << out.samplers[i] << ";\n";
-			}
-			versionWritten = true;
-			continue;
-		}
-		rebuilt << line << '\n';
-	}
-	if(! versionWritten )
-	{
-		// no #version line — prepend everything
-		string prefix = "#version 450\n";
-		out.source = prefix + rebuilt.str();
-	} else
-	{
-		out.source = rebuilt.str();
-	}
+	out.body = body;
 	return out;
 }
 
 // ---------------------------------------------------------------------
-// compile (glslang → SPIR-V)
+// mergeLayouts
+// ---------------------------------------------------------------------
+lsVkProgramLayout lsVkShader::mergeLayouts( const lsVkStageParse& vs,
+											const lsVkStageParse& fs )
+{
+	lsVkProgramLayout layout;
+
+	auto addMembers = [&]( const std::vector<lsVkUniformMember>& src )
+	{
+		for( const auto& mem : src )
+		{
+			bool found = false;
+			for( auto& existing : layout.members )
+				if( existing.name == mem.name ) { found = true; break; }
+			if(! found ) layout.members.push_back( mem );
+		}
+	};
+	addMembers( vs.members );
+	addMembers( fs.members );
+
+	// std140 offsets on the canonical list
+	uint32_t cursor = 0;
+	for( auto& mem : layout.members )
+	{
+		cursor = alignUp( cursor, alignOf( mem.glslType ) );
+		mem.offset = cursor;
+		const uint32_t stride = mem.arraySize
+			? alignUp( sizeOf( mem.glslType ), 16 ) : sizeOf( mem.glslType );
+		cursor += stride * ( mem.arraySize ? mem.arraySize : 1 );
+	}
+	layout.blockSize = alignUp( cursor, 16 );
+
+	auto addSamplers = [&]( const std::vector<std::string>& src,
+							const std::vector<uint32_t>& arrs )
+	{
+		for( size_t i = 0; i < src.size(); i++ )
+		{
+			bool found = false;
+			for( auto& e : layout.samplers )
+				if( e == src[i] ) { found = true; break; }
+			if(! found )
+			{
+				layout.samplers.push_back( src[i] );
+				layout.samplerArrays.push_back( i < arrs.size() ? arrs[i] : 0 );
+			}
+		}
+	};
+	addSamplers( vs.samplers, vs.samplerArrays );
+	addSamplers( fs.samplers, fs.samplerArrays );
+
+	return layout;
+}
+
+// ---------------------------------------------------------------------
+// assemble
+// ---------------------------------------------------------------------
+string lsVkShader::assemble( const lsVkStageParse& stage,
+							 const lsVkProgramLayout& layout )
+{
+	std::stringstream out;
+	std::regex versionRe( R"(^\s*#version)" );
+
+	std::stringstream bodyStream( stage.body );
+	string line;
+	bool versionWritten = false;
+	while( std::getline( bodyStream, line ) )
+	{
+		if(! versionWritten && std::regex_search( line, versionRe ) )
+		{
+			out << "#version 450\n";
+			if(! layout.members.empty() )
+			{
+				out << "layout(set=0, binding=0, std140) uniform DefaultUniforms {\n";
+				for( const auto& mem : layout.members )
+				{
+					out << "    " << mem.glslType << " " << mem.name;
+					if( mem.arraySize ) out << "[" << mem.arraySize << "]";
+					out << ";\n";
+				}
+				out << "} _ubo;\n";
+			}
+			for( size_t i = 0; i < stage.samplers.size(); i++ )
+			{
+				// binding comes from the MERGED sampler list
+				uint32_t binding = 1;
+				for( size_t k = 0; k < layout.samplers.size(); k++ )
+					if( layout.samplers[k] == stage.samplers[i] )
+						binding = 1 + (uint32_t)k;
+				out << "layout(set=0, binding=" << binding << ") uniform "
+					<< stage.samplerTypes[i] << " " << stage.samplers[i];
+				if( i < stage.samplerArrays.size() && stage.samplerArrays[i] > 0 )
+					out << "[" << stage.samplerArrays[i] << "]";
+				out << ";\n";
+			}
+			versionWritten = true;
+			continue;
+		}
+		out << line << '\n';
+	}
+	if(! versionWritten )
+		return "#version 450\n" + out.str();
+	return out.str();
+}
+
+// ---------------------------------------------------------------------
+// compile
 // ---------------------------------------------------------------------
 void lsVkShader::initCompiler()
 {

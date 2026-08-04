@@ -17,6 +17,10 @@
 
 #include <vulkan/vulkan.h>
 #include <vector>
+#include <unordered_map>
+#include <string>
+
+#include "lsVulkanShader.h"
 
 #include "lsRender.h"
 
@@ -167,4 +171,114 @@ private:
 	int m_viewport[4] = { 0, 0, 0, 0 };		// x, y, w, h (0/0 = full swapchain)
 	VkResult m_lastError = VK_SUCCESS;
 	bool m_initialized = false;
+
+	// -----------------------------------------------------------------
+	// V2: buffers, VAOs, shaders, programs, pipelines, descriptors
+	// -----------------------------------------------------------------
+	struct VkBuf
+	{
+		VkBuffer		buffer = VK_NULL_HANDLE;
+		VkDeviceMemory	memory = VK_NULL_HANDLE;
+		VkDeviceSize	size = 0;
+	};
+	struct VkVaoAttrib
+	{
+		uint32_t	buffer = 0;		// lsBufferID captured at VertexAttribPointer time
+		lsInt		size = 3;
+		lsEnum		type = 0;
+		lsBoolean	normalized = 0;
+		lsSizei		stride = 0;
+		size_t		offset = 0;
+		bool		enabled = false;
+	};
+	struct VkVao
+	{
+		std::unordered_map<uint32_t, VkVaoAttrib> attribs;	// key: attrib index
+		uint32_t elementBuffer = 0;
+	};
+	struct VkShaderObj
+	{
+		int				stage = 0;			// 0 = vertex, 1 = fragment
+		std::string		source;
+		lsVkStageParse	parsed;
+		bool			hasSource = false;
+	};
+	struct VkProgramObj
+	{
+		uint32_t		vs = 0, fs = 0;
+		VkShaderModule	vsModule = VK_NULL_HANDLE;
+		VkShaderModule	fsModule = VK_NULL_HANDLE;
+		lsVkProgramLayout layout;
+		std::unordered_map<std::string, uint32_t> uniformIndex;	// name -> layout.members idx
+		std::unordered_map<std::string, uint32_t> samplerBinding; // name -> descriptor binding
+		std::vector<uint8_t> uboStaging;					// CPU-side uniform block image
+		VkDescriptorSetLayout setLayout = VK_NULL_HANDLE;
+		VkPipelineLayout	  pipelineLayout = VK_NULL_HANDLE;
+		VkDescriptorSet		  descriptorSet = VK_NULL_HANDLE;
+		bool				linked = false;
+		std::string			log;
+	};
+
+	bool createBufferStorage( VkBuf& buf, VkDeviceSize size, const void* data );
+	uint32_t findMemoryType( uint32_t typeBits, VkMemoryPropertyFlags props );
+	bool linkProgramResources( VkProgramObj& prog );
+	VkPipeline getPipeline( VkProgramObj& prog, const VkVao& vao, lsEnum topologyMode );
+	bool createDepthResources();
+	void destroyDepthResources();
+	bool createDummyTexture();
+	void writeUniformMember( VkProgramObj& prog, lsUniformID location,
+							const void* data, uint32_t bytes );
+	uint32_t allocUboSlice( uint32_t bytes );
+
+	std::unordered_map<uint32_t, VkBuf>		m_buffers;
+	std::unordered_map<uint32_t, VkVao>		m_vaos;
+	std::unordered_map<uint32_t, VkShaderObj>	m_shaders;
+	std::unordered_map<uint32_t, VkProgramObj>	m_programs;
+	uint32_t m_nextBufferID = 1, m_nextVaoID = 1;
+	uint32_t m_nextShaderID = 1, m_nextProgramID = 1;
+	uint32_t m_boundArrayBuffer = 0;			// lsBufferID bound to LS_ARRAY_BUFFER
+	uint32_t m_boundElementBuffer = 0;
+	uint32_t m_currentVao = 0;
+	uint32_t m_currentProgram = 0;
+
+	// GL-style state cache (baked into pipelines at draw time)
+	bool	m_depthTestEnabled = false;
+	bool	m_depthWrite = true;
+	lsEnum	m_depthFunc = 0x0203;			// LS_LEQUAL
+	bool	m_cullEnabled = false;
+	lsEnum	m_cullFace = 0x0405;			// LS_BACK
+	bool	m_blendEnabled = false;
+	lsEnum	m_blendSrc = 0x0302;			// LS_SRC_ALPHA
+	lsEnum	m_blendDst = 0x0303;			// LS_ONE_MINUS_SRC_ALPHA
+
+	// per-frame uniform upload ring (dynamic UBO)
+	VkBuffer		m_uboBuffer = VK_NULL_HANDLE;
+	VkDeviceMemory	m_uboMemory = VK_NULL_HANDLE;
+	void*			m_uboMapped = nullptr;
+	VkDeviceSize	m_uboCursor = 0;
+	VkDeviceSize	m_uboAlignment = 256;
+	static constexpr VkDeviceSize UBO_RING_SIZE = 1024 * 1024;
+
+	// descriptor pool (shared)
+	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+
+	// dummy 1x1 white texture for all sampler bindings (real uploads in V3)
+	VkImage		m_dummyImage = VK_NULL_HANDLE;
+	VkDeviceMemory	m_dummyMemory = VK_NULL_HANDLE;
+	VkImageView		m_dummyView = VK_NULL_HANDLE;
+	VkSampler		m_dummySampler = VK_NULL_HANDLE;
+
+	// depth attachment for the window render pass
+	VkImage		m_depthImage = VK_NULL_HANDLE;
+	VkDeviceMemory	m_depthMemory = VK_NULL_HANDLE;
+	VkImageView		m_depthView = VK_NULL_HANDLE;
+	VkFormat		m_depthFormat = VK_FORMAT_D32_SFLOAT;
+
+	// pipeline cache
+	struct PipelineEntry { VkPipeline pipeline = VK_NULL_HANDLE; };
+	std::unordered_map<std::string, VkPipeline> m_pipelineCache;
+
+	// owned descriptor-image-info arrays (sampler arrays need stable
+	// per-element VkDescriptorImageInfo lists; freed in the destructor)
+	std::vector<std::vector<VkDescriptorImageInfo>*> m_descriptorImageInfos;
 };

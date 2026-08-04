@@ -1,7 +1,7 @@
 # Plan.md — vortxGE Renderer Roadmap
 
 > **Active plan:** Vulkan primary renderer (Part 2).
-> **Status:** V1 done (2026-08-04), V2 in progress.
+> **Status:** V2 done (2026-08-04), V3 in progress.
 
 ---
 
@@ -73,7 +73,7 @@ Instance, physical/logical device, GLFW surface, swapchain, per-frame
 sync, command buffers, `Clear()` + `Present()`. **Done when:** demo
 window clears to a colour through `lsVulkan` (GL untouched).
 
-#### V2 — Buffers + first geometry 🔲
+#### V2 — Buffers + first geometry ✅ **DONE** (2026-08-04)
 Vertex/index buffers (via VMA or manual), pipeline for the output quad,
 GLSL→SPIR-V compile path (`glslang-tools`). **Done when:** FBO→quad
 pipeline draws on Vulkan.
