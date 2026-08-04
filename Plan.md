@@ -1,335 +1,107 @@
-# Plan.md — Real test suite + CTest for vortxGE
+# Plan.md — vortxGE Renderer Roadmap
 
-> **Status:** ✅ **CORE COMPLETE** (Phases 0-4 done, 2026-08-03) — Phase 5 (CI) declined by user; beyond-math (lsNode) ✅ done 2026-08-03.
-> **Next up:** Phase 7 M1–M5 ✅ done (async streaming pipeline complete). Remaining: Phase 6 step 5 leftovers (std::print sweep, coroutine scheduler design), Phase 5 optional test expansion, deferred findings.
-> **Created:** 2026-08-03, after the 0.1.0 tag + renderer abstraction
-> **Previous plan:** the completed renderer-abstraction plan (Phases 0-8)
-> is archived at [`docs/plans/renderer_abstraction.md`](docs/plans/renderer_abstraction.md).
->
-> **Goal in one sentence:** replace the 32-line "print a matrix and
-> eyeball it" `tests/main.cpp` with a real, assertion-based test suite
-> (doctest) wired into CTest, starting with the math library — the
-> pure-CPU, deterministic foundation every other engine system trusts.
+> **Active plan:** Vulkan primary renderer (Part 2).
+> **Status:** V0 not started (approved 2026-08-04).
 
 ---
 
-## 1. Why this is the next priority
+## Part 1 — Completed work (history, condensed)
 
-The codebase analysis (2026-08-02) found:
+Details live in `CHANGELOG.md`; this section exists so the old plan text
+doesn't bury the active one.
 
-| Signal | State |
-|--------|-------|
-| Tests | ❌ `tests/main.cpp` = 32 lines of `cout` debugging, no assertions, no framework, not wired to CTest |
-| CI | ❌ No `.gitlab-ci.yml` — nothing validates a push except the author |
-| Build | ✅ Zero warnings under `-Wall -Wextra`; clean baseline to build on |
+### Renderer abstraction (Phases 0–8) ✅ 2026-08-02 — tag `0.1.0`
+Centralised all raw `gl*()` calls into `render/lsOpenGL.cpp`. The rest of
+the engine talks to the GPU only through `lsRender` (80 virtuals) using
+engine-level handle types (`lsTextureID`, `lsFBOID`, …) and `LS_*`
+constants. Result: 289 raw GL calls / ~250 `GL_*` refs removed from 16
+files; exactly one TU includes `<GL/glew.h>`.
 
-Every other roadmap item (threading-model rework, Vulkan backend,
-memory-ownership cleanup) becomes **safer and cheaper with a safety
-net**. The math library is the right beachhead:
+### Testing (Phases 0–5) ✅/partial 2026-08-03
+doctest vendored, CTest wiring, math suites (vectors, matrices,
+quaternion), beyond-math suites (events, properties, streaming).
+**CI: deliberately none** (user decision — see `AGENTS.md` §4).
 
-* **Pure CPU, deterministic** — no GL context, no window, no audio device.
-* **Foundation code** — `lsMatrix4x4`, `lsQuaternion`, `lsVector*`,
-  `lsPlane`, `lsFrustum` are trusted by scene graph, physics, camera,
-  and animation. A bug here corrupts everything downstream.
-* **Largest untested surface** — `lsMatrix4x4.cpp` (850 lines) and
-  `lsQuaternion.cpp` (557 lines) are two of the seven biggest engine
-  files and currently have *zero* automated verification.
-
----
-
-## 2. Current state — inventory
-
-```
-tests/
-├── CMakeLists.txt     builds `tests` exe, links vortxGE + Bullet + GLEW + EGL
-│                      ❌ no add_test(), no enable_testing() anywhere
-└── src/
-    └── main.cpp       32 lines: prints matrices for visual inspection
-```
-
-* Test framework: **none**.
-* Assertions in engine code: 16 total (sparse).
-* `ctest` currently reports: *"No tests were found!!!"*
+### Phase 6 — C++23 migration ✅ 2026-08-03 — tag `0.2.0`
+### Phase 7 — Dynamic streaming asset manager (M1–M5) ✅ 2026-08-03 — tag `0.2.0`
+glTF CPU-parse/GL-upload split, `lsStreamingManager` (distance-driven
+residency with hysteresis + budget), demo integration, async 2-worker
+parse→upload pipeline. Post-release fixes: shutdown UAF in `~lsScene`,
+streaming flapping from per-pass cull cameras.
 
 ---
 
-## 3. Framework decision: **doctest**
+## Part 2 — ACTIVE PLAN: Vulkan as the primary renderer
 
-| Candidate | Verdict | Reason |
-|-----------|---------|--------|
-| **doctest** | ✅ **Chosen** | Single header → matches the project's existing vendoring style (tinygltf, stb_image). Fastest compile times of the three. Catch2-compatible syntax (easy migration if ever needed). Ships `doctest::Approx` for float comparison. Has CTest integration. Actively maintained. |
-| Catch2 | ❌ | v3 is no longer single-header (needs build/install); v2 single-header is frozen. Heavier compile times. |
-| GoogleTest | ❌ | Heaviest weight; wants a build system of its own; over-featured for a ~24k-line engine. |
+### Why now
+The `lsRender` abstraction was designed blind (GL-shaped, never exercised
+by a second backend). Validating it at ~17k lines with a working demo and
+green tests is the cheapest this will ever be. **User decision
+(2026-08-04): Vulkan becomes the main renderer; OpenGL becomes the
+fallback.**
 
-**Vendor:** `tests/third_party/doctest/doctest.h` (doctest 2.4.x,
-latest stable, single header from the upstream repo).
+### Design decisions
+1. **Vulkan primary, OpenGL fallback.** `vortxGE` constructs `lsVulkan`
+   first; if Vulkan init fails (no driver/device), it falls back to
+   `lsOpenGL` and logs the fallback. `VORTX_RENDERER=vulkan|opengl`
+   env var overrides.
+2. **`lsOpenGL` stays stable.** The fallback must not regress: existing
+   GL call sites and behaviour are preserved; new interface methods get
+   thin GL shims.
+3. **`LS_*` constants keep GL numeric values.** Zero churn for GL;
+   `lsVulkan` translates `LS_*` → `Vk*` at its boundary (its own mapping
+   unit). `lsRenderConstants.h` stays the GL bridge only.
+4. **Frame lifecycle enters the interface.** Vulkan needs
+   `BeginFrame()` / `EndFrame()` / `Present()`, `Resize(w,h)`, and a
+   native-window hook (`SetWindow(void* glfwWindow)`). GL implements
+   these as shims; the app keeps calling `glfwSwapBuffers` for GL in V0
+   (swap ownership moves into backends at V6 parity).
+5. **Debug builds use Vulkan validation layers**; Release builds strip.
+6. **No CI** — verification is local: build, doctest suite, demo smoke
+   (per `AGENTS.md` §4).
 
----
+### Phases
 
-## 4. Target layout
+#### V0 — Interface refactor + backend selection 🔲
+Add lifecycle methods to `lsRender` (+ GL shims), `RenderType::VULKAN`,
+`VORTX_RENDERER` selection + fallback in `vortxGE`, empty `lsVulkan`
+skeleton compiling in tree. **Done when:** demo runs identically on GL
+(fallback path), selection env var works, suite green.
 
-```
-tests/
-├── CMakeLists.txt              ← + add_test(), CTest wiring
-├── third_party/
-│   └── doctest/
-│       └── doctest.h           ← vendored (Phase 0)
-└── src/
-    ├── test_main.cpp           ← DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN (replaces main.cpp)
-    └── math/
-        ├── lsVector_tests.cpp        (2/3/4 combined or split — author's choice)
-        ├── lsMatrix4x4_tests.cpp
-        ├── lsQuaternion_tests.cpp
-        ├── lsMatrix3x3_tests.cpp
-        ├── lsPlane_tests.cpp
-        ├── lsFrustum_tests.cpp
-        ├── lsBoundingSphere_tests.cpp
-        └── lsRandom_tests.cpp
-```
+#### V1 — Vulkan core: clear a window 🔲
+Instance, physical/logical device, GLFW surface, swapchain, per-frame
+sync, command buffers, `Clear()` + `Present()`. **Done when:** demo
+window clears to a colour through `lsVulkan` (GL untouched).
 
-Engine source code does **not** change. Tests link the existing
-`vortxGE` static lib and include headers via the existing
-`../vortxGE/src/` include path.
+#### V2 — Buffers + first geometry 🔲
+Vertex/index buffers (via VMA or manual), pipeline for the output quad,
+GLSL→SPIR-V compile path (`glslang-tools`). **Done when:** FBO→quad
+pipeline draws on Vulkan.
 
----
+#### V3 — Textures, descriptors, full shaders 🔲
+Texture upload/samplers, descriptor set layout matching engine uniform
+patterns, PBR shader set to SPIR-V. **Done when:** scene renders
+textured on Vulkan.
 
-## 5. Conventions
+#### V4 — Offscreen targets (FBO) 🔲
+`lsFBOID` → VkFramebuffer/renderpass; FBO pass + resize parity
+(HiDPI contract). **Done when:** render-to-texture works.
 
-* **Naming:** one `TEST_CASE("...")` per behaviour, file per class:
-  `tests/src/math/<ClassName>_tests.cpp`.
-* **Float comparison:** never `==` on floats. Use
-  `doctest::Approx(x).epsilon(1e-5)` for general math, `epsilon(1e-4)`
-  for trig-heavy paths (slerp, axis-angle). Document any looser epsilon
-  inline with a reason.
-* **Hand-computed oracles:** every arithmetic test verifies against a
-  result computed by hand or by an independent method (e.g.
-  `transpose(transpose(m)) == m`), not against the same code path.
-* **Determinism:** no random seeds from the clock; `lsRandom` tests pin
-  the seed. No GL context, no filesystem, no threads in math tests.
-* **Old `main.cpp`:** deleted in Phase 0 — its transpose/multiply
-  print-outs are converted into real assertions first.
+#### V5 — Shadow maps 🔲
+Depth-only targets + sampling in PBR shaders. **Done when:** spot/sun
+shadows match GL output.
 
----
+#### V6 — Parity & unification 🔲
+Occlusion queries, state audit, present ownership unified in backends
+(app swap removed), runtime side-by-side GL↔Vulkan comparison, docs
+(AGENTS.md, docs/), CHANGELOG, release tag. **Done when:** full demo
+parity, Vulkan default, GL verified as working fallback.
 
-## 6. Phases
+### Out of scope
+Metal/D3D12 backends; Vulkan-specific perf features (bindless, RT);
+Windows/macOS ports (Linux-only project).
 
-### Phase 0 — Skeleton: framework + CTest wiring ✅ **DONE** (2026-08-03)
-* Vendor `doctest.h` into `tests/third_party/doctest/`.
-* New `tests/src/test_main.cpp` (`DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN`).
-* `CMakeLists.txt` (root): `enable_testing()` before `add_subdirectory(tests)`.
-* `tests/CMakeLists.txt`: `add_test(NAME vortxGE_tests COMMAND tests)`;
-  add `third_party/` to includes. (Optional later: `doctest_discover_tests()`
-  for per-test-case CTest registration — requires vendoring doctest's
-  CMake module too; single `add_test` is sufficient for Phase 0.)
-* Convert the old `main.cpp` matrix transpose/multiply prints into the
-  first real `TEST_CASE`s; delete `main.cpp`.
-* **Acceptance:** `cd build && ctest --output-on-failure` runs green;
-  `make tests` compiles with zero new warnings.
-
-### Phase 1 — lsVector2 / lsVector3 / lsVector4 ✅ **DONE** (2026-08-03)
-Arithmetic (`+ - * /`), dot, cross (v3), length/normalize (incl.
-zero-length guard), lerp, index/accessor sanity, equality.
-* **Acceptance:** all four-component paths covered; edge cases
-  (normalize(0), cross of parallel vectors) asserted.
-
-### Phase 2 — lsMatrix4x4 ✅ **DONE** (2026-08-03)
-Identity (`isIdentity`, `isEqual`), `transpose` round-trip, `operator*`
-(hand-computed 4×4 product; non-commutativity), matrix×`lsVector3`,
-`Translate/Rotate/ScaleMatrix` composition order, `Set(quaternion)`
-vs `q.toMatrix4x4()` (cross-check with Phase 3), `PerspectiveProjection`
-/`OrthographicProjection` invariants (z-mapping of near/far planes),
-`LookAt` properties (forward = normalize(lookAt−eye)), `extractRotation`,
-`ToEulerZYX` round-trip.
-* **Acceptance:** the 850-line file has every public method touched by
-  at least one assertion; one composition test mirrors a real
-  scene-graph transform chain.
-
-### Phase 3 — lsQuaternion ✅ **DONE** (2026-08-03)
-Axis-angle constructor ↔ `fromAxisAngle` consistency, `magnitude`/
-`normalize`, `conjugate`/`inverse` (`q * q.inverse() == identity`),
-multiplication non-commutativity, `Slerp` endpoints (t=0, t=1 exact;
-t=0.5 halfway angle), `Lerp`, `toMatrix4x4` orthonormality.
-* **Acceptance:** slerp half-angle verified against `dot` of the two
-  endpoint quats; all within `epsilon(1e-4)`.
-
-### Phase 4 — Remaining math ✅ **DONE** (2026-08-03)
-`lsMatrix3x3`, `lsPlane` (point distance, normalize), `lsFrustum`
-(plane extraction from a known projection; contains/outside corners),
-`lsBoundingSphere` (radius growth on merge), `lsMath` helpers,
-`lsRandom` (pinned-seed determinism + range bounds).
-* **Acceptance:** `vortxGE/src/math/` — every public class has a test
-  file; no file in the directory is untested.
-
-### Phase 5 — *(follow-up, optional)* CI + beyond-math 🔲
-* `.gitlab-ci.yml`: deps image → `cmake && make && ctest` on every push
-  (this is roadmap item #2 — trivial once Phases 0-4 exist).
-* Expand to other pure-CPU systems: `properties/` (reflective set/get),
-  `events/` (bus dispatch), `assets/` path handling.
-* **Not** GL-render tests — those need a headless GL context
-  (OSMesa/EGL surfaceless) and are a separate plan.
-
-### Phase 6 — C++23 migration ✅ **DONE** (2026-08-03, steps 1-4; step 5 adoption ongoing)
-
-**Goal:** move the whole project from C++20 to **C++23** to unlock
-modern async and memory/error-handling facilities.
-
-**Feasibility (checked 2026-08-03):** toolchain is GCC 15.2 — full
-C++23 compiler + libstdc++ support. Current standard is C++20
-(`CMAKE_CXX_STANDARD 20`, REQUIRED ON), so the delta is small.
-
-**Feature mapping (what actually serves the goals):**
-* *Async calls:* coroutines (`co_await`/`co_return` — language core
-  since C++20) plus C++23 library additions (`std::generator`).
-  No `std::async` replacement exists — real async adoption means
-  designing coroutine-aware task/scheduler types (separate design task).
-* *Memory/error handling:* `std::expected` for fallible APIs (mesh/
-  asset loading), `std::out_ptr`/`std::inout_ptr` for C-API interop,
-  move-only improvements. Smart-pointer story is unchanged (already
-  `unique_ptr` in scene graph).
-* *Nice-to-haves:* `std::print` (replace printf/iostream debug spam),
-  `std::mdspan` (candidate for matrix/vertex buffer views),
-  multidimensional subscript `m[i, j]`, `if consteval`, ranges `to<>`.
-
-**Steps:**
-1. Flip `CMAKE_CXX_STANDARD` 20 → 23 in root `CMakeLists.txt`.
-2. Full rebuild — zero new warnings policy stays in force.
-3. **Regression gate: entire test suite must stay green**
-   (47 cases / 1692 assertions via `ctest --output-on-failure`) —
-   this is exactly what Phases 0-4 were built for.
-4. Smoke-test `vortxGEdemo_glfw3` (runs ≥60 s without crash).
-5. Adopt C++23 features **incrementally**, one focused commit at a
-   time (no big-bang rewrite): start with `std::expected` in asset
-   loading and `std::print` in debug output.
-
-**Rollback:** single-line revert of the standard flag; feature-adoption
-commits are independent and individually revertable.
-
-### Phase 7 — Dynamic streaming Asset Manager ✅ **COMPLETE** (M1–M5, 2026-08-03)
-
-**End goal (user):** assets load and unload **dynamically based on
-distance from the camera/player** — open-world style streaming instead
-of the current eager load-everything-at-init model.
-
-**Current state (scouted 2026-08-03):**
-* `lsAssetManager` = raw-pointer factory registry (`CreateAsset_*` per
-  type, `Find_Asset`, `Add_Asset`) — eager loading, no lifetime mgmt.
-* `lsAsset::AllocAsset()` = polymorphic virtual, ~8 overrides,
-  GL-coupled (needs `getOpenGL()`), errors via `void` + `cout`.
-* Demo evidence: whole scene (13 objects, all meshes) loads at init.
-* Bullet shape assets depend on mesh assets (dependency tracking needed).
-
-**Design pillars:**
-1. **Two-stage pipeline** — Stage A (worker threads, async): file I/O +
-   parse into CPU-side buffers. Stage B (main thread only): GPU upload
-   (GL context lives on the main thread). This split is what makes
-   async loading possible at all.
-2. **lsNode-driven streaming (user's design)** — only assets referenced
-   by nodes need updating. Nodes carry transforms, are visited every
-   frame by the Move/Optimize passes, and can compute distance-to-camera
-   from the active camera. Each frame, in-range nodes *request* their
-   assets and out-of-range nodes *release* them; requests feed the
-   priority queue (priority = node distance).
-   * Assets are **shared** (demo log: "Re-using existing mesh asset") —
-     eviction must be ref-aware: an asset unloads only when NO
-     referencing node is in range. Hysteresis band to avoid thrash.
-   * Not-yet-loaded nodes need a graceful state: skip draw, or render a
-     placeholder (`lsAsset_MeshGuide_Grid`/`_Empty` already exist and
-     fit this role).
-3. **Async via C++23** — start with a thread pool + futures (simple,
-   safe); coroutine task/scheduler types later once designed
-   (Phase 6 step 5 feeds this).
-4. **`std::expected` error handling** — new async load APIs return
-   `expected<Data, Error>`; this is where Phase 6 step 5 actually lands
-   (replaces the void+cout pattern for new code).
-5. **Lifetime** — shared/weak ownership or handle-based refs; LRU
-   eviction for far assets; dependency tracking (bullet shapes → meshes).
-
-**Milestones (each independently committable):**
-* **M1:** async file loader ✅ **DONE** (2026-08-03) — `lsAsyncFileLoader`
-  (worker pool, drain-on-destruction, `std::expected` results), 4 test
-  cases. Docs: docs/assets/AsyncFileLoader.md.
-* **M2:** ✅ **DONE** (2026-08-03) — `lsGLTFParser` + `LoadGLTF` rewired
-  (see CHANGELOG). Original scope: split `lsMesh` loading into CPU parse (vbm/gltf → buffers)
-  vs GPU upload; parse stage testable.
-  *Scouted 2026-08-03:* `lsMesh` lives in `vortxGE/src/datablocks/`.
-  **DECISION (user, 2026-08-03): drop the legacy .vbm format entirely**
-  — zero .vbm assets or references in repo, demo is 100% .glb, glTF is
-  the standard pipeline (tinygltf vendored). M2 scope: glTF path ONLY
-  (`LoadGLTF`, ~251 lines) — write a NEW clean
-  `ParseGLTF(bytes) -> expected<MeshData, Error>` CPU parser (via
-  tinygltf) + tests first, keep legacy path working, GPU upload hookup
-  in M3/M4. Follow-up removal commit: delete `LoadVBM` (~750 lines),
-  the "vbm" dispatch branch in `lsAsset_Mesh::AllocAsset`, and the
-  `obj2vbm` tool — verify build + suite + demo smoke.
-  **VBM removal DONE 2026-08-03** (LoadVBM + dispatch + obj2vbm deleted;
-  build/suite/demo all green).
-* **M2 implementation brief (scouted 2026-08-03, LoadGLTF fully read):**
-  * Parse side (GL-free): tinygltf `LoadBinaryFromMemory` (glb) /
-    `LoadASCIIFromString` (gltf). Per `mesh.primitives[]`: POSITION
-    (required — skip primitive if absent), NORMAL, TEXCOORD_0, TANGENT;
-    respect `accessor.ByteStride(bufferView)` (0 → packed default
-    3/3/2/4 floats). Indices: u8/u16/u32 componentTypes.
-    **QUIRK: legacy adds +1 to EVERY index (1-based)** — pin/replicate.
-  * Material (if `primitive.material >= 0`): `pbrMetallicRoughness`
-    baseColorFactor (→ lsVector4 albedo), roughnessFactor, metallicFactor.
-  * Textures: `pbr.baseColorTexture.index` / `mat.normalTexture.index` →
-    `textures[i].source` → `images[j]`: URI (non-DataURI) → resolve
-    relative to mesh file dir + urldecode; embedded (`img.image` bytes)
-    → keep bytes + width/height/component/pixel_type for later GL upload.
-  * AABB: min/max over all POSITION floats.
-  * GL side (stays legacy until M3): `lsBatch_Mesh(lsRender*)`,
-    Init_data/Add_VertexData/Add_Index/Copy_GLdata, GenTextures/
-    TexImage2D embedded uploads, am->CreateAsset_Texture for URIs,
-    shader suffix "d"(albedo)/"n"(normal).
-  * Suggested types: `lsMeshPrimitiveData {positions,normals,uvs,
-    tangents: vector<float>; indices: vector<uint32_t>; albedo:
-    lsVector4; roughness,metallic: float; texAlbedoUri,texNormalUri:
-    string; embedded tex structs}`, `lsMeshData {primitives; aabbMin;
-    aabbMax}`, `ParseGLTF(bytes, isGlb) -> expected<lsMeshData,string>`.
-  * Home: `vortxGE/src/datablocks/lsGLTFParser.{h,cpp}`; tests:
-    `tests/src/datablocks/` — parse real `demos/data/meshes/*.glb`
-    bytes via lsAsyncFileLoader::LoadFile; assert primitive/vertex/
-    index counts, AABB, albedo factors, error on garbage bytes.
-* **M3:** ✅ **DONE** (2026-08-03) — `lsStreamingManager` + scene hook
-  (see CHANGELOG). Original scope: node-driven residency — per-frame node distance updates in
-  the scene pass, residency request/release, ref-aware eviction in the
-  manager; priority/eviction rules unit-testable with mocked node
-  distances (lsNode already testable — see tests/src/scene/).
-* **M4:** ✅ **DONE** (2026-08-03) — DemoScene registers mesh objects
-  (skybox excluded); live smoke shows Cube.003 load/evict cycling.
-* **M5:** ✅ **DONE** (2026-08-03) — async parse→upload: worker-thread
-  LoadFile+ParseGLTF, GL-thread UploadGLTF; manager LOADING state
-  (see CHANGELOG).
-
-**Regression gate:** full ctest suite + 60 s demo smoke per milestone.
-
----
-
-## 7. Out of scope
-
-* Rendering/visual tests (need GL context — separate effort, OSMesa or
-  EGL surfaceless + image diff).
-* Physics integration tests (Bullet world stepping — comes with CI).
-* Threading tests (`lsNode::MoveThread`) — pending the threading-model
-  review (roadmap item #3).
-* Engine refactors — if a test reveals a bug, file it; don't fix
-  engine code inside this plan unless the fix is trivial and isolated.
-
----
-
-## 8. Metrics
-
-| Metric | Baseline | Phase 0 | Phase 4 target |
-|--------|---------:|--------:|---------------:|
-| Assertion-based test cases | 0 | ≥ 2 | ≥ 60 |
-| `ctest` discovers tests | no | yes | yes |
-| Math classes with a test file | 0 / 11 | 0 | 11 / 11 |
-| Engine files modified | — | 0 | 0 |
-| New build warnings | — | 0 | 0 |
-
-## 9. Definition of done (whole plan)
-
-`ctest --output-on-failure` green from a clean build; every class in
-`vortxGE/src/math/` covered; conventions in §5 followed; CHANGELOG
-`[Unreleased]` updated per phase; AGENTS.md gains a "Running tests"
-section in Phase 0.
+### Definition of done (whole plan)
+Demo runs full feature parity on Vulkan by default; GL fallback verified
+by `VORTX_RENDERER=opengl`; test suite green; docs updated; release
+tagged (0.3.0 at V1+ or per milestone review).

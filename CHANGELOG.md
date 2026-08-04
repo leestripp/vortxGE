@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Vulkan primary renderer — plan approved (2026-08-04):** Plan.md
+  rewritten; completed history condensed to Part 1. New Part 2: Vulkan
+  becomes the main renderer with OpenGL as fallback (user decision),
+  phases V0 (interface refactor + backend selection) through V6 (full
+  parity). Key design: `lsOpenGL` untouched as stable fallback, `LS_*`
+  constants keep GL values (Vulkan translates at its boundary), frame
+  lifecycle hooks enter `lsRender`, `VORTX_RENDERER` env override.
+
 ## [0.2.0] - 2026-08-03
 
 ### Added
