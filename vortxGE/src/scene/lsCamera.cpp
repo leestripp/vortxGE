@@ -13,7 +13,6 @@
 
 #include "lsCamera.h"
 
-
 lsCamera::lsCamera( lsNode* parent ) : lsAnimNode(parent)
 {
 	setNode_type( LSNT_CAMERA );
@@ -131,7 +130,6 @@ void lsCamera::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused
 
 void lsCamera::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
 {
-	// Do nothing
 }
 
 // Camera settings

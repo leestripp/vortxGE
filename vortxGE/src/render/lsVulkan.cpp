@@ -943,10 +943,18 @@ void lsVulkan::Present()
 					cout << " " << mem.name << "@" << mem.offset;
 				cout << endl << "  staging[0..63]:";
 				const float* f = (const float*)prog.uboStaging.data();
-				for( int i = 0; i < 16 && i*4 < (int)prog.uboStaging.size(); i++ )
+				const int n = std::min<int>( 16, (int)prog.uboStaging.size() / 4 );
+				for( int i = 0; i < n; i++ )
 					printf( " %.3g", f[i] );
+				// also dump the lighting region (offsets >= 480 bytes)
+				if( prog.uboStaging.size() >= 820 )
+				{
+					cout << endl << "  staging[480..820]:";
+					const float* g = f + 120;
+					for( int i = 0; i < 85; i++ )
+						printf( " %.3g", g[i] );
+				}
 				cout << endl;
-				break;
 			}
 			// dump VAO attribute records (are buffers bound?)
 			for( auto& [vid, vao] : m_vaos )
@@ -2839,6 +2847,15 @@ void lsVulkan::GenerateMipmap( lsEnum target )
 // ---------------------------------------------------------------------
 VkDescriptorSet lsVulkan::allocDrawSet( VkProgramObj& prog )
 {
+	static const bool s_lightDbg = !!getenv( "VORTX_VK_LIGHT_DEBUG" );
+	static int s_n = 0;
+	if( s_lightDbg && s_n < 10 && prog.uboStaging.size() >= 800 )
+	{
+		const float* g = (const float*)prog.uboStaging.data() + 120;
+		printf( "PBR DRAW #%d size=%zu: count=%g pos0=(%.2f,%.2f,%.2f) diff0=(%.2f,%.2f,%.2f,%.2f) type0=%g i0=%g\n",
+			s_n, prog.uboStaging.size(), g[84], g[0], g[1], g[2], g[12], g[13], g[14], g[15], g[36], g[24] );
+		++s_n;
+	}
 	VkDescriptorSetAllocateInfo dai{};
 	dai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	dai.descriptorPool = m_drawPools[m_currentFrame];

@@ -68,31 +68,19 @@ void lsLight::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((un
     // This should happen after its transform has been updated in the Move pass,
     // and before any pass that might need to sample its shadow map.
     if (has_shadowmap) {
-        if( render ) m_flipShadowY = ( render->getType() == RenderType::Vulkan );
         buildShadowmap_matrix();
     }
 }
 
 void lsLight::buildShadowmap_matrix()
 {
-    // GL: NDC y-up maps straight to texture v (bottom-left origin).
-    // Vulkan (negative-height viewport): FBO depth image is V-flipped,
-    // so v = 0.5 - 0.5*y (row 0 = clip y=+1). Same convention fix as
-    // the blit stage flipY — see Plan.md L0.2.
-    const lsFloat biasGL[] = {0.5, 0.0, 0.0, 0.0,
-                              0.0, 0.5, 0.0, 0.0,
-                              0.0, 0.0, 0.5, 0.0,
-                              0.5, 0.5, 0.5, 1.0 };
-    // VK depth texture holds raw z_ndc (GL projection writes [-1,1]
-    // through the [0,1] viewport unchanged on RADV), so the sampled z
-    // must compare in the SAME space: identity z, not 0.5z+0.5.
-    const lsFloat biasVK[] = {0.5,  0.0, 0.0, 0.0,
-                              0.0, -0.5, 0.0, 0.0,
-                              0.0,  0.0, 1.0, 0.0,
-                              0.5,  0.5, 0.0, 1.0 };
-
+    // Classic GL-style bias: NDC [-1,1] -> texture [0,1].
+    const lsFloat bias[] = {0.5, 0.0, 0.0, 0.0,
+                            0.0, 0.5, 0.0, 0.0,
+                            0.0, 0.0, 0.5, 0.0,
+                            0.5, 0.5, 0.5, 1.0 };
     lsMatrix4x4 biasMatrix;
-    biasMatrix = m_flipShadowY ? biasVK : biasGL;
+    biasMatrix = bias;
 	
     // The Light's Projection and View matrices combined
     lsMatrix4x4 lightProjectionViewMatrix = frustum.getProjectionMatrix() * ViewMatrix;

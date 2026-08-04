@@ -315,8 +315,4 @@ private:
     
     /** @brief Shadow map enabled flag */
     bool has_shadowmap;
-    // Vulkan renders FBO depth maps Y-flipped vs GL (negative-height
-    // viewport convention); the shadow bias matrix must flip V to match.
-    // Set in Optimize() from the render backend type.
-    bool m_flipShadowY = false;
 };

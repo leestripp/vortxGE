@@ -184,6 +184,7 @@ public:
 	{
 		return ProjectionMatrix;
 	}
+
 	
 private:
 	/// The 6 planes defining the frustum boundaries
