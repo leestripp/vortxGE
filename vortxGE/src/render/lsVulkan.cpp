@@ -1892,6 +1892,21 @@ lsUniformID lsVulkan::GetUniformLocation( lsProgramID program, const lsChar* nam
 			if( mem.arraySize && elem < mem.arraySize )
 				return (lsUniformID)( bi->second + ( elem << 16 ) );
 		}
+		// sampler array element: "tex_shadowmaps[1]" — one descriptor
+		// binding with N elements; encode 1000+binding + (elem << 16)
+		// (Uniform1i checks low16 >= 1000 before the UBO route)
+		auto ai = it->second.samplerBinding.find( n.substr( 0, lb ) );
+		if( ai != it->second.samplerBinding.end() )
+		{
+			const uint32_t binding = ai->second;
+			uint32_t count = 1;
+			const size_t k = (size_t)binding - 1;
+			if( k < it->second.layout.samplerArrays.size() &&
+				it->second.layout.samplerArrays[k] > 0 )
+				count = it->second.layout.samplerArrays[k];
+			if( elem < count )
+				return (lsUniformID)( 1000 + binding + ( elem << 16 ) );
+		}
 	}
 	return -1;
 }
@@ -1919,6 +1934,17 @@ void lsVulkan::Uniform1i( lsUniformID location, lsInt v0 )
 	if( it == m_programs.end() ) return;
 	if( location >= 65536 )
 	{
+		const uint32_t low = (uint32_t)location & 0xFFFF;
+		if( low >= 1000 )
+		{
+			// sampler array element assignment (e.g. tex_shadowmaps[1])
+			const uint32_t binding = low - 1000;
+			const uint32_t elem = (uint32_t)location >> 16;
+			it->second.samplerUnitsElem[binding][elem] = (uint32_t)v0;
+			for( uint32_t f = 0; f < FRAMES_IN_FLIGHT; f++ )
+				it->second.lastBoundTex[f].erase( binding );
+			return;
+		}
 		// array element uniform (e.g. vxLightType[1]) — staged below
 		writeUniformMember( it->second, location, &v0, sizeof( v0 ) );
 		return;
@@ -2869,9 +2895,39 @@ VkDescriptorSet lsVulkan::allocDrawSet( VkProgramObj& prog )
 		const size_t base = imgInfos.size();
 		for( uint32_t e = 0; e < count; e++ )
 		{
+			// per-element unit (sampler arrays); falls back to the
+			// binding-level unit resolved above
+			uint32_t elemUnit = unit;
+			if( count > 1 )
+			{
+				auto eit = prog.samplerUnitsElem.find( binding );
+				if( eit != prog.samplerUnitsElem.end() )
+				{
+					auto uit2 = eit->second.find( e );
+					if( uit2 != eit->second.end() ) elemUnit = uit2->second;
+				}
+			}
+			const uint32_t elemTexID =
+				( elemUnit < 32 ) ? m_textureUnits[elemUnit] : 0;
+			VkImageView eView = view;
+			VkSampler eSampler = sampler;
+			if( elemTexID != texID )
+			{
+				eView = m_dummyView;
+				eSampler = m_dummySampler;
+				if( elemTexID )
+				{
+					auto tit2 = m_textures.find( elemTexID );
+					if( tit2 != m_textures.end() && tit2->second.view )
+					{
+						eView = tit2->second.view;
+						eSampler = tit2->second.sampler;
+					}
+				}
+			}
 			VkDescriptorImageInfo ii{};
-			ii.sampler = sampler;
-			ii.imageView = view;
+			ii.sampler = eSampler;
+			ii.imageView = eView;
 			ii.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imgInfos.push_back( ii );
 		}
@@ -3430,12 +3486,20 @@ bool lsVulkan::readbackImage( VkImage img, VkImageLayout layout,
 	{
 		fprintf( f, "P6\n%u %u\n255\n", w, h );
 		const uint8_t* px = (const uint8_t*)mapped;
-		for( uint32_t i = 0; i < w * h; i++ )
+		// row-batched writes (was: one 3-byte fwrite per pixel — 8M calls
+		// at 4K, slow enough that timeouts truncated captures)
+		std::vector<uint8_t> row( w * 3 );
+		for( uint32_t y = 0; y < h; y++ )
 		{
-			// B8G8R8A8 swapchains need B/R swapped; R8G8B8A8 textures don't
-			uint8_t rgb[3] = { px[i*4 + (isBGR?2:0)], px[i*4+1],
-							   px[i*4 + (isBGR?0:2)] };
-			fwrite( rgb, 1, 3, f );
+			const uint8_t* src = px + (size_t)y * w * 4;
+			for( uint32_t x = 0; x < w; x++ )
+			{
+				// B8G8R8A8 swapchains need B/R swapped; R8G8B8A8 don't
+				row[x*3+0] = src[x*4 + (isBGR?2:0)];
+				row[x*3+1] = src[x*4 + 1];
+				row[x*3+2] = src[x*4 + (isBGR?0:2)];
+			}
+			fwrite( row.data(), 1, w * 3, f );
 		}
 		fclose( f );
 		cout << "SCREENSHOT written: " << path << " (" << w << "x" << h << ")" << endl;

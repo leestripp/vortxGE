@@ -222,6 +222,9 @@ private:
 		// V3: sampler binding -> GL texture unit (from Uniform1i), and
 		// binding -> last texture ID written to the descriptor
 		std::unordered_map<uint32_t, uint32_t> samplerUnits;
+		// sampler ARRAY element units: binding -> element -> GL texture unit
+		// (tex_shadowmaps[0..2] etc. — one descriptor binding, N elements)
+		std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>> samplerUnitsElem;
 		std::unordered_map<uint32_t, uint32_t> lastBoundTex[FRAMES_IN_FLIGHT];
 		std::vector<uint32_t> vsInputLocations;	// all vertex-shader input locations (assembled source scan)
 	};
