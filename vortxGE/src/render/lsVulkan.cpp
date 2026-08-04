@@ -67,6 +67,7 @@ namespace
 static int s_callsDE = 0, s_skipFrame = 0, s_skipProg = 0, s_skipVao = 0,
 		   s_skipPass = 0, s_skipPipe = 0, s_issued = 0;
 static long s_indices = 0;
+static int s_issuedSwapchain = 0, s_issuedFBO = 0, s_callsDA = 0, s_issuedDA = 0;
 
 // ---------------------------------------------------------------------
 // Probe — used before window creation (vortxGE::PreferredRendererType)
@@ -228,12 +229,12 @@ bool lsVulkan::Init()
 
 		VkDescriptorPoolSize sizes[2]{};
 		sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-		sizes[0].descriptorCount = 64;
+		sizes[0].descriptorCount = 128;
 		sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		sizes[1].descriptorCount = 256;
+		sizes[1].descriptorCount = 512;
 		VkDescriptorPoolCreateInfo pi{};
 		pi.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		pi.maxSets = 128;
+		pi.maxSets = 256;
 		pi.poolSizeCount = 2;
 		pi.pPoolSizes = sizes;
 		if( vkCreateDescriptorPool( m_device, &pi, nullptr, &m_descriptorPool ) != VK_SUCCESS )
@@ -402,13 +403,32 @@ bool lsVulkan::createDevice()
 		qcis.push_back( qci );
 	}
 
-	const char* devExts[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	// VK_EXT_index_type_uint8 when available: the engine draws uint8
+	// index buffers (VK_INDEX_TYPE_UINT8 needs this extension)
+	uint32_t extCount = 0;
+	vkEnumerateDeviceExtensionProperties( m_physDevice, nullptr, &extCount, nullptr );
+	std::vector<VkExtensionProperties> avail( extCount );
+	vkEnumerateDeviceExtensionProperties( m_physDevice, nullptr, &extCount, avail.data() );
+	bool hasUint8Index = false;
+	for( const auto& e : avail )
+		if( strcmp( e.extensionName, VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME ) == 0 )
+			hasUint8Index = true;
+
+	const char* devExts[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+							  VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME };
+
+	// the extension also requires its feature to be enabled
+	VkPhysicalDeviceIndexTypeUint8FeaturesEXT uint8Feat{};
+	uint8Feat.sType =
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT;
+	uint8Feat.indexTypeUint8 = VK_TRUE;
 
 	VkDeviceCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	ci.pNext = hasUint8Index ? &uint8Feat : nullptr;
 	ci.queueCreateInfoCount = (uint32_t)qcis.size();
 	ci.pQueueCreateInfos = qcis.data();
-	ci.enabledExtensionCount = 1;
+	ci.enabledExtensionCount = hasUint8Index ? 2 : 1;
 	ci.ppEnabledExtensionNames = devExts;
 
 	m_lastError = vkCreateDevice( m_physDevice, &ci, nullptr, &m_device );
@@ -472,7 +492,8 @@ bool lsVulkan::createSwapchain( VkSwapchainKHR oldSwapchain )
 	ci.imageColorSpace = chosen.colorSpace;
 	ci.imageExtent = m_swapchainExtent;
 	ci.imageArrayLayers = 1;
-	ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+					VK_IMAGE_USAGE_TRANSFER_SRC_BIT;	// screenshot readback
 
 	uint32_t families[] = { m_graphicsQueueFamily, m_presentQueueFamily };
 	if( m_graphicsQueueFamily != m_presentQueueFamily )
@@ -730,6 +751,13 @@ void lsVulkan::BeginFrame()
 
 	vkWaitForFences( m_device, 1, &m_inFlight[m_currentFrame], VK_TRUE, UINT64_MAX );
 
+	// the fence guarantees no pending command buffer references this frame
+	// slot's descriptor sets — safe to host-update them all now, BEFORE
+	// recording begins (updates during recording would invalidate the CB)
+	for( auto& [pid, prog] : m_programs )
+		if( prog.linked )
+			bindProgramTextures( prog );
+
 	m_lastError = vkAcquireNextImageKHR( m_device, m_swapchain, UINT64_MAX,
 										 m_imageAvailable[m_currentFrame],
 										 VK_NULL_HANDLE, &m_acquiredImage );
@@ -806,8 +834,8 @@ void lsVulkan::Present()
 	// DIAGNOSTIC: one-shot swapchain readback (VORTX_SHOT=path.ppm)
 	static int s_shotFrames = -1;
 	if( s_shotFrames < 0 )
-		s_shotFrames = ( getenv( "VORTX_SHOT" ) || getenv( "VORTX_VK_DEBUG" ) )
-			? 30 : 0x7FFFFF;
+		s_shotFrames = ( getenv( "VORTX_SHOT" ) || getenv( "VORTX_VK_DEBUG" ) ||
+						 getenv( "VORTX_FBO_SHOT" ) ) ? 30 : 0x7FFFFF;
 	if( s_shotFrames < 0x7FFFFF && --s_shotFrames == 0 )
 	{
 		if( getenv( "VORTX_VK_DEBUG" ) )
@@ -816,7 +844,10 @@ void lsVulkan::Present()
 				 << " skipFrame=" << s_skipFrame << " skipProg=" << s_skipProg
 				 << " skipVao=" << s_skipVao << " skipPass=" << s_skipPass
 				 << " skipPipe=" << s_skipPipe << " issued=" << s_issued
-				 << " indices=" << s_indices << endl;
+				 << " indices=" << s_indices
+				 << " | swap=" << s_issuedSwapchain << " fbo=" << s_issuedFBO
+				 << " DA: calls=" << s_callsDA << " issued=" << s_issuedDA
+				 << " target=" << m_activeTarget << endl;
 			// dump first linked program's UBO staging (are matrices real?)
 			for( auto& [pid, prog] : m_programs )
 			{
@@ -875,6 +906,14 @@ void lsVulkan::Present()
 		}
 		if( getenv( "VORTX_SHOT" ) )
 			captureScreenshot( getenv( "VORTX_SHOT" ) );
+		if( getenv( "VORTX_FBO_SHOT" ) )	// format: "id:path.ppm"
+		{
+			std::string spec = getenv( "VORTX_FBO_SHOT" );
+			const size_t colon = spec.find( ':' );
+			if( colon != std::string::npos )
+				captureFbo( (uint32_t)atoi( spec.c_str() ),
+							spec.c_str() + colon + 1 );
+		}
 	}
 }
 
@@ -1490,54 +1529,61 @@ bool lsVulkan::linkProgramResources( VkProgramObj& prog )
 	if( vkCreatePipelineLayout( m_device, &pli, nullptr, &prog.pipelineLayout ) != VK_SUCCESS )
 	{ prog.log = "vkCreatePipelineLayout failed"; return false; }
 
-	// descriptor set + initial writes (UBO ring + dummy textures)
+	// descriptor sets: ONE PER FRAME IN FLIGHT (a set may only be written
+	// when no pending command buffer references it) + initial writes
+	// (UBO ring + dummy textures)
+	VkDescriptorSetLayout layouts[FRAMES_IN_FLIGHT];
+	for( uint32_t f = 0; f < FRAMES_IN_FLIGHT; f++ ) layouts[f] = prog.setLayout;
 	VkDescriptorSetAllocateInfo dai{};
 	dai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	dai.descriptorPool = m_descriptorPool;
-	dai.descriptorSetCount = 1;
-	dai.pSetLayouts = &prog.setLayout;
-	if( vkAllocateDescriptorSets( m_device, &dai, &prog.descriptorSet ) != VK_SUCCESS )
+	dai.descriptorSetCount = FRAMES_IN_FLIGHT;
+	dai.pSetLayouts = layouts;
+	if( vkAllocateDescriptorSets( m_device, &dai, prog.descriptorSets ) != VK_SUCCESS )
 	{ prog.log = "vkAllocateDescriptorSets failed"; return false; }
 
-	std::vector<VkWriteDescriptorSet> writes;
-	VkDescriptorBufferInfo uboInfo{};
-	uboInfo.buffer = m_uboBuffer;
-	uboInfo.offset = 0;
-	uboInfo.range = std::max<VkDeviceSize>( prog.layout.blockSize, 16 );
-	VkWriteDescriptorSet uw{};
-	uw.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	uw.dstSet = prog.descriptorSet;
-	uw.dstBinding = 0;
-	uw.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	uw.descriptorCount = 1;
-	uw.pBufferInfo = &uboInfo;
-	writes.push_back( uw );
-
-	for( size_t i = 0; i < prog.layout.samplers.size(); i++ )
+	for( uint32_t f = 0; f < FRAMES_IN_FLIGHT; f++ )
 	{
-		const uint32_t count = ( i < prog.layout.samplerArrays.size() &&
-								 prog.layout.samplerArrays[i] > 0 )
-			? prog.layout.samplerArrays[i] : 1;
-		// one info per array element (dummy texture everywhere in V2)
-		std::vector<VkDescriptorImageInfo>* infos =
-			new std::vector<VkDescriptorImageInfo>( count );
-		for( auto& info : *infos )
+		std::vector<VkWriteDescriptorSet> writes;
+		VkDescriptorBufferInfo uboInfo{};
+		uboInfo.buffer = m_uboBuffer;
+		uboInfo.offset = 0;
+		uboInfo.range = std::max<VkDeviceSize>( prog.layout.blockSize, 16 );
+		VkWriteDescriptorSet uw{};
+		uw.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		uw.dstSet = prog.descriptorSets[f];
+		uw.dstBinding = 0;
+		uw.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		uw.descriptorCount = 1;
+		uw.pBufferInfo = &uboInfo;
+		writes.push_back( uw );
+
+		for( size_t i = 0; i < prog.layout.samplers.size(); i++ )
 		{
-			info.sampler = m_dummySampler;
-			info.imageView = m_dummyView;
-			info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			const uint32_t count = ( i < prog.layout.samplerArrays.size() &&
+									 prog.layout.samplerArrays[i] > 0 )
+				? prog.layout.samplerArrays[i] : 1;
+			// one info per array element (dummy texture everywhere in V2)
+			std::vector<VkDescriptorImageInfo>* infos =
+				new std::vector<VkDescriptorImageInfo>( count );
+			for( auto& info : *infos )
+			{
+				info.sampler = m_dummySampler;
+				info.imageView = m_dummyView;
+				info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			}
+			m_descriptorImageInfos.push_back( infos );	// owned, freed in dtor
+			VkWriteDescriptorSet sw{};
+			sw.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			sw.dstSet = prog.descriptorSets[f];
+			sw.dstBinding = 1 + (uint32_t)i;
+			sw.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			sw.descriptorCount = count;
+			sw.pImageInfo = infos->data();
+			writes.push_back( sw );
 		}
-		m_descriptorImageInfos.push_back( infos );	// owned, freed in dtor
-		VkWriteDescriptorSet sw{};
-		sw.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		sw.dstSet = prog.descriptorSet;
-		sw.dstBinding = 1 + (uint32_t)i;
-		sw.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		sw.descriptorCount = count;
-		sw.pImageInfo = infos->data();
-		writes.push_back( sw );
+		vkUpdateDescriptorSets( m_device, (uint32_t)writes.size(), writes.data(), 0, nullptr );
 	}
-	vkUpdateDescriptorSets( m_device, (uint32_t)writes.size(), writes.data(), 0, nullptr );
 
 	prog.linked = true;
 	return true;
@@ -1627,7 +1673,8 @@ void lsVulkan::Uniform1i( lsUniformID location, lsInt v0 )
 		// sampler assignment: record binding -> GL texture unit (V3)
 		const uint32_t binding = (uint32_t)( location - 1000 );
 		it->second.samplerUnits[binding] = (uint32_t)v0;
-		it->second.lastBoundTex.erase( binding );
+		for( uint32_t f = 0; f < FRAMES_IN_FLIGHT; f++ )
+			it->second.lastBoundTex[f].erase( binding );
 		return;
 	}
 	writeUniformMember( it->second, location, &v0, sizeof( v0 ) );
@@ -1788,10 +1835,11 @@ VkPipeline lsVulkan::getPipeline( VkProgramObj& prog, const VkVao& vao,
 	// DIAGNOSTIC: VORTX_VK_NOCULL=1 disables culling entirely
 	static const bool nocull = getenv( "VORTX_VK_NOCULL" ) != nullptr;
 	if( nocull ) rs.cullMode = VK_CULL_MODE_NONE;
-	// GL CCW after Y-flip; VORTX_VK_CCW=1 flips the convention for testing
-	static const bool forceCCW = getenv( "VORTX_VK_CCW" ) != nullptr;
-	rs.frontFace = forceCCW ? VK_FRONT_FACE_COUNTER_CLOCKWISE
-							: VK_FRONT_FACE_CLOCKWISE;
+	// Empirically CCW matches the engine's meshes AND the composite quad
+	// with the Y-flipped viewport (VORTX_VK_CW=1 flips back for testing)
+	static const bool forceCW = getenv( "VORTX_VK_CW" ) != nullptr;
+	rs.frontFace = forceCW ? VK_FRONT_FACE_CLOCKWISE
+						   : VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rs.lineWidth = 1.0f;
 
 	VkPipelineMultisampleStateCreateInfo ms{};
@@ -1876,6 +1924,7 @@ uint32_t lsVulkan::allocUboSlice( uint32_t bytes )
 // ---------------------------------------------------------------------
 void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
 {
+	s_callsDA++;
 	if(! m_inFrame || ! m_currentProgram || ! m_currentVao ) return;
 	ensurePassActive();	// V4
 	if(! m_passActive ) return;
@@ -1906,11 +1955,16 @@ void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
 		memcpy( (uint8_t*)m_uboMapped + uboOffset, pit->second.uboStaging.data(),
 				pit->second.layout.blockSize );
 	}
-	bindProgramTextures( pit->second );	// V3
+	// NOTE: no bindProgramTextures() here — host writes to a descriptor
+	// set that is BOUND to a recording command buffer invalidate it
+	// (spec: command buffer invalidation). All updates happen in
+	// BeginFrame() after the fence wait, before recording starts.
 	vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
 							 pit->second.pipelineLayout, 0, 1,
-							 &pit->second.descriptorSet, 1, &uboOffset );
+							 &pit->second.descriptorSets[m_currentFrame], 1, &uboOffset );
 
+	s_issuedDA++;
+	if( m_activeTarget == 0 ) s_issuedSwapchain++; else s_issuedFBO++;
 	vkCmdDraw( cmd, (uint32_t)count, 1, (uint32_t)first, 0 );
 }
 
@@ -1932,6 +1986,7 @@ void lsVulkan::DrawElements( lsEnum mode, lsSizei count, lsEnum type,
 	if(! pipeline ) { s_skipPipe++; return; }
 	s_issued++;
 	s_indices += count;
+	if( m_activeTarget == 0 ) s_issuedSwapchain++; else s_issuedFBO++;
 
 	VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
 	vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline );
@@ -1958,10 +2013,13 @@ void lsVulkan::DrawElements( lsEnum mode, lsSizei count, lsEnum type,
 		memcpy( (uint8_t*)m_uboMapped + uboOffset, pit->second.uboStaging.data(),
 				pit->second.layout.blockSize );
 	}
-	bindProgramTextures( pit->second );	// V3
+	// NOTE: no bindProgramTextures() here — host writes to a descriptor
+	// set that is BOUND to a recording command buffer invalidate it
+	// (spec: command buffer invalidation). All updates happen in
+	// BeginFrame() after the fence wait, before recording starts.
 	vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
 							 pit->second.pipelineLayout, 0, 1,
-							 &pit->second.descriptorSet, 1, &uboOffset );
+							 &pit->second.descriptorSets[m_currentFrame], 1, &uboOffset );
 
 	const uint32_t firstIndex = (uint32_t)( (size_t)indices / indexSize );
 	vkCmdDrawIndexed( cmd, (uint32_t)count, 1, firstIndex, 0, 0 );
@@ -2343,15 +2401,27 @@ void lsVulkan::generateMipmaps( VkTex& tex )
 	int32_t mipW = (int32_t)tex.width;
 	int32_t mipH = (int32_t)tex.height;
 
+	// Layout state on entry (set by uploadTexture):
+	//   level 0   = SHADER_READ_ONLY_OPTIMAL
+	//   levels 1+ = TRANSFER_DST_OPTIMAL
+	// The blit chain therefore needs PER-LEVEL transitions:
+	//   level i-1: (i==1 ? SHADER_READ_ONLY : TRANSFER_DST) -> TRANSFER_SRC
+	//   blit i-1 -> i  (dst level i is already TRANSFER_DST)
+	//   level i-1: TRANSFER_SRC -> SHADER_READ_ONLY
+	// and finally the last level TRANSFER_DST -> SHADER_READ_ONLY.
 	for( uint32_t i = 1; i < tex.mipLevels; i++ )
 	{
 		barrier.subresourceRange.baseMipLevel = i - 1;
-		barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		if( i == 1 ) barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.oldLayout = ( i == 1 )
+			? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			: VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		barrier.srcAccessMask = ( i == 1 ) ? VK_ACCESS_SHADER_READ_BIT
+										   : VK_ACCESS_TRANSFER_WRITE_BIT;
 		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+		vkCmdPipelineBarrier( cmd,
+							  ( i == 1 ) ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+										 : VK_PIPELINE_STAGE_TRANSFER_BIT,
 							  VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 							  0, nullptr, 0, nullptr, 1, &barrier );
 
@@ -2364,16 +2434,24 @@ void lsVulkan::generateMipmaps( VkTex& tex )
 						tex.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 						1, &blit, VK_FILTER_LINEAR );
 
+		barrier.subresourceRange.baseMipLevel = i - 1;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
+							  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+							  0, nullptr, 0, nullptr, 1, &barrier );
+
 		mipW = std::max( mipW / 2, 1 );
 		mipH = std::max( mipH / 2, 1 );
 	}
 
-	// whole chain back to SHADER_READ_ONLY
-	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = tex.mipLevels;
-	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	// final level was only ever a blit DESTINATION
+	barrier.subresourceRange.baseMipLevel = tex.mipLevels - 1;
+	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 	barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
 						  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
@@ -2410,8 +2488,10 @@ void lsVulkan::bindProgramTextures( VkProgramObj& prog )
 
 		const uint32_t texID = ( unit < 32 ) ? m_textureUnits[unit] : 0;
 
-		auto lit = prog.lastBoundTex.find( binding );
-		if( lit != prog.lastBoundTex.end() && lit->second == texID )
+		// per-frame cache: each frame's set has its own contents
+		auto& frameCache = prog.lastBoundTex[m_currentFrame];
+		auto lit = frameCache.find( binding );
+		if( lit != frameCache.end() && lit->second == texID )
 			continue;	// descriptor already points at this texture
 
 		// resolve texture object (0/unknown -> dummy)
@@ -2442,14 +2522,16 @@ void lsVulkan::bindProgramTextures( VkProgramObj& prog )
 
 		VkWriteDescriptorSet sw{};
 		sw.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		sw.dstSet = prog.descriptorSet;
+		// only the CURRENT frame's set: its previous use was fence-waited
+		// in BeginFrame and its command buffer has not been submitted yet
+		sw.dstSet = prog.descriptorSets[m_currentFrame];
 		sw.dstBinding = binding;
 		sw.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		sw.descriptorCount = count;
 		sw.pImageInfo = infos->data();
 		vkUpdateDescriptorSets( m_device, 1, &sw, 0, nullptr );
 
-		prog.lastBoundTex[binding] = texID;
+		frameCache[binding] = texID;
 	}
 }
 
@@ -2849,11 +2931,14 @@ void lsVulkan::GetIntegerv( lsEnum, lsInt* )
 // ---------------------------------------------------------------------
 // DIAGNOSTIC: swapchain readback (VORTX_SHOT=path.ppm, frame 30)
 // ---------------------------------------------------------------------
-void lsVulkan::captureScreenshot( const char* path )
+// DIAGNOSTIC: read any color image back to a PPM (transitions out of and
+// back into `layout`)
+bool lsVulkan::readbackImage( VkImage img, VkImageLayout layout,
+							  uint32_t w, uint32_t h, bool isBGR,
+							  const char* path )
 {
 	vkDeviceWaitIdle( m_device );
 
-	const uint32_t w = m_swapchainExtent.width, h = m_swapchainExtent.height;
 	const VkDeviceSize size = (VkDeviceSize)w * h * 4;
 
 	VkBufferCreateInfo bi{};
@@ -2861,7 +2946,7 @@ void lsVulkan::captureScreenshot( const char* path )
 	bi.size = size;
 	bi.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	VkBuffer buf;
-	if( vkCreateBuffer( m_device, &bi, nullptr, &buf ) != VK_SUCCESS ) return;
+	if( vkCreateBuffer( m_device, &bi, nullptr, &buf ) != VK_SUCCESS ) return false;
 	VkMemoryRequirements reqs;
 	vkGetBufferMemoryRequirements( m_device, buf, &reqs );
 	VkMemoryAllocateInfo ai{};
@@ -2870,11 +2955,10 @@ void lsVulkan::captureScreenshot( const char* path )
 	ai.memoryTypeIndex = findMemoryType( reqs.memoryTypeBits,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT );
 	VkDeviceMemory mem;
-	if( vkAllocateMemory( m_device, &ai, nullptr, &mem ) != VK_SUCCESS ) return;
+	if( vkAllocateMemory( m_device, &ai, nullptr, &mem ) != VK_SUCCESS ) return false;
 	vkBindBufferMemory( m_device, buf, mem, 0 );
 
 	VkCommandBuffer cmd = beginOneShot();
-	VkImage img = m_swapchainImages[m_acquiredImage];
 
 	VkImageMemoryBarrier b{};
 	b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -2882,7 +2966,7 @@ void lsVulkan::captureScreenshot( const char* path )
 	b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	b.image = img;
 	b.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-	b.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	b.oldLayout = layout;
 	b.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 	b.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 	b.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
@@ -2897,7 +2981,7 @@ void lsVulkan::captureScreenshot( const char* path )
 							buf, 1, &copy );
 
 	b.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-	b.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	b.newLayout = layout;
 	b.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 	b.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -2905,6 +2989,7 @@ void lsVulkan::captureScreenshot( const char* path )
 						  0, nullptr, 1, &b );
 	endOneShot( cmd );
 
+	bool ok = false;
 	void* mapped = nullptr;
 	vkMapMemory( m_device, mem, 0, size, 0, &mapped );
 	FILE* f = fopen( path, "wb" );
@@ -2914,14 +2999,45 @@ void lsVulkan::captureScreenshot( const char* path )
 		const uint8_t* px = (const uint8_t*)mapped;
 		for( uint32_t i = 0; i < w * h; i++ )
 		{
-			// swapchain is B8G8R8A8 — swap B/R for PPM
-			uint8_t rgb[3] = { px[i*4+2], px[i*4+1], px[i*4+0] };
+			// B8G8R8A8 swapchains need B/R swapped; R8G8B8A8 textures don't
+			uint8_t rgb[3] = { px[i*4 + (isBGR?2:0)], px[i*4+1],
+							   px[i*4 + (isBGR?0:2)] };
 			fwrite( rgb, 1, 3, f );
 		}
 		fclose( f );
 		cout << "SCREENSHOT written: " << path << " (" << w << "x" << h << ")" << endl;
+		ok = true;
 	}
 	vkUnmapMemory( m_device, mem );
 	vkDestroyBuffer( m_device, buf, nullptr );
 	vkFreeMemory( m_device, mem, nullptr );
+	return ok;
+}
+
+void lsVulkan::captureScreenshot( const char* path )
+{
+	readbackImage( m_swapchainImages[m_acquiredImage],
+				   VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				   m_swapchainExtent.width, m_swapchainExtent.height,
+				   true, path );
+}
+
+// DIAGNOSTIC: read back an FBO's colour attachment (VORTX_FBO_SHOT=id:path)
+void lsVulkan::captureFbo( uint32_t fboID, const char* path )
+{
+	auto fit = m_fbos.find( fboID );
+	if( fit == m_fbos.end() || ! fit->second.built || ! fit->second.colorTex )
+	{
+		cout << "captureFbo: FBO " << fboID << " not found; m_fbos:";
+		for( auto& [id, f] : m_fbos )
+			cout << " [" << id << " built=" << f.built
+				 << " colorTex=" << f.colorTex << " " << f.w << "x" << f.h << "]";
+		cout << endl;
+		return;
+	}
+	auto tit = m_textures.find( fit->second.colorTex );
+	if( tit == m_textures.end() || ! tit->second.image )
+	{ cout << "captureFbo: FBO " << fboID << " has no colour image" << endl; return; }
+	readbackImage( tit->second.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				   tit->second.width, tit->second.height, false, path );
 }

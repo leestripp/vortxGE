@@ -214,13 +214,15 @@ private:
 		std::vector<uint8_t> uboStaging;					// CPU-side uniform block image
 		VkDescriptorSetLayout setLayout = VK_NULL_HANDLE;
 		VkPipelineLayout	  pipelineLayout = VK_NULL_HANDLE;
-		VkDescriptorSet		  descriptorSet = VK_NULL_HANDLE;
+		// one set per frame in flight: a set may only be updated when no
+		// pending command buffer references it (fence-waited in BeginFrame)
+		VkDescriptorSet		  descriptorSets[FRAMES_IN_FLIGHT] = {};
 		bool				linked = false;
 		std::string			log;
 		// V3: sampler binding -> GL texture unit (from Uniform1i), and
 		// binding -> last texture ID written to the descriptor
 		std::unordered_map<uint32_t, uint32_t> samplerUnits;
-		std::unordered_map<uint32_t, uint32_t> lastBoundTex;
+		std::unordered_map<uint32_t, uint32_t> lastBoundTex[FRAMES_IN_FLIGHT];
 	};
 
 	// V3: texture object
@@ -277,6 +279,9 @@ private:
 	bool buildFbo( VkFbo& fbo );
 	void ensurePassActive();
 	void captureScreenshot( const char* path );
+	void captureFbo( uint32_t fboID, const char* path );	// DIAGNOSTIC
+	bool readbackImage( VkImage img, VkImageLayout layout, uint32_t w,
+						uint32_t h, bool isBGR, const char* path );	// DIAGNOSTIC
 	void beginPassForTarget( uint32_t fboID );	// 0 = swapchain
 	void endActivePass();
 
