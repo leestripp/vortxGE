@@ -138,6 +138,8 @@ lsVulkan::~lsVulkan()
 	if( m_uboBuffer ) vkDestroyBuffer( m_device, m_uboBuffer, nullptr );
 	if( m_uboMemory ) vkFreeMemory( m_device, m_uboMemory, nullptr );
 	if( m_descriptorPool ) vkDestroyDescriptorPool( m_device, m_descriptorPool, nullptr );
+	for( uint32_t f = 0; f < FRAMES_IN_FLIGHT; f++ )
+		if( m_drawPools[f] ) vkDestroyDescriptorPool( m_device, m_drawPools[f], nullptr );
 	if( m_dummySampler ) vkDestroySampler( m_device, m_dummySampler, nullptr );
 	if( m_dummyView ) vkDestroyImageView( m_device, m_dummyView, nullptr );
 	if( m_dummyImage ) vkDestroyImage( m_device, m_dummyImage, nullptr );
@@ -239,6 +241,24 @@ bool lsVulkan::Init()
 		pi.pPoolSizes = sizes;
 		if( vkCreateDescriptorPool( m_device, &pi, nullptr, &m_descriptorPool ) != VK_SUCCESS )
 			return false;
+
+		// per-frame pools for PER-DRAW descriptor sets
+		VkDescriptorPoolSize drawSizes[2]{};
+		drawSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		drawSizes[0].descriptorCount = 4096;
+		drawSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		drawSizes[1].descriptorCount = 16384;
+		for( uint32_t f = 0; f < FRAMES_IN_FLIGHT; f++ )
+		{
+			VkDescriptorPoolCreateInfo dpi{};
+			dpi.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+			dpi.maxSets = 4096;
+			dpi.poolSizeCount = 2;
+			dpi.pPoolSizes = drawSizes;
+			if( vkCreateDescriptorPool( m_device, &dpi, nullptr,
+										&m_drawPools[f] ) != VK_SUCCESS )
+				return false;
+		}
 
 		if(! createDummyTexture() ) return false;
 		if(! createOffscreenRenderPasses() ) return false;	// V4
@@ -751,12 +771,9 @@ void lsVulkan::BeginFrame()
 
 	vkWaitForFences( m_device, 1, &m_inFlight[m_currentFrame], VK_TRUE, UINT64_MAX );
 
-	// the fence guarantees no pending command buffer references this frame
-	// slot's descriptor sets — safe to host-update them all now, BEFORE
-	// recording begins (updates during recording would invalidate the CB)
-	for( auto& [pid, prog] : m_programs )
-		if( prog.linked )
-			bindProgramTextures( prog );
+	// the fence guarantees nothing pending references sets allocated from
+	// this frame slot's draw pool — reset it for this frame's per-draw sets
+	vkResetDescriptorPool( m_device, m_drawPools[m_currentFrame], 0 );
 
 	m_lastError = vkAcquireNextImageKHR( m_device, m_swapchain, UINT64_MAX,
 										 m_imageAvailable[m_currentFrame],
@@ -1955,13 +1972,11 @@ void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
 		memcpy( (uint8_t*)m_uboMapped + uboOffset, pit->second.uboStaging.data(),
 				pit->second.layout.blockSize );
 	}
-	// NOTE: no bindProgramTextures() here — host writes to a descriptor
-	// set that is BOUND to a recording command buffer invalidate it
-	// (spec: command buffer invalidation). All updates happen in
-	// BeginFrame() after the fence wait, before recording starts.
+	// per-draw set: written NOW with the current GL texture state
+	VkDescriptorSet drawSet = allocDrawSet( pit->second );
 	vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
 							 pit->second.pipelineLayout, 0, 1,
-							 &pit->second.descriptorSets[m_currentFrame], 1, &uboOffset );
+							 &drawSet, 1, &uboOffset );
 
 	s_issuedDA++;
 	if( m_activeTarget == 0 ) s_issuedSwapchain++; else s_issuedFBO++;
@@ -2013,13 +2028,11 @@ void lsVulkan::DrawElements( lsEnum mode, lsSizei count, lsEnum type,
 		memcpy( (uint8_t*)m_uboMapped + uboOffset, pit->second.uboStaging.data(),
 				pit->second.layout.blockSize );
 	}
-	// NOTE: no bindProgramTextures() here — host writes to a descriptor
-	// set that is BOUND to a recording command buffer invalidate it
-	// (spec: command buffer invalidation). All updates happen in
-	// BeginFrame() after the fence wait, before recording starts.
+	// per-draw set: written NOW with the current GL texture state
+	VkDescriptorSet drawSet = allocDrawSet( pit->second );
 	vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
 							 pit->second.pipelineLayout, 0, 1,
-							 &pit->second.descriptorSets[m_currentFrame], 1, &uboOffset );
+							 &drawSet, 1, &uboOffset );
 
 	const uint32_t firstIndex = (uint32_t)( (size_t)indices / indexSize );
 	vkCmdDrawIndexed( cmd, (uint32_t)count, 1, firstIndex, 0, 0 );
@@ -2473,7 +2486,93 @@ void lsVulkan::GenerateMipmap( lsEnum target )
 }
 
 // ---------------------------------------------------------------------
+// Per-draw descriptor set: fresh allocation written with the CURRENT
+// GL texture-unit state, then bound immediately. Fresh sets are not yet
+// bound to any command buffer, so writing them mid-recording is legal
+// (unlike updating an already-bound set, which invalidates the CB).
+// ---------------------------------------------------------------------
+VkDescriptorSet lsVulkan::allocDrawSet( VkProgramObj& prog )
+{
+	VkDescriptorSetAllocateInfo dai{};
+	dai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	dai.descriptorPool = m_drawPools[m_currentFrame];
+	dai.descriptorSetCount = 1;
+	dai.pSetLayouts = &prog.setLayout;
+
+	VkDescriptorSet set = VK_NULL_HANDLE;
+	if( vkAllocateDescriptorSets( m_device, &dai, &set ) != VK_SUCCESS )
+		return prog.descriptorSets[m_currentFrame];	// pool exhausted: dummy fallback
+
+	std::vector<VkWriteDescriptorSet> writes;
+	std::vector<VkDescriptorImageInfo> imgInfos;
+	imgInfos.reserve( 16 );
+
+	VkDescriptorBufferInfo uboInfo{};
+	uboInfo.buffer = m_uboBuffer;
+	uboInfo.offset = 0;
+	uboInfo.range = std::max<VkDeviceSize>( prog.layout.blockSize, 16 );
+	VkWriteDescriptorSet uw{};
+	uw.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	uw.dstSet = set;
+	uw.dstBinding = 0;
+	uw.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	uw.descriptorCount = 1;
+	uw.pBufferInfo = &uboInfo;
+	writes.push_back( uw );
+
+	for( size_t k = 0; k < prog.layout.samplers.size(); k++ )
+	{
+		const uint32_t binding = 1 + (uint32_t)k;
+
+		// GL unit assigned via Uniform1i (default: sampler k -> unit k)
+		uint32_t unit = (uint32_t)k;
+		auto uit = prog.samplerUnits.find( binding );
+		if( uit != prog.samplerUnits.end() ) unit = uit->second;
+
+		const uint32_t texID = ( unit < 32 ) ? m_textureUnits[unit] : 0;
+
+		VkImageView view = m_dummyView;
+		VkSampler sampler = m_dummySampler;
+		if( texID )
+		{
+			auto tit = m_textures.find( texID );
+			if( tit != m_textures.end() && tit->second.view )
+			{
+				view = tit->second.view;
+				sampler = tit->second.sampler;
+			}
+		}
+
+		const uint32_t count = ( k < prog.layout.samplerArrays.size() &&
+								 prog.layout.samplerArrays[k] > 0 )
+			? prog.layout.samplerArrays[k] : 1;
+		const size_t base = imgInfos.size();
+		for( uint32_t e = 0; e < count; e++ )
+		{
+			VkDescriptorImageInfo ii{};
+			ii.sampler = sampler;
+			ii.imageView = view;
+			ii.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imgInfos.push_back( ii );
+		}
+
+		VkWriteDescriptorSet sw{};
+		sw.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		sw.dstSet = set;
+		sw.dstBinding = binding;
+		sw.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		sw.descriptorCount = count;
+		sw.pImageInfo = imgInfos.data() + base;
+		writes.push_back( sw );
+	}
+	vkUpdateDescriptorSets( m_device, (uint32_t)writes.size(), writes.data(),
+							0, nullptr );
+	return set;
+}
+
+// ---------------------------------------------------------------------
 // Draw-time sampler binding: GL texture units -> descriptor updates
+// (SUPERSEDED by allocDrawSet; kept for reference during V5 bring-up)
 // ---------------------------------------------------------------------
 void lsVulkan::bindProgramTextures( VkProgramObj& prog )
 {

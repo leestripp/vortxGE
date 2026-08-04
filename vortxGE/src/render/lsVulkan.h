@@ -272,6 +272,7 @@ private:
 	VkCommandBuffer beginOneShot();
 	void endOneShot( VkCommandBuffer cmd );
 	void bindProgramTextures( VkProgramObj& prog );
+	VkDescriptorSet allocDrawSet( VkProgramObj& prog );
 	void generateMipmaps( VkTex& tex );
 
 	// V4 helpers
@@ -331,6 +332,10 @@ private:
 
 	// descriptor pool (shared)
 	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+	// per-frame pools for PER-DRAW descriptor sets: fresh sets are written
+	// and bound immediately, so texture state matches GL's per-draw binding
+	// semantics exactly (pool reset at BeginFrame after the fence wait)
+	VkDescriptorPool m_drawPools[FRAMES_IN_FLIGHT] = {};
 
 	// dummy 1x1 white texture for all sampler bindings (real uploads in V3)
 	VkImage		m_dummyImage = VK_NULL_HANDLE;
