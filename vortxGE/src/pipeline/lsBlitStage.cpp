@@ -48,6 +48,15 @@ const float QUAD[] = {
 	 1.0f,  1.0f,  1.0f, 1.0f,
 	-1.0f,  1.0f,  0.0f, 1.0f,
 };
+// V-flipped variant (uv.y = 1 - uv.y) for Vulkan FBO compensation
+const float QUAD_FLIPY[] = {
+	-1.0f, -1.0f,  0.0f, 1.0f,
+	 1.0f, -1.0f,  1.0f, 1.0f,
+	 1.0f,  1.0f,  1.0f, 0.0f,
+	-1.0f, -1.0f,  0.0f, 1.0f,
+	 1.0f,  1.0f,  1.0f, 0.0f,
+	-1.0f,  1.0f,  0.0f, 0.0f,
+};
 } // namespace
 
 lsBlitStage::lsBlitStage( const std::string& src, const std::string& dst )
@@ -97,7 +106,9 @@ bool lsBlitStage::lazyInit( lsRender* render )
 	render->BindVertexArray( m_vao );
 	render->GenBuffers( 1, &m_vbo );
 	render->BindBuffer( LS_ARRAY_BUFFER, m_vbo );
-	render->BufferData( LS_ARRAY_BUFFER, sizeof( QUAD ), QUAD, LS_STATIC_DRAW );
+	const float* quadData = m_flipY ? QUAD_FLIPY : QUAD;
+	render->BufferData( LS_ARRAY_BUFFER, sizeof( QUAD ), quadData,
+						LS_STATIC_DRAW );
 	render->EnableVertexAttribArray( 0 );
 	render->VertexAttribPointer( 0, 2, LS_FLOAT, LS_FALSE, 4 * sizeof( float ),
 								 (const void*)0 );

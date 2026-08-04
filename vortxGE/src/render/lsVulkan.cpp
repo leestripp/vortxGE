@@ -468,7 +468,11 @@ bool lsVulkan::createSwapchain( VkSwapchainKHR oldSwapchain )
 	VkSurfaceCapabilitiesKHR caps;
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR( m_physDevice, m_surface, &caps );
 
-	// format: prefer B8G8R8A8_SRGB + nonlinear color space
+	// format: prefer B8G8R8A8_UNORM + nonlinear color space.
+	// UNORM, not SRGB: the engine encodes linear->sRGB IN THE SHADER
+	// (quad.frag / lsBlitStage toSRGB) exactly like the GL default
+	// framebuffer path — an SRGB swapchain would hardware-encode a
+	// second time (double gamma, washed-out image).
 	uint32_t fcount = 0;
 	vkGetPhysicalDeviceSurfaceFormatsKHR( m_physDevice, m_surface, &fcount, nullptr );
 	std::vector<VkSurfaceFormatKHR> formats( fcount );
@@ -477,7 +481,7 @@ bool lsVulkan::createSwapchain( VkSwapchainKHR oldSwapchain )
 	VkSurfaceFormatKHR chosen = formats[0];
 	for( const auto& f : formats )
 	{
-		if( f.format == VK_FORMAT_B8G8R8A8_SRGB &&
+		if( f.format == VK_FORMAT_B8G8R8A8_UNORM &&
 			f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR )
 		{
 			chosen = f;

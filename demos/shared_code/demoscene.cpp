@@ -225,6 +225,7 @@ bool DemoScene::Init()
 		RenderType rt = (m_prefRenderer != RenderType::None)
 			? m_prefRenderer : vortxGE::PreferredRendererType();
 		m_vortxge->ForceRenderer( rt );
+		m_activeRenderer = rt;
 		m_vortxge->SetWindow( m_prefWindow );
 
 		if( rt == RenderType::OpenGL )
@@ -772,6 +773,11 @@ void DemoScene::initPipeline()
 	// stage 2: "scene" target -> screen (replaces the Quad Viewer)
 	auto* blit = m_pipeline->addStage<lsBlitStage>( "scene", "" );
 	blit->setName( "blit-to-screen" );
+	// Vulkan's negative-height viewport stores FBO texels V-mirrored vs
+	// GL — compensate when sampling (research: VK_KHR_maintenance1
+	// viewport-flip convention, 'offscreen rendering must be
+	// compensated'). GL needs no flip. X is never affected.
+	blit->setFlipY( m_activeRenderer == RenderType::Vulkan );
 
 	m_vortxge->setRenderPipeline( m_pipeline );
 }

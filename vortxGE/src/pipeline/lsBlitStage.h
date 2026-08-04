@@ -29,11 +29,19 @@ public:
 	void setTint( float r, float g, float b, float a )
 	{ m_tint[0]=r; m_tint[1]=g; m_tint[2]=b; m_tint[3]=a; }
 
+	/// V-flip the sampled image. Needed on Vulkan: the backend uses a
+	/// negative-height (GL-compatible) viewport, so FBO texels are
+	/// stored V-mirrored vs OpenGL — "offscreen rendering must be
+	/// compensated" (VK_KHR_maintenance1 viewport-flip convention).
+	/// X is NOT affected (the viewport flip only negates height).
+	void setFlipY( bool v ) { m_flipY = v; }
+
 private:
 	bool lazyInit( lsRender* render );
 
 	std::string m_src, m_dst;
 	float		m_tint[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	bool		m_flipY = false;
 
 	// lazy GL objects
 	lsProgramID	m_prog = 0;

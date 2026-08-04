@@ -83,6 +83,7 @@ private:
     vortxGE     *m_vortxge;
 
     RenderType  m_prefRenderer = RenderType::None;  // backend preference (None = engine auto)
+    RenderType  m_activeRenderer = RenderType::None; // resolved backend in use
     void        *m_prefWindow = nullptr;            // native window for Vulkan surface
 
     // Framebuffer pixel dimensions (set by Init() / Resize()).
