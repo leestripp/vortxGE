@@ -130,7 +130,8 @@ lsVkProgramLayout lsVkShader::mergeLayouts( const lsVkStageParse& vs,
 	uint32_t cursor = 0;
 	for( auto& mem : layout.members )
 	{
-		cursor = alignUp( cursor, alignOf( mem.glslType ) );
+		// std140: arrays are ALWAYS vec4-aligned, regardless of element type
+		cursor = alignUp( cursor, mem.arraySize ? 16 : alignOf( mem.glslType ) );
 		mem.offset = cursor;
 		const uint32_t stride = mem.arraySize
 			? alignUp( sizeOf( mem.glslType ), 16 ) : sizeOf( mem.glslType );

@@ -252,6 +252,17 @@ private:
 							const void* data, uint32_t bytes );
 	uint32_t allocUboSlice( uint32_t bytes );
 
+	// V4: offscreen framebuffer object
+	struct VkFbo
+	{
+		uint32_t	colorTex = 0;			// lsTextureID attachments
+		uint32_t	depthTex = 0;
+		VkFramebuffer fb = VK_NULL_HANDLE;
+		int			variant = -1;			// 0=color+depth, 1=depth-only
+		uint32_t	w = 0, h = 0;
+		bool		built = false;
+	};
+
 	// V3 helpers
 	bool uploadTexture( VkTex& tex, lsEnum internalFormat, lsEnum format,
 						lsEnum type, uint32_t w, uint32_t h, const void* pixels );
@@ -261,6 +272,14 @@ private:
 	void bindProgramTextures( VkProgramObj& prog );
 	void generateMipmaps( VkTex& tex );
 
+	// V4 helpers
+	bool createOffscreenRenderPasses();
+	bool buildFbo( VkFbo& fbo );
+	void ensurePassActive();
+	void captureScreenshot( const char* path );
+	void beginPassForTarget( uint32_t fboID );	// 0 = swapchain
+	void endActivePass();
+
 	std::unordered_map<uint32_t, VkBuf>		m_buffers;
 	std::unordered_map<uint32_t, VkVao>		m_vaos;
 	std::unordered_map<uint32_t, VkShaderObj>	m_shaders;
@@ -269,6 +288,17 @@ private:
 	uint32_t m_nextTexID = 1;
 	uint32_t m_textureUnits[32] = {};		// texture ID bound per unit (0 = none)
 	uint32_t m_activeUnit = 0;
+
+	// V4: FBOs + deferred render-pass state
+	std::unordered_map<uint32_t, VkFbo> m_fbos;
+	uint32_t m_nextFboID = 1;
+	uint32_t m_boundFBO = 0;				// GL-side bound framebuffer (0 = default)
+	uint32_t m_activeTarget = 0;			// target of the active pass (0 = swapchain)
+	bool m_passActive = false;
+	VkRenderPass m_activeRenderPass = VK_NULL_HANDLE;
+	VkRenderPass m_rpColorDepth = VK_NULL_HANDLE;	// offscreen variants
+	VkRenderPass m_rpDepthOnly = VK_NULL_HANDLE;
+	uint32_t m_savedFBO = 0;				// StoreDefaultFramebuffer
 	uint32_t m_nextBufferID = 1, m_nextVaoID = 1;
 	uint32_t m_nextShaderID = 1, m_nextProgramID = 1;
 	uint32_t m_boundArrayBuffer = 0;			// lsBufferID bound to LS_ARRAY_BUFFER

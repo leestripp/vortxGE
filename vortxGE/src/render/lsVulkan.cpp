@@ -61,6 +61,11 @@ namespace
 	}
 }
 
+// DIAGNOSTIC draw counters (VORTX_VK_DEBUG=1 prints at frame 30)
+static int s_callsDE = 0, s_skipFrame = 0, s_skipProg = 0, s_skipVao = 0,
+		   s_skipPass = 0, s_skipPipe = 0, s_issued = 0;
+static long s_indices = 0;
+
 // ---------------------------------------------------------------------
 // Probe — used before window creation (vortxGE::PreferredRendererType)
 // ---------------------------------------------------------------------
@@ -136,6 +141,12 @@ lsVulkan::~lsVulkan()
 	if( m_dummyMemory ) vkFreeMemory( m_device, m_dummyMemory, nullptr );
 
 	cleanupSwapchain();
+
+	for( auto& [id, fbo] : m_fbos )
+		if( fbo.fb ) vkDestroyFramebuffer( m_device, fbo.fb, nullptr );
+	m_fbos.clear();
+	if( m_rpColorDepth ) vkDestroyRenderPass( m_device, m_rpColorDepth, nullptr );
+	if( m_rpDepthOnly ) vkDestroyRenderPass( m_device, m_rpDepthOnly, nullptr );
 
 	for( uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++ )
 	{
@@ -227,6 +238,7 @@ bool lsVulkan::Init()
 			return false;
 
 		if(! createDummyTexture() ) return false;
+		if(! createOffscreenRenderPasses() ) return false;	// V4
 	}
 
 	m_initialized = true;
@@ -734,42 +746,11 @@ void lsVulkan::BeginFrame()
 	bi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	vkBeginCommandBuffer( cmd, &bi );
 
-	VkClearValue clearValues[2];
-	clearValues[0].color.float32[0] = m_clearColor[0];
-	clearValues[0].color.float32[1] = m_clearColor[1];
-	clearValues[0].color.float32[2] = m_clearColor[2];
-	clearValues[0].color.float32[3] = m_clearColor[3];
-	clearValues[1].depthStencil.depth = (float)m_clearDepth;
-	clearValues[1].depthStencil.stencil = 0;
-
 	m_uboCursor = 0;	// V2: reset the per-frame uniform ring
+	m_passActive = false;	// V4: render pass opens lazily on first use
+	m_activeTarget = 0xFFFFFFFF;
 
-	VkRenderPassBeginInfo rp{};
-	rp.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	rp.renderPass = m_renderPass;
-	rp.framebuffer = m_framebuffers[m_acquiredImage];
-	rp.renderArea.offset = { 0, 0 };
-	rp.renderArea.extent = m_swapchainExtent;
-	rp.clearValueCount = 2;
-	rp.pClearValues = clearValues;
-
-	vkCmdBeginRenderPass( cmd, &rp, VK_SUBPASS_CONTENTS_INLINE );
-
-	// Dynamic viewport/scissor (used by draws in V2+; harmless now).
-	// NOTE: Vulkan NDC is Y-down vs GL — V2 flips via negative height.
-	VkViewport vp{};
-	vp.x = 0.0f;
-	vp.y = (float)m_swapchainExtent.height;		// Y-flip for GL conventions
-	vp.width = (float)m_swapchainExtent.width;
-	vp.height = -(float)m_swapchainExtent.height;
-	vp.minDepth = 0.0f;
-	vp.maxDepth = 1.0f;
-	vkCmdSetViewport( cmd, 0, 1, &vp );
-
-	VkRect2D sc{};
-	sc.offset = { 0, 0 };
-	sc.extent = m_swapchainExtent;
-	vkCmdSetScissor( cmd, 0, 1, &sc );
+	// (render pass opens lazily — V4 deferred model)
 
 	m_inFrame = true;
 }
@@ -780,7 +761,7 @@ void lsVulkan::EndFrame()
 
 	VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
 
-	vkCmdEndRenderPass( cmd );
+	endActivePass();	// V4: close whichever pass is open (if any)
 	vkEndCommandBuffer( cmd );
 
 	VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -819,6 +800,23 @@ void lsVulkan::Present()
 
 	m_inFrame = false;
 	m_currentFrame = ( m_currentFrame + 1 ) % FRAMES_IN_FLIGHT;
+
+	// DIAGNOSTIC: one-shot swapchain readback (VORTX_SHOT=path.ppm)
+	static int s_shotFrames = -1;
+	if( s_shotFrames < 0 )
+		s_shotFrames = ( getenv( "VORTX_SHOT" ) || getenv( "VORTX_VK_DEBUG" ) )
+			? 30 : 0x7FFFFF;
+	if( s_shotFrames < 0x7FFFFF && --s_shotFrames == 0 )
+	{
+		if( getenv( "VORTX_VK_DEBUG" ) )
+			cout << "VK DRAWS: calls=" << s_callsDE
+				 << " skipFrame=" << s_skipFrame << " skipProg=" << s_skipProg
+				 << " skipVao=" << s_skipVao << " skipPass=" << s_skipPass
+				 << " skipPipe=" << s_skipPipe << " issued=" << s_issued
+				 << " indices=" << s_indices << endl;
+		if( getenv( "VORTX_SHOT" ) )
+			captureScreenshot( getenv( "VORTX_SHOT" ) );
+	}
 }
 
 void lsVulkan::Resize( int width, int height )
@@ -848,29 +846,43 @@ void lsVulkan::Clear( lsBitfield mask )
 	// The render pass already clears on load with the stored clear color,
 	// so Clear() only needs to act for explicit mid-frame clears.
 	if(! m_inFrame ) return;
+	ensurePassActive();	// V4
+	if(! m_passActive ) return;
 
-	if( mask & LS_COLOR_BUFFER_BIT )
+	const bool depthOnly = ( m_activeTarget != 0 &&
+		m_fbos[m_activeTarget].variant == 1 );
+
+	VkClearAttachment atts[2]{};
+	uint32_t count = 0;
+	if(( mask & LS_COLOR_BUFFER_BIT ) && ! depthOnly )
 	{
-		VkClearValue value;
-		value.color.float32[0] = m_clearColor[0];
-		value.color.float32[1] = m_clearColor[1];
-		value.color.float32[2] = m_clearColor[2];
-		value.color.float32[3] = m_clearColor[3];
-
-		VkClearAttachment att{};
-		att.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		att.colorAttachment = 0;
-		att.clearValue = value;
-
-		VkClearRect rect{};
-		rect.rect.offset = { 0, 0 };
-		rect.rect.extent = m_swapchainExtent;
-		rect.baseArrayLayer = 0;
-		rect.layerCount = 1;
-
-		vkCmdClearAttachments( m_commandBuffers[m_currentFrame], 1, &att, 1, &rect );
+		VkClearAttachment& a = atts[count++];
+		a.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		a.colorAttachment = 0;
+		a.clearValue.color.float32[0] = m_clearColor[0];
+		a.clearValue.color.float32[1] = m_clearColor[1];
+		a.clearValue.color.float32[2] = m_clearColor[2];
+		a.clearValue.color.float32[3] = m_clearColor[3];
 	}
-	// LS_DEPTH_BUFFER_BIT: no depth attachment in the V1 render pass.
+	if( mask & LS_DEPTH_BUFFER_BIT )
+	{
+		VkClearAttachment& a = atts[count++];
+		a.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		a.clearValue.depthStencil.depth = (float)m_clearDepth;
+		a.clearValue.depthStencil.stencil = 0;
+	}
+	if(! count ) return;
+
+	VkExtent2D extent = m_swapchainExtent;
+	if( m_activeTarget != 0 )
+		extent = { m_fbos[m_activeTarget].w, m_fbos[m_activeTarget].h };
+
+	VkClearRect rect{};
+	rect.rect.offset = { 0, 0 };
+	rect.rect.extent = extent;
+	rect.baseArrayLayer = 0;
+	rect.layerCount = 1;
+	vkCmdClearAttachments( m_commandBuffers[m_currentFrame], count, atts, 1, &rect );
 }
 
 void lsVulkan::Viewport( lsInt x, lsInt y, lsSizei w, lsSizei h )
@@ -879,18 +891,30 @@ void lsVulkan::Viewport( lsInt x, lsInt y, lsSizei w, lsSizei h )
 	m_viewport[1] = y;
 	m_viewport[2] = w;
 	m_viewport[3] = h;
-	// Applied to draw state in V2 (no pipelines yet in V1).
+
+	// V4: passes apply this at open; if one is already active, re-apply now
+	if( m_passActive && w > 0 && h > 0 )
+	{
+		VkViewport vp{};
+		vp.x = (float)x;
+		vp.y = (float)( y + h );		// Y-flip for GL conventions
+		vp.width = (float)w;
+		vp.height = -(float)h;
+		vp.minDepth = 0.0f;
+		vp.maxDepth = 1.0f;
+		vkCmdSetViewport( m_commandBuffers[m_currentFrame], 0, 1, &vp );
+	}
 }
 
 void lsVulkan::StoreDefaultFramebuffer()
 {
-	// No-op: the swapchain IS the default target. FBO redirection
-	// (Store/Restore around offscreen passes) arrives in V4.
+	m_savedFBO = m_boundFBO;	// V4
+	BindFramebuffer( LS_FRAMEBUFFER, 0 );
 }
 
 void lsVulkan::RestoreDefaultFramebuffer()
 {
-	// No-op (see StoreDefaultFramebuffer).
+	BindFramebuffer( LS_FRAMEBUFFER, m_savedFBO );	// V4
 }
 
 // ---------------------------------------------------------------------
@@ -1635,8 +1659,8 @@ VkPipeline lsVulkan::getPipeline( VkProgramObj& prog, const VkVao& vao,
 {
 	// cache key
 	char key[128];
-	snprintf( key, sizeof( key ), "%u:%u:%x:%d%d%x%d%x%x",
-			  m_currentProgram, m_currentVao, topologyMode,
+	snprintf( key, sizeof( key ), "%u:%u:%x:%d%d%x%d%x%x:%p",
+			  m_currentProgram, m_currentVao, topologyMode, (void*)m_activeRenderPass,
 			  m_depthTestEnabled, m_depthWrite, m_depthFunc,
 			  m_cullEnabled, ( m_cullEnabled ? m_cullFace : 0 ),
 			  m_blendEnabled ? m_blendSrc : 0, m_blendEnabled ? m_blendDst : 0 );
@@ -1701,7 +1725,13 @@ VkPipeline lsVulkan::getPipeline( VkProgramObj& prog, const VkVao& vao,
 	rs.polygonMode = VK_POLYGON_MODE_FILL;
 	rs.cullMode = m_cullEnabled ? lsVkMap::cullMode( m_cullFace )
 								: VK_CULL_MODE_NONE;
-	rs.frontFace = VK_FRONT_FACE_CLOCKWISE;		// GL CCW after Y-flip
+	// DIAGNOSTIC: VORTX_VK_NOCULL=1 disables culling entirely
+	static const bool nocull = getenv( "VORTX_VK_NOCULL" ) != nullptr;
+	if( nocull ) rs.cullMode = VK_CULL_MODE_NONE;
+	// GL CCW after Y-flip; VORTX_VK_CCW=1 flips the convention for testing
+	static const bool forceCCW = getenv( "VORTX_VK_CCW" ) != nullptr;
+	rs.frontFace = forceCCW ? VK_FRONT_FACE_COUNTER_CLOCKWISE
+							: VK_FRONT_FACE_CLOCKWISE;
 	rs.lineWidth = 1.0f;
 
 	VkPipelineMultisampleStateCreateInfo ms{};
@@ -1745,7 +1775,7 @@ VkPipeline lsVulkan::getPipeline( VkProgramObj& prog, const VkVao& vao,
 	pi.pDepthStencilState = &ds;
 	pi.pColorBlendState = &cb;
 	pi.layout = prog.pipelineLayout;
-	pi.renderPass = m_renderPass;
+	pi.renderPass = m_activeRenderPass ? m_activeRenderPass : m_renderPass;	// V4
 	pi.subpass = 0;
 
 	VkPipeline pipeline = VK_NULL_HANDLE;
@@ -1785,6 +1815,8 @@ uint32_t lsVulkan::allocUboSlice( uint32_t bytes )
 void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
 {
 	if(! m_inFrame || ! m_currentProgram || ! m_currentVao ) return;
+	ensurePassActive();	// V4
+	if(! m_passActive ) return;
 	auto pit = m_programs.find( m_currentProgram );
 	auto vit = m_vaos.find( m_currentVao );
 	if( pit == m_programs.end() || ! pit->second.linked ) return;
@@ -1823,14 +1855,21 @@ void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
 void lsVulkan::DrawElements( lsEnum mode, lsSizei count, lsEnum type,
 							 const void* indices )
 {
-	if(! m_inFrame || ! m_currentProgram || ! m_currentVao ) return;
+	s_callsDE++;
+	if(! m_inFrame ) { s_skipFrame++; return; }
+	if(! m_currentProgram ) { s_skipProg++; return; }
+	if(! m_currentVao ) { s_skipVao++; return; }
+	ensurePassActive();	// V4
+	if(! m_passActive ) { s_skipPass++; return; }
 	auto pit = m_programs.find( m_currentProgram );
 	auto vit = m_vaos.find( m_currentVao );
 	if( pit == m_programs.end() || ! pit->second.linked ) return;
 	if( vit == m_vaos.end() ) return;
 
 	VkPipeline pipeline = getPipeline( pit->second, vit->second, mode );
-	if(! pipeline ) return;
+	if(! pipeline ) { s_skipPipe++; return; }
+	s_issued++;
+	s_indices += count;
 
 	VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
 	vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline );
@@ -2354,95 +2393,473 @@ void lsVulkan::bindProgramTextures( VkProgramObj& prog )
 
 
 // =====================================================================
-// STUBS — not yet implemented (V4+ milestones)
+// V4: offscreen framebuffers + composite — deferred render-pass model
+//
+// One command buffer per frame, but the render pass instance is opened
+// lazily (first draw/clear to a target) and switched when the engine
+// binds a different framebuffer: end current pass, begin the new one.
 // =====================================================================
 
-void lsVulkan::GenFramebuffers( lsSizei, lsFBOID* )
+bool lsVulkan::createOffscreenRenderPasses()
 {
-	// V4+ stub
+	// Shared variant: color + depth, both transitioning
+	// SHADER_READ_ONLY -> attachment -> SHADER_READ_ONLY so the results
+	// can be sampled by later passes (composite / shadows).
+	{
+		VkAttachmentDescription atts[2]{};
+		atts[0].format = VK_FORMAT_R8G8B8A8_UNORM;
+		atts[0].samples = VK_SAMPLE_COUNT_1_BIT;
+		atts[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		atts[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		atts[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		atts[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		atts[0].initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		atts[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		atts[1].format = m_depthFormat;
+		atts[1].samples = VK_SAMPLE_COUNT_1_BIT;
+		atts[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		atts[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		atts[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		atts[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		atts[1].initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		atts[1].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		VkAttachmentReference colorRef{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+		VkAttachmentReference depthRef{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+
+		VkSubpassDescription subpass{};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = 1;
+		subpass.pColorAttachments = &colorRef;
+		subpass.pDepthStencilAttachment = &depthRef;
+
+		VkSubpassDependency dep{};
+		dep.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dep.dstSubpass = 0;
+		dep.srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		dep.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		dep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+						   VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+							VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+		VkRenderPassCreateInfo ci{};
+		ci.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		ci.attachmentCount = 2;
+		ci.pAttachments = atts;
+		ci.subpassCount = 1;
+		ci.pSubpasses = &subpass;
+		ci.dependencyCount = 1;
+		ci.pDependencies = &dep;
+
+		m_lastError = vkCreateRenderPass( m_device, &ci, nullptr, &m_rpColorDepth );
+		if( m_lastError != VK_SUCCESS ) return false;
+	}
+
+	// Depth-only variant (shadow maps, V5)
+	{
+		VkAttachmentDescription depth{};
+		depth.format = m_depthFormat;
+		depth.samples = VK_SAMPLE_COUNT_1_BIT;
+		depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depth.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		depth.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		depth.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depth.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		depth.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		VkAttachmentReference depthRef{ 0, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+
+		VkSubpassDescription subpass{};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = 0;
+		subpass.pDepthStencilAttachment = &depthRef;
+
+		VkSubpassDependency dep{};
+		dep.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dep.dstSubpass = 0;
+		dep.srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		dep.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		dep.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dep.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+		VkRenderPassCreateInfo ci{};
+		ci.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		ci.attachmentCount = 1;
+		ci.pAttachments = &depth;
+		ci.subpassCount = 1;
+		ci.pSubpasses = &subpass;
+		ci.dependencyCount = 1;
+		ci.pDependencies = &dep;
+
+		m_lastError = vkCreateRenderPass( m_device, &ci, nullptr, &m_rpDepthOnly );
+		if( m_lastError != VK_SUCCESS ) return false;
+	}
+	return true;
 }
 
-void lsVulkan::DeleteFramebuffers( lsSizei, lsFBOID* )
+bool lsVulkan::buildFbo( VkFbo& fbo )
 {
-	// V4+ stub
+	if( fbo.fb ) vkDestroyFramebuffer( m_device, fbo.fb, nullptr );
+	fbo.fb = VK_NULL_HANDLE;
+	fbo.built = false;
+
+	if( fbo.colorTex && fbo.depthTex ) fbo.variant = 0;
+	else if( fbo.depthTex ) fbo.variant = 1;
+	else
+	{
+		cout << "ERROR: lsVulkan::buildFbo - unsupported attachment set "
+			 << "(color-only not implemented)" << endl;
+		return false;
+	}
+
+	auto ct = m_textures.find( fbo.colorTex );
+	auto dt = m_textures.find( fbo.depthTex );
+
+	VkImageView atts[2]{};
+	VkRenderPass rp = VK_NULL_HANDLE;
+	uint32_t count = 0;
+
+	if( fbo.variant == 0 )
+	{
+		if( ct == m_textures.end() || ! ct->second.view ||
+			dt == m_textures.end() || ! dt->second.view ) return false;
+		atts[0] = ct->second.view;
+		atts[1] = dt->second.view;
+		fbo.w = ct->second.width;
+		fbo.h = ct->second.height;
+		rp = m_rpColorDepth;
+		count = 2;
+	} else
+	{
+		if( dt == m_textures.end() || ! dt->second.view ) return false;
+		atts[0] = dt->second.view;
+		fbo.w = dt->second.width;
+		fbo.h = dt->second.height;
+		rp = m_rpDepthOnly;
+		count = 1;
+	}
+
+	VkFramebufferCreateInfo ci{};
+	ci.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	ci.renderPass = rp;
+	ci.attachmentCount = count;
+	ci.pAttachments = atts;
+	ci.width = fbo.w;
+	ci.height = fbo.h;
+	ci.layers = 1;
+
+	m_lastError = vkCreateFramebuffer( m_device, &ci, nullptr, &fbo.fb );
+	if( m_lastError != VK_SUCCESS ) return false;
+	fbo.built = true;
+	return true;
 }
 
-void lsVulkan::BindFramebuffer( lsEnum, lsFBOID )
+// ---------------------------------------------------------------------
+// Deferred pass management
+// ---------------------------------------------------------------------
+void lsVulkan::beginPassForTarget( uint32_t fboID )
 {
-	// V4+ stub
+	VkRenderPass rp = m_renderPass;
+	VkFramebuffer fb = VK_NULL_HANDLE;
+	VkExtent2D extent = m_swapchainExtent;
+	bool hasDepth = true;
+
+	if( fboID != 0 )
+	{
+		auto it = m_fbos.find( fboID );
+		if( it == m_fbos.end() ) return;
+		VkFbo& fbo = it->second;
+		if(! fbo.built && ! buildFbo( fbo ) ) return;
+		rp = ( fbo.variant == 0 ) ? m_rpColorDepth : m_rpDepthOnly;
+		fb = fbo.fb;
+		extent = { fbo.w, fbo.h };
+	} else
+	{
+		fb = m_framebuffers[m_acquiredImage];
+	}
+
+	VkClearValue clearValues[2]{};
+	clearValues[0].color.float32[0] = m_clearColor[0];
+	clearValues[0].color.float32[1] = m_clearColor[1];
+	clearValues[0].color.float32[2] = m_clearColor[2];
+	clearValues[0].color.float32[3] = m_clearColor[3];
+	clearValues[1].depthStencil.depth = (float)m_clearDepth;
+
+	VkRenderPassBeginInfo rpi{};
+	rpi.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	rpi.renderPass = rp;
+	rpi.framebuffer = fb;
+	rpi.renderArea.offset = { 0, 0 };
+	rpi.renderArea.extent = extent;
+	rpi.clearValueCount = ( fboID != 0 && m_fbos[fboID].variant == 1 ) ? 1 : 2;
+	// depth-only FBO: single (depth) clear value at slot 0
+	if( fboID != 0 && m_fbos[fboID].variant == 1 )
+	{
+		clearValues[0].depthStencil.depth = (float)m_clearDepth;
+		clearValues[0].depthStencil.stencil = 0;
+	}
+	rpi.pClearValues = clearValues;
+
+	VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
+	vkCmdBeginRenderPass( cmd, &rpi, VK_SUBPASS_CONTENTS_INLINE );
+
+	// viewport: explicit Viewport() call wins, else full target extent.
+	// Negative height keeps GL conventions (Y-up NDC).
+	float vx = 0.0f, vy = 0.0f, vw = (float)extent.width, vh = (float)extent.height;
+	if( m_viewport[2] > 0 && m_viewport[3] > 0 )
+	{
+		vx = (float)m_viewport[0];
+		vy = (float)m_viewport[1];
+		vw = (float)m_viewport[2];
+		vh = (float)m_viewport[3];
+	}
+	VkViewport vp{};
+	vp.x = vx;
+	vp.y = vy + vh;
+	vp.width = vw;
+	vp.height = -vh;
+	vp.minDepth = 0.0f;
+	vp.maxDepth = 1.0f;
+	vkCmdSetViewport( cmd, 0, 1, &vp );
+
+	VkRect2D sc{};
+	sc.offset = { 0, 0 };
+	sc.extent = extent;
+	vkCmdSetScissor( cmd, 0, 1, &sc );
+
+	m_activeRenderPass = rp;
+	m_activeTarget = fboID;
+	m_passActive = true;
+	(void)hasDepth;
 }
 
-void lsVulkan::FramebufferTexture2D( lsEnum, lsEnum, lsEnum, lsTextureID, lsInt )
+void lsVulkan::endActivePass()
 {
-	// V4+ stub
+	if(! m_passActive ) return;
+	vkCmdEndRenderPass( m_commandBuffers[m_currentFrame] );
+	m_passActive = false;
+	m_activeRenderPass = VK_NULL_HANDLE;
 }
 
-lsEnum lsVulkan::CheckFramebufferStatus( lsEnum )
+void lsVulkan::ensurePassActive()
 {
-	return (lsEnum){};
+	if(! m_inFrame || m_passActive ) return;
+	beginPassForTarget( m_boundFBO );
 }
 
-void lsVulkan::DrawBuffer( lsEnum )
+// ---------------------------------------------------------------------
+// Framebuffer objects (GL API surface)
+// ---------------------------------------------------------------------
+void lsVulkan::GenFramebuffers( lsSizei n, lsFBOID* framebuffers )
 {
-	// V4+ stub
+	for( lsSizei i = 0; i < n; i++ )
+	{
+		uint32_t id = m_nextFboID++;
+		m_fbos[id] = VkFbo{};
+		framebuffers[i] = id;
+	}
 }
 
-void lsVulkan::ReadBuffer( lsEnum )
+void lsVulkan::DeleteFramebuffers( lsSizei n, lsFBOID* framebuffers )
 {
-	// V4+ stub
+	for( lsSizei i = 0; i < n; i++ )
+	{
+		auto it = m_fbos.find( framebuffers[i] );
+		if( it == m_fbos.end() ) continue;
+		if( it->second.fb ) vkDestroyFramebuffer( m_device, it->second.fb, nullptr );
+		m_fbos.erase( it );
+	}
 }
+
+void lsVulkan::BindFramebuffer( lsEnum target, lsFBOID fbo )
+{
+	(void)target;
+	m_boundFBO = fbo;
+
+	// Mid-frame target switch: close the current pass; the new one opens
+	// lazily on the next draw/clear (ensurePassActive).
+	if( m_inFrame )
+	{
+		if( fbo == m_activeTarget && m_passActive ) return;
+		endActivePass();
+	}
+}
+
+void lsVulkan::FramebufferTexture2D( lsEnum target, lsEnum attachment,
+									 lsEnum texTarget, lsTextureID texture,
+									 lsInt level )
+{
+	(void)target; (void)texTarget; (void)level;
+	auto it = m_fbos.find( m_boundFBO );
+	if( it == m_fbos.end() ) return;
+
+	if( attachment == LS_COLOR_ATTACHMENT0 )
+		it->second.colorTex = texture;
+	else if( attachment == LS_DEPTH_ATTACHMENT )
+		it->second.depthTex = texture;
+	else
+		return;
+	it->second.built = false;	// attachments changed: rebuild on next use
+}
+
+lsEnum lsVulkan::CheckFramebufferStatus( lsEnum target )
+{
+	(void)target;
+	auto it = m_fbos.find( m_boundFBO );
+	if( it == m_fbos.end() ) return 0;
+	if(! it->second.built )
+		if(! buildFbo( it->second ) ) return 0;
+	return LS_FRAMEBUFFER_COMPLETE;
+}
+
+void lsVulkan::DrawBuffer( lsEnum mode )
+{
+	(void)mode;		// single color attachment per FBO — nothing to select
+}
+
+void lsVulkan::ReadBuffer( lsEnum mode )
+{
+	(void)mode;
+}
+
+
+// =====================================================================
+// STUBS — not yet implemented (V5+ milestones)
+// =====================================================================
 
 void lsVulkan::ReadPixels( lsInt, lsInt, lsSizei, lsSizei, lsEnum, lsEnum, void* )
 {
-	// V4+ stub
+	// V5+ stub
 }
 
 void lsVulkan::DepthRangef( lsFloat, lsFloat )
 {
-	// V4+ stub
+	// V5+ stub
 }
 
 void lsVulkan::ColorMask( lsBoolean, lsBoolean, lsBoolean, lsBoolean )
 {
-	// V4+ stub
+	// V5+ stub
 }
 
 void lsVulkan::PolygonOffset( lsFloat, lsFloat )
 {
-	// V4+ stub
+	// V5+ stub
 }
 
 void lsVulkan::ShadeModel( lsEnum )
 {
-	// V4+ stub
+	// V5+ stub
 }
 
 void lsVulkan::GenQueries( lsSizei, lsQueryID* )
 {
-	// V4+ stub
+	// V5+ stub
 }
 
 void lsVulkan::DeleteQueries( lsSizei, lsQueryID* )
 {
-	// V4+ stub
+	// V5+ stub
 }
 
 void lsVulkan::BeginQuery( lsEnum, lsQueryID )
 {
-	// V4+ stub
+	// V5+ stub
 }
 
 void lsVulkan::EndQuery( lsEnum )
 {
-	// V4+ stub
+	// V5+ stub
 }
 
 void lsVulkan::GetQueryObjectiv( lsQueryID, lsEnum, lsInt* )
 {
-	// V4+ stub
+	// V5+ stub
 }
 
 void lsVulkan::GetIntegerv( lsEnum, lsInt* )
 {
-	// V4+ stub
+	// V5+ stub
+}
+
+// ---------------------------------------------------------------------
+// DIAGNOSTIC: swapchain readback (VORTX_SHOT=path.ppm, frame 30)
+// ---------------------------------------------------------------------
+void lsVulkan::captureScreenshot( const char* path )
+{
+	vkDeviceWaitIdle( m_device );
+
+	const uint32_t w = m_swapchainExtent.width, h = m_swapchainExtent.height;
+	const VkDeviceSize size = (VkDeviceSize)w * h * 4;
+
+	VkBufferCreateInfo bi{};
+	bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bi.size = size;
+	bi.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	VkBuffer buf;
+	if( vkCreateBuffer( m_device, &bi, nullptr, &buf ) != VK_SUCCESS ) return;
+	VkMemoryRequirements reqs;
+	vkGetBufferMemoryRequirements( m_device, buf, &reqs );
+	VkMemoryAllocateInfo ai{};
+	ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	ai.allocationSize = reqs.size;
+	ai.memoryTypeIndex = findMemoryType( reqs.memoryTypeBits,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT );
+	VkDeviceMemory mem;
+	if( vkAllocateMemory( m_device, &ai, nullptr, &mem ) != VK_SUCCESS ) return;
+	vkBindBufferMemory( m_device, buf, mem, 0 );
+
+	VkCommandBuffer cmd = beginOneShot();
+	VkImage img = m_swapchainImages[m_acquiredImage];
+
+	VkImageMemoryBarrier b{};
+	b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	b.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	b.image = img;
+	b.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	b.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	b.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	b.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	b.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+						  VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
+						  0, nullptr, 1, &b );
+
+	VkBufferImageCopy copy{};
+	copy.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+	copy.imageExtent = { w, h, 1 };
+	vkCmdCopyImageToBuffer( cmd, img, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+							buf, 1, &copy );
+
+	b.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	b.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	b.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+	b.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
+						  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr,
+						  0, nullptr, 1, &b );
+	endOneShot( cmd );
+
+	void* mapped = nullptr;
+	vkMapMemory( m_device, mem, 0, size, 0, &mapped );
+	FILE* f = fopen( path, "wb" );
+	if( f )
+	{
+		fprintf( f, "P6\n%u %u\n255\n", w, h );
+		const uint8_t* px = (const uint8_t*)mapped;
+		for( uint32_t i = 0; i < w * h; i++ )
+		{
+			// swapchain is B8G8R8A8 — swap B/R for PPM
+			uint8_t rgb[3] = { px[i*4+2], px[i*4+1], px[i*4+0] };
+			fwrite( rgb, 1, 3, f );
+		}
+		fclose( f );
+		cout << "SCREENSHOT written: " << path << " (" << w << "x" << h << ")" << endl;
+	}
+	vkUnmapMemory( m_device, mem );
+	vkDestroyBuffer( m_device, buf, nullptr );
+	vkFreeMemory( m_device, mem, nullptr );
 }

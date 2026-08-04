@@ -403,6 +403,28 @@ void glfwApp::Run()
 			demoscene->Render();
 		}
 
+		// DIAGNOSTIC: GL framebuffer readback (VORTX_SHOT=path.ppm, frame 30)
+		static int s_shotFrames = -1;
+		if( s_shotFrames < 0 )
+			s_shotFrames = getenv( "VORTX_SHOT" ) ? 30 : 0x7FFFFF;
+		if( m_renderType == RenderType::OpenGL &&
+			s_shotFrames < 0x7FFFFF && --s_shotFrames == 0 )
+		{
+			int w = 0, h = 0;
+			glfwGetFramebufferSize( m_window, &w, &h );
+			std::vector<unsigned char> px( (size_t)w * h * 3 );
+			glReadPixels( 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, px.data() );
+			FILE* f = fopen( getenv( "VORTX_SHOT" ), "wb" );
+			if( f )
+			{
+				fprintf( f, "P6\n%d %d\n255\n", w, h );
+				for( int row = h - 1; row >= 0; row-- )	// GL is bottom-up
+					fwrite( px.data() + (size_t)row * w * 3, 1, (size_t)w * 3, f );
+				fclose( f );
+				cout << "SCREENSHOT written: " << getenv( "VORTX_SHOT" ) << endl;
+			}
+		}
+
 		// Swap (GL only — the Vulkan backend presents in lsVulkan::Present
 		// via vortxGE::Render, and glfwSwapBuffers has no GL context here)
 		if( m_renderType == RenderType::OpenGL )
