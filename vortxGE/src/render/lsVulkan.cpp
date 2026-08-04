@@ -829,6 +829,16 @@ void lsVulkan::Present()
 				cout << endl;
 				break;
 			}
+			// dump VAO attribute records (are buffers bound?)
+			for( auto& [vid, vao] : m_vaos )
+			{
+				cout << "VAO " << vid << " elementBuf=" << vao.elementBuffer;
+				for( auto& [ai, a] : vao.attribs )
+					cout << " | attr" << ai << ": buf=" << a.buffer
+						 << " sz=" << a.size << " stride=" << a.stride
+						 << " off=" << a.offset << " en=" << a.enabled;
+				cout << endl;
+			}
 			// dump first vertex buffer's first floats (is vertex data real?)
 			for( auto& [bid, buf] : m_buffers )
 			{
