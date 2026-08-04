@@ -839,6 +839,24 @@ void lsVulkan::Present()
 						 << " off=" << a.offset << " en=" << a.enabled;
 				cout << endl;
 			}
+			// dump the POSITION buffer of the first VAO with attributes
+			for( auto& [vid, vao] : m_vaos )
+			{
+				auto ait = vao.attribs.find( 0 );
+				if( ait == vao.attribs.end() || ! ait->second.enabled ) continue;
+				auto bit = m_buffers.find( ait->second.buffer );
+				if( bit == m_buffers.end() || ! bit->second.buffer ) continue;
+				cout << "POSBUF vao=" << vid << " buf=" << ait->second.buffer
+					 << " size=" << bit->second.size << " floats:";
+				void* m = nullptr;
+				vkMapMemory( m_device, bit->second.memory, 0,
+							 std::min<VkDeviceSize>( bit->second.size, 48 ), 0, &m );
+				const float* f = (const float*)m;
+				for( int i = 0; i < 12; i++ ) printf( " %.3g", f[i] );
+				cout << endl;
+				vkUnmapMemory( m_device, bit->second.memory );
+				break;
+			}
 			// dump first vertex buffer's first floats (is vertex data real?)
 			for( auto& [bid, buf] : m_buffers )
 			{
