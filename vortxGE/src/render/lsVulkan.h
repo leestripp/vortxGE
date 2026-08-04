@@ -217,6 +217,28 @@ private:
 		VkDescriptorSet		  descriptorSet = VK_NULL_HANDLE;
 		bool				linked = false;
 		std::string			log;
+		// V3: sampler binding -> GL texture unit (from Uniform1i), and
+		// binding -> last texture ID written to the descriptor
+		std::unordered_map<uint32_t, uint32_t> samplerUnits;
+		std::unordered_map<uint32_t, uint32_t> lastBoundTex;
+	};
+
+	// V3: texture object
+	struct VkTex
+	{
+		VkImage			image = VK_NULL_HANDLE;
+		VkDeviceMemory	memory = VK_NULL_HANDLE;
+		VkImageView		view = VK_NULL_HANDLE;
+		VkSampler		sampler = VK_NULL_HANDLE;
+		VkFormat		format = VK_FORMAT_R8G8B8A8_UNORM;
+		uint32_t		width = 0, height = 0;
+		uint32_t		mipLevels = 1;
+		bool			mipsGenerated = false;
+		// GL parameter state (sampler recreated on change)
+		lsEnum	wrapS = 0x2901;		// LS_REPEAT
+		lsEnum	wrapT = 0x2901;
+		lsEnum	minFilter = 0x2601;	// LS_LINEAR
+		lsEnum	magFilter = 0x2601;
 	};
 
 	bool createBufferStorage( VkBuf& buf, VkDeviceSize size, const void* data );
@@ -230,10 +252,23 @@ private:
 							const void* data, uint32_t bytes );
 	uint32_t allocUboSlice( uint32_t bytes );
 
+	// V3 helpers
+	bool uploadTexture( VkTex& tex, lsEnum internalFormat, lsEnum format,
+						lsEnum type, uint32_t w, uint32_t h, const void* pixels );
+	bool createTextureViewAndSampler( VkTex& tex );
+	VkCommandBuffer beginOneShot();
+	void endOneShot( VkCommandBuffer cmd );
+	void bindProgramTextures( VkProgramObj& prog );
+	void generateMipmaps( VkTex& tex );
+
 	std::unordered_map<uint32_t, VkBuf>		m_buffers;
 	std::unordered_map<uint32_t, VkVao>		m_vaos;
 	std::unordered_map<uint32_t, VkShaderObj>	m_shaders;
 	std::unordered_map<uint32_t, VkProgramObj>	m_programs;
+	std::unordered_map<uint32_t, VkTex>		m_textures;
+	uint32_t m_nextTexID = 1;
+	uint32_t m_textureUnits[32] = {};		// texture ID bound per unit (0 = none)
+	uint32_t m_activeUnit = 0;
 	uint32_t m_nextBufferID = 1, m_nextVaoID = 1;
 	uint32_t m_nextShaderID = 1, m_nextProgramID = 1;
 	uint32_t m_boundArrayBuffer = 0;			// lsBufferID bound to LS_ARRAY_BUFFER

@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **V3 — Vulkan textures (2026-08-04):** real texture uploads replace
+  the dummy 1×1 white texture. \`Gen/Bind/DeleteTextures\`,
+  \`ActiveTexture\`, \`TexImage2D\` (sRGB/UNORM/16-bit formats, RGB→RGBA
+  expansion on upload, NULL-data render targets for V4),
+  \`TexParameter[i/f/fv]\` (wrap/filter state → recreated samplers),
+  \`GenerateMipmap\` (blit chain over the full mip pyramid), GL texture
+  units → per-draw descriptor updates (\`Uniform1i\` sampler assignments
+  recorded per program; only changed bindings rewritten). Demo scene
+  now renders textured on Vulkan; zero validation complaints.
 - **V2 — Vulkan buffers, shaders, pipelines, first geometry (2026-08-04):**
   scene geometry now renders through \`lsVulkan\`. Buffer/VAO/shader/
   program/uniform/draw API surface implemented: host-visible coherent

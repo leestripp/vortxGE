@@ -119,6 +119,14 @@ lsVulkan::~lsVulkan()
 		if( buf.memory ) vkFreeMemory( m_device, buf.memory, nullptr );
 	}
 	m_buffers.clear();
+	for( auto& [id, tex] : m_textures )
+	{
+		if( tex.sampler ) vkDestroySampler( m_device, tex.sampler, nullptr );
+		if( tex.view ) vkDestroyImageView( m_device, tex.view, nullptr );
+		if( tex.image ) vkDestroyImage( m_device, tex.image, nullptr );
+		if( tex.memory ) vkFreeMemory( m_device, tex.memory, nullptr );
+	}
+	m_textures.clear();
 	if( m_uboBuffer ) vkDestroyBuffer( m_device, m_uboBuffer, nullptr );
 	if( m_uboMemory ) vkFreeMemory( m_device, m_uboMemory, nullptr );
 	if( m_descriptorPool ) vkDestroyDescriptorPool( m_device, m_descriptorPool, nullptr );
@@ -1530,7 +1538,14 @@ void lsVulkan::Uniform1i( lsUniformID location, lsInt v0 )
 {
 	auto it = m_programs.find( m_currentProgram );
 	if( it == m_programs.end() ) return;
-	if( location >= 1000 ) return;		// sampler unit assignment: V2 binds dummies
+	if( location >= 1000 )
+	{
+		// sampler assignment: record binding -> GL texture unit (V3)
+		const uint32_t binding = (uint32_t)( location - 1000 );
+		it->second.samplerUnits[binding] = (uint32_t)v0;
+		it->second.lastBoundTex.erase( binding );
+		return;
+	}
 	writeUniformMember( it->second, location, &v0, sizeof( v0 ) );
 }
 
@@ -1797,6 +1812,7 @@ void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
 		memcpy( (uint8_t*)m_uboMapped + uboOffset, pit->second.uboStaging.data(),
 				pit->second.layout.blockSize );
 	}
+	bindProgramTextures( pit->second );	// V3
 	vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
 							 pit->second.pipelineLayout, 0, 1,
 							 &pit->second.descriptorSet, 1, &uboOffset );
@@ -1841,6 +1857,7 @@ void lsVulkan::DrawElements( lsEnum mode, lsSizei count, lsEnum type,
 		memcpy( (uint8_t*)m_uboMapped + uboOffset, pit->second.uboStaging.data(),
 				pit->second.layout.blockSize );
 	}
+	bindProgramTextures( pit->second );	// V3
 	vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
 							 pit->second.pipelineLayout, 0, 1,
 							 &pit->second.descriptorSet, 1, &uboOffset );
@@ -1851,77 +1868,513 @@ void lsVulkan::DrawElements( lsEnum mode, lsSizei count, lsEnum type,
 
 
 // =====================================================================
-// STUBS — not yet implemented (V3+ milestones)
+// V3: textures — real uploads replace the dummy 1x1 white texture
 // =====================================================================
 
-void lsVulkan::GenTextures( lsSizei, lsTextureID* )
+VkCommandBuffer lsVulkan::beginOneShot()
 {
-	// V3+ stub
+	VkCommandBufferAllocateInfo ai{};
+	ai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	ai.commandPool = m_commandPool;
+	ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	ai.commandBufferCount = 1;
+	VkCommandBuffer cmd;
+	vkAllocateCommandBuffers( m_device, &ai, &cmd );
+	VkCommandBufferBeginInfo bi{};
+	bi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	vkBeginCommandBuffer( cmd, &bi );
+	return cmd;
 }
 
-void lsVulkan::DeleteTextures( lsSizei, lsTextureID* )
+void lsVulkan::endOneShot( VkCommandBuffer cmd )
 {
-	// V3+ stub
+	vkEndCommandBuffer( cmd );
+	VkSubmitInfo submit{};
+	submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit.commandBufferCount = 1;
+	submit.pCommandBuffers = &cmd;
+	vkQueueSubmit( m_graphicsQueue, 1, &submit, VK_NULL_HANDLE );
+	vkQueueWaitIdle( m_graphicsQueue );
+	vkFreeCommandBuffers( m_device, m_commandPool, 1, &cmd );
 }
 
-void lsVulkan::BindTexture( lsEnum, lsTextureID )
+// ---------------------------------------------------------------------
+// Texture objects
+// ---------------------------------------------------------------------
+void lsVulkan::GenTextures( lsSizei n, lsTextureID* textures )
 {
-	// V3+ stub
+	for( lsSizei i = 0; i < n; i++ )
+	{
+		uint32_t id = m_nextTexID++;
+		m_textures[id] = VkTex{};
+		textures[i] = id;
+	}
 }
 
-void lsVulkan::ActiveTexture( lsEnum )
+void lsVulkan::DeleteTextures( lsSizei n, lsTextureID* textures )
 {
-	// V3+ stub
+	for( lsSizei i = 0; i < n; i++ )
+	{
+		auto it = m_textures.find( textures[i] );
+		if( it == m_textures.end() ) continue;
+		VkTex& t = it->second;
+		if( t.sampler ) vkDestroySampler( m_device, t.sampler, nullptr );
+		if( t.view ) vkDestroyImageView( m_device, t.view, nullptr );
+		if( t.image ) vkDestroyImage( m_device, t.image, nullptr );
+		if( t.memory ) vkFreeMemory( m_device, t.memory, nullptr );
+		m_textures.erase( it );
+	}
 }
 
-void lsVulkan::TexImage2D( lsEnum, lsInt, lsInt, lsSizei, lsSizei, lsInt, lsEnum, lsEnum, const void* )
+void lsVulkan::ActiveTexture( lsEnum texture )
 {
-	// V3+ stub
+	const uint32_t unit = texture - LS_TEXTURE0;
+	m_activeUnit = ( unit < 32 ) ? unit : 0;
 }
 
-void lsVulkan::TexParameteri( lsEnum, lsEnum, lsInt )
+void lsVulkan::BindTexture( lsEnum target, lsTextureID texture )
 {
-	// V3+ stub
+	(void)target;	// LS_TEXTURE_2D only for now
+	m_textureUnits[m_activeUnit] = texture;
 }
 
-void lsVulkan::TexParameterf( lsEnum, lsEnum, lsFloat )
+bool lsVulkan::createTextureViewAndSampler( VkTex& tex )
 {
-	// V3+ stub
+	if( tex.view ) vkDestroyImageView( m_device, tex.view, nullptr );
+	if( tex.sampler ) vkDestroySampler( m_device, tex.sampler, nullptr );
+	tex.view = VK_NULL_HANDLE;
+	tex.sampler = VK_NULL_HANDLE;
+
+	const bool isDepth = ( tex.format == VK_FORMAT_D32_SFLOAT );
+
+	VkImageViewCreateInfo vi{};
+	vi.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	vi.image = tex.image;
+	vi.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	vi.format = tex.format;
+	vi.subresourceRange = { isDepth ? (VkImageAspectFlags)VK_IMAGE_ASPECT_DEPTH_BIT
+									: (VkImageAspectFlags)VK_IMAGE_ASPECT_COLOR_BIT,
+							0, tex.mipLevels, 0, 1 };
+	m_lastError = vkCreateImageView( m_device, &vi, nullptr, &tex.view );
+	if( m_lastError != VK_SUCCESS ) return false;
+
+	auto filterOf = []( lsEnum f ) {
+		return ( f == LS_NEAREST ) ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
+	};
+	auto wrapOf = []( lsEnum w ) {
+		switch( w )
+		{
+		case LS_CLAMP_TO_EDGE:	return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case LS_CLAMP_TO_BORDER: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		case LS_MIRRORED_REPEAT: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		default:				return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		}
+	};
+
+	VkSamplerCreateInfo si{};
+	si.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	si.magFilter = filterOf( tex.magFilter );
+	si.minFilter = filterOf( tex.minFilter );
+	si.mipmapMode = ( tex.minFilter == LS_LINEAR_MIPMAP_LINEAR )
+		? VK_SAMPLER_MIPMAP_MODE_LINEAR : VK_SAMPLER_MIPMAP_MODE_NEAREST;
+	si.addressModeU = wrapOf( tex.wrapS );
+	si.addressModeV = wrapOf( tex.wrapT );
+	si.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	si.maxLod = tex.mipsGenerated ? (float)( tex.mipLevels - 1 ) : 0.0f;
+
+	m_lastError = vkCreateSampler( m_device, &si, nullptr, &tex.sampler );
+	return m_lastError == VK_SUCCESS;
 }
 
-void lsVulkan::TexParameterfv( lsEnum, lsEnum, const lsFloat* )
+bool lsVulkan::uploadTexture( VkTex& tex, lsEnum internalFormat, lsEnum format,
+							  lsEnum type, uint32_t w, uint32_t h, const void* pixels )
 {
-	// V3+ stub
+	// Map (internalformat, format, type) -> VkFormat + source layout.
+	// RGB sources are expanded to RGBA on upload (RGB8 has poor support).
+	bool srgb = false, expand = false, depth = false;
+	VkFormat vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
+	uint32_t srcBpp = 4, dstBpp = 4;
+	bool wide = ( type == LS_UNSIGNED_SHORT );	// 16-bit channels
+
+	srgb = ( internalFormat == LS_SRGB || internalFormat == LS_SRGB_ALPHA ||
+			 internalFormat == LS_SRGB8 || internalFormat == LS_SRGB8_ALPHA8 );
+
+	if( internalFormat == LS_DEPTH_COMPONENT || format == LS_DEPTH_COMPONENT )
+	{
+		depth = true;
+		vkFormat = VK_FORMAT_D32_SFLOAT;
+		srcBpp = dstBpp = 4;
+	} else if( format == LS_ALPHA )
+	{
+		vkFormat = VK_FORMAT_R8_UNORM;
+		srcBpp = dstBpp = 1;
+	} else if( wide )
+	{
+		vkFormat = VK_FORMAT_R16G16B16A16_UNORM;
+		srcBpp = ( format == LS_RGB ) ? 6 : 8;
+		dstBpp = 8;
+		expand = ( format == LS_RGB );
+	} else
+	{
+		vkFormat = srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+		srcBpp = ( format == LS_RGB ) ? 3 : 4;
+		dstBpp = 4;
+		expand = ( format == LS_RGB );
+	}
+
+	// recreate image storage
+	if( tex.image ) vkDestroyImage( m_device, tex.image, nullptr );
+	if( tex.memory ) vkFreeMemory( m_device, tex.memory, nullptr );
+	tex.image = VK_NULL_HANDLE;
+	tex.memory = VK_NULL_HANDLE;
+	tex.format = vkFormat;
+	tex.width = w;
+	tex.height = h;
+	tex.mipLevels = 1;
+	tex.mipsGenerated = false;
+	if(! depth && ! pixels ) tex.mipLevels = 1;	// render targets: no mips (V4)
+	else if(! depth )
+	{
+		uint32_t dim = std::max( w, h );
+		while( dim > 1 ) { dim >>= 1; tex.mipLevels++; }
+	}
+
+	VkImageCreateInfo ii{};
+	ii.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	ii.imageType = VK_IMAGE_TYPE_2D;
+	ii.format = vkFormat;
+	ii.extent = { w, h, 1 };
+	ii.mipLevels = tex.mipLevels;
+	ii.arrayLayers = 1;
+	ii.samples = VK_SAMPLE_COUNT_1_BIT;
+	ii.tiling = VK_IMAGE_TILING_OPTIMAL;
+	ii.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+			   VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	if( depth ) ii.usage = VK_IMAGE_USAGE_SAMPLED_BIT |
+						   VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	else if(! pixels ) ii.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	m_lastError = vkCreateImage( m_device, &ii, nullptr, &tex.image );
+	if( m_lastError != VK_SUCCESS ) return false;
+
+	VkMemoryRequirements reqs;
+	vkGetImageMemoryRequirements( m_device, tex.image, &reqs );
+	VkMemoryAllocateInfo ai{};
+	ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	ai.allocationSize = reqs.size;
+	ai.memoryTypeIndex = findMemoryType( reqs.memoryTypeBits,
+										 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
+	m_lastError = vkAllocateMemory( m_device, &ai, nullptr, &tex.memory );
+	if( m_lastError != VK_SUCCESS ) return false;
+	vkBindImageMemory( m_device, tex.image, tex.memory, 0 );
+
+	VkCommandBuffer cmd = beginOneShot();
+
+	// transition to TRANSFER_DST (or straight to attachment layout when
+	// there is no pixel data — V4 render targets)
+	VkImageMemoryBarrier barrier{};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = tex.image;
+	barrier.subresourceRange = { depth ? (VkImageAspectFlags)VK_IMAGE_ASPECT_DEPTH_BIT
+									   : (VkImageAspectFlags)VK_IMAGE_ASPECT_COLOR_BIT,
+								 0, tex.mipLevels, 0, 1 };
+	barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	barrier.newLayout = pixels ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+							   : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	barrier.srcAccessMask = 0;
+	barrier.dstAccessMask = pixels ? VK_ACCESS_TRANSFER_WRITE_BIT
+								   : VK_ACCESS_SHADER_READ_BIT;
+	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+						  pixels ? VK_PIPELINE_STAGE_TRANSFER_BIT
+								 : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+						  0, 0, nullptr, 0, nullptr, 1, &barrier );
+
+	if( pixels )
+	{
+		// staging buffer (with optional 3->4 channel expansion)
+		const VkDeviceSize dataSize = (VkDeviceSize)w * h * dstBpp;
+		VkBufferCreateInfo bi{};
+		bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bi.size = dataSize;
+		bi.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		VkBuffer staging;
+		if( vkCreateBuffer( m_device, &bi, nullptr, &staging ) != VK_SUCCESS )
+		{ endOneShot( cmd ); return false; }
+		VkMemoryRequirements sreq;
+		vkGetBufferMemoryRequirements( m_device, staging, &sreq );
+		VkMemoryAllocateInfo sai{};
+		sai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		sai.allocationSize = sreq.size;
+		sai.memoryTypeIndex = findMemoryType( sreq.memoryTypeBits,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT );
+		VkDeviceMemory stagingMem;
+		if( vkAllocateMemory( m_device, &sai, nullptr, &stagingMem ) != VK_SUCCESS )
+		{ endOneShot( cmd ); return false; }
+		vkBindBufferMemory( m_device, staging, stagingMem, 0 );
+
+		void* mapped = nullptr;
+		vkMapMemory( m_device, stagingMem, 0, dataSize, 0, &mapped );
+		if( expand )
+		{
+			if( wide )
+			{
+				const uint16_t* src = (const uint16_t*)pixels;
+				uint16_t* dst = (uint16_t*)mapped;
+				for( uint32_t i = 0; i < w * h; i++ )
+				{
+					dst[i*4+0] = src[i*3+0];
+					dst[i*4+1] = src[i*3+1];
+					dst[i*4+2] = src[i*3+2];
+					dst[i*4+3] = 65535;
+				}
+			} else
+			{
+				const uint8_t* src = (const uint8_t*)pixels;
+				uint8_t* dst = (uint8_t*)mapped;
+				for( uint32_t i = 0; i < w * h; i++ )
+				{
+					dst[i*4+0] = src[i*3+0];
+					dst[i*4+1] = src[i*3+1];
+					dst[i*4+2] = src[i*3+2];
+					dst[i*4+3] = 255;
+				}
+			}
+		} else
+		{
+			memcpy( mapped, pixels, dataSize );
+		}
+		vkUnmapMemory( m_device, stagingMem );
+
+		VkBufferImageCopy region{};
+		region.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+		region.imageExtent = { w, h, 1 };
+		vkCmdCopyBufferToImage( cmd, staging, tex.image,
+								VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region );
+
+		// to SHADER_READ_ONLY (GenerateMipmap re-transitions per level)
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
+							  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+							  0, 0, nullptr, 0, nullptr, 1, &barrier );
+
+		endOneShot( cmd );
+		vkDestroyBuffer( m_device, staging, nullptr );
+		vkFreeMemory( m_device, stagingMem, nullptr );
+	} else
+	{
+		endOneShot( cmd );
+	}
+
+	return createTextureViewAndSampler( tex );
 }
 
-void lsVulkan::GenerateMipmap( lsEnum )
+void lsVulkan::TexImage2D( lsEnum target, lsInt level, lsInt internalFormat,
+						   lsSizei width, lsSizei height, lsInt border,
+						   lsEnum format, lsEnum type, const void* data )
 {
-	// V3+ stub
+	(void)target; (void)border;
+	if( level != 0 || width <= 0 || height <= 0 ) return;
+
+	const uint32_t id = m_textureUnits[m_activeUnit];
+	auto it = m_textures.find( id );
+	if( it == m_textures.end() ) return;
+
+	if(! uploadTexture( it->second, (lsEnum)internalFormat, format, type,
+						(uint32_t)width, (uint32_t)height, data ) )
+		cout << "ERROR: lsVulkan::TexImage2D failed (VkResult " << m_lastError << ")" << endl;
 }
 
-void lsVulkan::PixelStorei( lsEnum, lsInt )
+void lsVulkan::TexParameteri( lsEnum target, lsEnum pname, lsInt param )
 {
-	// V3+ stub
+	(void)target;
+	const uint32_t id = m_textureUnits[m_activeUnit];
+	auto it = m_textures.find( id );
+	if( it == m_textures.end() ) return;
+	VkTex& t = it->second;
+
+	if( pname == LS_TEXTURE_WRAP_S ) t.wrapS = (lsEnum)param;
+	else if( pname == LS_TEXTURE_WRAP_T ) t.wrapT = (lsEnum)param;
+	else if( pname == LS_TEXTURE_MIN_FILTER ) t.minFilter = (lsEnum)param;
+	else if( pname == LS_TEXTURE_MAG_FILTER ) t.magFilter = (lsEnum)param;
+	else return;
+
+	// recreate the sampler when the image already exists
+	if( t.image ) createTextureViewAndSampler( t );
 }
+
+void lsVulkan::TexParameterf( lsEnum target, lsEnum pname, lsFloat param )
+{
+	TexParameteri( target, pname, (lsInt)param );
+}
+
+void lsVulkan::TexParameterfv( lsEnum target, lsEnum pname, const lsFloat* params )
+{
+	if( params ) TexParameteri( target, pname, (lsInt)params[0] );
+}
+
+void lsVulkan::PixelStorei( lsEnum pname, lsInt param )
+{
+	(void)pname; (void)param;	// uploads assume tight packing (engine uses alignment 1)
+}
+
+void lsVulkan::generateMipmaps( VkTex& tex )
+{
+	if( tex.mipLevels <= 1 || tex.mipsGenerated ) return;
+
+	VkCommandBuffer cmd = beginOneShot();
+
+	VkImageMemoryBarrier barrier{};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = tex.image;
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.levelCount = 1;
+
+	int32_t mipW = (int32_t)tex.width;
+	int32_t mipH = (int32_t)tex.height;
+
+	for( uint32_t i = 1; i < tex.mipLevels; i++ )
+	{
+		barrier.subresourceRange.baseMipLevel = i - 1;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		if( i == 1 ) barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+		vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+							  VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+							  0, nullptr, 0, nullptr, 1, &barrier );
+
+		VkImageBlit blit{};
+		blit.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, i - 1, 0, 1 };
+		blit.srcOffsets[1] = { mipW, mipH, 1 };
+		blit.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, i, 0, 1 };
+		blit.dstOffsets[1] = { std::max( mipW / 2, 1 ), std::max( mipH / 2, 1 ), 1 };
+		vkCmdBlitImage( cmd, tex.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						tex.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						1, &blit, VK_FILTER_LINEAR );
+
+		mipW = std::max( mipW / 2, 1 );
+		mipH = std::max( mipH / 2, 1 );
+	}
+
+	// whole chain back to SHADER_READ_ONLY
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = tex.mipLevels;
+	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
+						  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+						  0, nullptr, 0, nullptr, 1, &barrier );
+
+	endOneShot( cmd );
+
+	tex.mipsGenerated = true;
+	createTextureViewAndSampler( tex );	// sampler maxLod now spans the chain
+}
+
+void lsVulkan::GenerateMipmap( lsEnum target )
+{
+	(void)target;
+	const uint32_t id = m_textureUnits[m_activeUnit];
+	auto it = m_textures.find( id );
+	if( it == m_textures.end() ) return;
+	generateMipmaps( it->second );
+}
+
+// ---------------------------------------------------------------------
+// Draw-time sampler binding: GL texture units -> descriptor updates
+// ---------------------------------------------------------------------
+void lsVulkan::bindProgramTextures( VkProgramObj& prog )
+{
+	for( size_t k = 0; k < prog.layout.samplers.size(); k++ )
+	{
+		const uint32_t binding = 1 + (uint32_t)k;
+
+		// GL unit assigned via Uniform1i (default: sampler k -> unit k)
+		uint32_t unit = (uint32_t)k;
+		auto uit = prog.samplerUnits.find( binding );
+		if( uit != prog.samplerUnits.end() ) unit = uit->second;
+
+		const uint32_t texID = ( unit < 32 ) ? m_textureUnits[unit] : 0;
+
+		auto lit = prog.lastBoundTex.find( binding );
+		if( lit != prog.lastBoundTex.end() && lit->second == texID )
+			continue;	// descriptor already points at this texture
+
+		// resolve texture object (0/unknown -> dummy)
+		VkImageView view = m_dummyView;
+		VkSampler sampler = m_dummySampler;
+		if( texID )
+		{
+			auto tit = m_textures.find( texID );
+			if( tit != m_textures.end() && tit->second.view )
+			{
+				view = tit->second.view;
+				sampler = tit->second.sampler;
+			}
+		}
+
+		const uint32_t count = ( k < prog.layout.samplerArrays.size() &&
+								 prog.layout.samplerArrays[k] > 0 )
+			? prog.layout.samplerArrays[k] : 1;
+		std::vector<VkDescriptorImageInfo>* infos =
+			new std::vector<VkDescriptorImageInfo>( count );
+		for( auto& info : *infos )
+		{
+			info.sampler = sampler;
+			info.imageView = view;
+			info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		}
+		m_descriptorImageInfos.push_back( infos );
+
+		VkWriteDescriptorSet sw{};
+		sw.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		sw.dstSet = prog.descriptorSet;
+		sw.dstBinding = binding;
+		sw.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		sw.descriptorCount = count;
+		sw.pImageInfo = infos->data();
+		vkUpdateDescriptorSets( m_device, 1, &sw, 0, nullptr );
+
+		prog.lastBoundTex[binding] = texID;
+	}
+}
+
+
+// =====================================================================
+// STUBS — not yet implemented (V4+ milestones)
+// =====================================================================
 
 void lsVulkan::GenFramebuffers( lsSizei, lsFBOID* )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::DeleteFramebuffers( lsSizei, lsFBOID* )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::BindFramebuffer( lsEnum, lsFBOID )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::FramebufferTexture2D( lsEnum, lsEnum, lsEnum, lsTextureID, lsInt )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 lsEnum lsVulkan::CheckFramebufferStatus( lsEnum )
@@ -1931,65 +2384,65 @@ lsEnum lsVulkan::CheckFramebufferStatus( lsEnum )
 
 void lsVulkan::DrawBuffer( lsEnum )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::ReadBuffer( lsEnum )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::ReadPixels( lsInt, lsInt, lsSizei, lsSizei, lsEnum, lsEnum, void* )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::DepthRangef( lsFloat, lsFloat )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::ColorMask( lsBoolean, lsBoolean, lsBoolean, lsBoolean )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::PolygonOffset( lsFloat, lsFloat )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::ShadeModel( lsEnum )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::GenQueries( lsSizei, lsQueryID* )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::DeleteQueries( lsSizei, lsQueryID* )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::BeginQuery( lsEnum, lsQueryID )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::EndQuery( lsEnum )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::GetQueryObjectiv( lsQueryID, lsEnum, lsInt* )
 {
-	// V3+ stub
+	// V4+ stub
 }
 
 void lsVulkan::GetIntegerv( lsEnum, lsInt* )
 {
-	// V3+ stub
+	// V4+ stub
 }

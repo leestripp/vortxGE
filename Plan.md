@@ -1,7 +1,7 @@
 # Plan.md — vortxGE Renderer Roadmap
 
 > **Active plan:** Vulkan primary renderer (Part 2).
-> **Status:** V2 done (2026-08-04), V3 in progress.
+> **Status:** V3 done (2026-08-04), V4 in progress.
 
 ---
 
