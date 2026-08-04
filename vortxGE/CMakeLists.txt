@@ -28,6 +28,7 @@ target_link_libraries(vortxGE
 	PUBLIC
 	Vulkan::Vulkan
 	glfw
+	OmniNet
 )
 
 # glslang: runtime GLSL->SPIR-V compilation for the Vulkan backend

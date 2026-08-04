@@ -88,6 +88,18 @@ include_directories(
 	${OPENAL_INCLUDE_DIR}
 )
 
+# OmniNet — HTTP/WebSocket server library (networking for engine services:
+# remote inspection, MCP-over-HTTP debug hooks, future multiplayer support).
+# Components (tests/demos/benchmarks/tools) auto-disable when consumed via
+# FetchContent (OmniNet >= b6e8084); sqlite-vec is not needed here.
+include(FetchContent)
+set(OMNINET_ENABLE_VEC OFF CACHE BOOL "vortxGE does not need sqlite-vec" FORCE)
+FetchContent_Declare(omninet
+	GIT_REPOSITORY https://gitlab.com/leestripp/omninet.git
+	GIT_TAG        b6e808448e1f23757cf29b3442181618a8ecd024	# pin for reproducible builds
+)
+FetchContent_MakeAvailable(omninet)
+
 add_subdirectory(vortxGE)
 
 # CTest — test suite lives in tests/ (Plan.md Phase 0)

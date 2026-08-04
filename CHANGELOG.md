@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Networking — OmniNet integration (2026-08-04):** OmniNet
+  (gitlab.com/leestripp/omninet — HTTP/WebSocket server library, TLS,
+  sessions) is now fetched via CMake FetchContent (pinned commit) and
+  linked statically into the vortxGE engine library. Foundation for
+  engine-level remote inspection, MCP-over-HTTP debug hooks
+  (save_fbo / save_framebuffer and friends), and future multiplayer
+  support. Requires OmniNet >= b6e8084 which auto-disables its
+  tests/demos/benchmarks/tools when consumed as a dependency.
+  Smoke test: `tests/src/net/omninet_smoke.cpp` serves a real HTTP
+  round-trip from the doctest runner.
 - **V3 — Vulkan textures (2026-08-04):** real texture uploads replace
   the dummy 1×1 white texture. \`Gen/Bind/DeleteTextures\`,
   \`ActiveTexture\`, \`TexImage2D\` (sRGB/UNORM/16-bit formats, RGB→RGBA
