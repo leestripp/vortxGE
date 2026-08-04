@@ -30,10 +30,12 @@ using namespace std;
 namespace
 {
 #ifndef NDEBUG
-	const bool kValidation = true;		// Debug builds: request the Khronos layer if present
+	const bool kValidationDbg = true;	// Debug builds: request the Khronos layer if present
 #else
-	const bool kValidation = false;
+	const bool kValidationDbg = false;
 #endif
+	// DIAGNOSTIC: VORTX_VK_VALIDATION=1 force-enables in any build type
+	const bool kValidation = kValidationDbg || getenv( "VORTX_VK_VALIDATION" ) != nullptr;
 
 	const char* kValidationLayer = "VK_LAYER_KHRONOS_validation";
 
@@ -1424,6 +1426,7 @@ bool lsVulkan::linkProgramResources( VkProgramObj& prog )
 	}
 
 	// canonical merged layout -> identical block in both stages
+	lsVkShader::assignInterface( vit->second.parsed, fit->second.parsed );
 	prog.layout = lsVkShader::mergeLayouts( vit->second.parsed, fit->second.parsed );
 
 	const std::string vsSrc = lsVkShader::assemble( vit->second.parsed, prog.layout );

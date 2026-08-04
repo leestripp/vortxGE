@@ -36,6 +36,14 @@ struct lsVkUniformMember
 	uint32_t	size = 0;		// bytes the matching Uniform* call writes
 };
 
+/// One global in/out interface variable (no explicit layout in source).
+struct lsVkInterfaceVar
+{
+	std::string name;
+	uint32_t	arraySize = 0;	// 0 = scalar
+	uint32_t	location = 0;	// assigned by assignInterface()
+};
+
 /// Per-stage parse result (pre-merge).
 struct lsVkStageParse
 {
@@ -44,6 +52,8 @@ struct lsVkStageParse
 	std::vector<std::string> samplers;			// sampler names in declaration order
 	std::vector<std::string> samplerTypes;		// their GLSL types (parallel)
 	std::vector<uint32_t> samplerArrays;		// array sizes (0 = scalar, parallel)
+	std::vector<lsVkInterfaceVar> ins;			// global `in` decls lacking layout(location)
+	std::vector<lsVkInterfaceVar> outs;			// global `out` decls lacking layout(location)
 };
 
 /// Canonical program layout (post-merge).
@@ -67,8 +77,16 @@ namespace lsVkShader
 	lsVkProgramLayout mergeLayouts( const lsVkStageParse& vs,
 									const lsVkStageParse& fs );
 
+	/// Assign explicit interface locations (Vulkan requires them):
+	/// VS outs numbered sequentially (arrays consume consecutive
+	/// locations); FS ins matched to VS outs by NAME (unmatched get the
+	/// next free locations); FS outs numbered from 0. VS ins keep their
+	/// source `layout(location=N)` qualifiers.
+	void assignInterface( lsVkStageParse& vs, lsVkStageParse& fs );
+
 	/// Produce final compilable GLSL for a stage: #version 450 + shared
-	/// block + this stage's sampler bindings + its body.
+	/// block + this stage's sampler bindings + its body. In/out decls
+	/// recorded by parse() get `layout(location=N)` injected.
 	std::string assemble( const lsVkStageParse& stage,
 						  const lsVkProgramLayout& layout );
 

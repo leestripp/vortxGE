@@ -63,6 +63,19 @@ lsVkStageParse lsVkShader::parse( const string& source )
 	while( std::getline( ss, line ) )
 	{
 		std::smatch m;
+		// global in/out decls WITHOUT a layout qualifier need explicit
+		// locations for Vulkan (assigned later by assignInterface)
+		static const std::regex ioRe(
+			R"(^\s*(?:flat\s+|smooth\s+|noperspective\s+|centroid\s+)?(in|out)\s+([A-Za-z_]\w*)\s+([A-Za-z_]\w*)\s*(?:\[\s*(\d+)\s*\])?\s*;)" );
+		if( std::regex_search( line, m, ioRe ) )
+		{
+			lsVkInterfaceVar v;
+			v.name = m[3];
+			v.arraySize = m[4].matched ? (uint32_t)stoul( m[4] ) : 0;
+			( m[1] == "in" ? out.ins : out.outs ).push_back( v );
+			bodyLines.push_back( line );	// assemble() injects the layout
+			continue;
+		}
 		// regex_search: pattern is ^-anchored but tolerates trailing
 		// comments (uniform mat4 mMatrix; // Model Matrix)
 		if( std::regex_search( line, m, uniformRe ) )
@@ -161,6 +174,48 @@ lsVkProgramLayout lsVkShader::mergeLayouts( const lsVkStageParse& vs,
 }
 
 // ---------------------------------------------------------------------
+// assignInterface
+// ---------------------------------------------------------------------
+void lsVkShader::assignInterface( lsVkStageParse& vs, lsVkStageParse& fs )
+{
+	// VS outs: sequential; arrays consume consecutive locations
+	uint32_t next = 0;
+	for( auto& v : vs.outs )
+	{
+		v.location = next;
+		next += v.arraySize ? v.arraySize : 1;
+	}
+	// FS ins: match VS outs by name; unmatched take the next free slot
+	for( auto& v : fs.ins )
+	{
+		uint32_t loc = UINT32_MAX;
+		for( const auto& o : vs.outs )
+			if( o.name == v.name ) { loc = o.location; break; }
+		if( loc == UINT32_MAX )
+		{
+			loc = next;
+			next += v.arraySize ? v.arraySize : 1;
+		}
+		v.location = loc;
+	}
+	// FS outs: colour attachments, numbered from 0
+	next = 0;
+	for( auto& v : fs.outs )
+	{
+		v.location = next;
+		next += v.arraySize ? v.arraySize : 1;
+	}
+	// VS ins without explicit layout: declaration order (engine shaders
+	// carry explicit layout(location=N) on VS ins, so this is a fallback)
+	next = 0;
+	for( auto& v : vs.ins )
+	{
+		v.location = next;
+		next += v.arraySize ? v.arraySize : 1;
+	}
+}
+
+// ---------------------------------------------------------------------
 // assemble
 // ---------------------------------------------------------------------
 string lsVkShader::assemble( const lsVkStageParse& stage,
@@ -172,8 +227,26 @@ string lsVkShader::assemble( const lsVkStageParse& stage,
 	std::stringstream bodyStream( stage.body );
 	string line;
 	bool versionWritten = false;
+	static const std::regex ioRe(
+		R"(^\s*(?:flat\s+|smooth\s+|noperspective\s+|centroid\s+)?(in|out)\s+([A-Za-z_]\w*)\s+([A-Za-z_]\w*)\s*(?:\[\s*\d+\s*\])?\s*;)" );
+	auto findLoc = [&]( const std::string& dir, const std::string& name,
+						uint32_t& loc ) -> bool
+	{
+		const auto& vec = ( dir == "in" ) ? stage.ins : stage.outs;
+		for( const auto& v : vec )
+			if( v.name == name ) { loc = v.location; return true; }
+		return false;
+	};
 	while( std::getline( bodyStream, line ) )
 	{
+		std::smatch im;
+		uint32_t loc = 0;
+		if( std::regex_search( line, im, ioRe ) &&
+			findLoc( im[1], im[3], loc ) )
+		{
+			out << "layout(location = " << loc << ") " << line << '\n';
+			continue;
+		}
 		if(! versionWritten && std::regex_search( line, versionRe ) )
 		{
 			out << "#version 450\n";
