@@ -78,12 +78,13 @@ modern shadow quality + clustered light assignment**.
 
 ---
 
-## L0 — Foundations & bug fixes ✅ planned 2026-08-04
+## L0 — Foundations & bug fixes — L0.1 done 2026-08-04
 
-- L0.1 **Dynamic object lighting**: emitter-spawned objects must
+- L0.1 **Dynamic object lighting** ✅ done: emitter-spawned objects must
   register with `lsLightManager` (or per-object light evaluation)
   so emitted cubes are lit. Root-cause: light linking is a
-  scene-load-time step only.
+  scene-load-time step only. **Fixed: scene light-manager fallback
+  in lsShader::Setup_Lights when the per-object list is empty.**
 - L0.2 **Shadow-map orientation audit on Vulkan**: FBO-rendered
   depth maps are Y-flipped vs GL (same convention issue as the
   blit). Verify shadow UV sampling matches on both backends;
