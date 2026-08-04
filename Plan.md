@@ -1,193 +1,166 @@
-# Plan.md — vortxGE Renderer Roadmap
+# Plan.md — vortxGE Lighting & Shadow System Refactor
 
-> **Active plan:** Vulkan primary renderer (Part 2).
-> **Status:** V3 done (2026-08-04), V4 in progress.
-
----
-
-## Part 1 — Completed work (history, condensed)
-
-Details live in `CHANGELOG.md`; this section exists so the old plan text
-doesn't bury the active one.
-
-### Renderer abstraction (Phases 0–8) ✅ 2026-08-02 — tag `0.1.0`
-Centralised all raw `gl*()` calls into `render/lsOpenGL.cpp`. The rest of
-the engine talks to the GPU only through `lsRender` (80 virtuals) using
-engine-level handle types (`lsTextureID`, `lsFBOID`, …) and `LS_*`
-constants. Result: 289 raw GL calls / ~250 `GL_*` refs removed from 16
-files; exactly one TU includes `<GL/glew.h>`.
-
-### Testing (Phases 0–5) ✅/partial 2026-08-03
-doctest vendored, CTest wiring, math suites (vectors, matrices,
-quaternion), beyond-math suites (events, properties, streaming).
-**CI: deliberately none** (user decision — see `AGENTS.md` §4).
-
-### Phase 6 — C++23 migration ✅ 2026-08-03 — tag `0.2.0`
-### Phase 7 — Dynamic streaming asset manager (M1–M5) ✅ 2026-08-03 — tag `0.2.0`
-glTF CPU-parse/GL-upload split, `lsStreamingManager` (distance-driven
-residency with hysteresis + budget), demo integration, async 2-worker
-parse→upload pipeline. Post-release fixes: shutdown UAF in `~lsScene`,
-streaming flapping from per-pass cull cameras.
+> **Active plan:** full lighting/shadow rewrite (L-series).
+> **Status:** L0 planning done (2026-08-04). No code yet.
+> Previous roadmap (renderer abstraction, Vulkan backend, pipeline
+> stages R1–R4) is complete — see `CHANGELOG.md` and git history.
 
 ---
 
-## Part 2 — ACTIVE PLAN: Vulkan as the primary renderer
+## Why rewrite (current state, honest assessment)
 
-### Why now
-The `lsRender` abstraction was designed blind (GL-shaped, never exercised
-by a second backend). Validating it at ~17k lines with a working demo and
-green tests is the cheapest this will ever be. **User decision
-(2026-08-04): Vulkan becomes the main renderer; OpenGL becomes the
-fallback.**
+- Forward renderer with **3 lights hard-coded** in shaders
+  (`vxLightPos[3]`, `vxLightType[3]`, …); `lsLightManager` picks the
+  nearest ≤3 within 50 m. No path to more lights.
+- Per-light 2D shadow map FBOs (`lsShadowStage`), depth-only pass,
+  basic depth-compare in the PBR shader. Known weaknesses: hard
+  aliased edges, hand-tuned bias, no texel snapping (swimming), no
+  cascade support, spot maps waste resolution, **no point-light
+  shadows at all**.
+- **Dynamic/emitted objects get no lighting** (user-reported
+  2026-08-04): objects spawned by `lsObjectEmitter` after scene light
+  linking never enter the light lists.
+- Backend lessons already learned (do not re-learn): Vulkan needs
+  array-element uniform decoding (`name[i]` → member + elem<<16),
+  FBO textures are Y-flipped vs GL (blit `flipY` auto), swapchain
+  recreate must no-op when extent is unchanged.
 
-### Design decisions
-1. **Vulkan primary, OpenGL fallback.** `vortxGE` constructs `lsVulkan`
-   first; if Vulkan init fails (no driver/device), it falls back to
-   `lsOpenGL` and logs the fallback. `VORTX_RENDERER=vulkan|opengl`
-   env var overrides.
-2. **`lsOpenGL` stays stable.** The fallback must not regress: existing
-   GL call sites and behaviour are preserved; new interface methods get
-   thin GL shims.
-3. **`LS_*` constants keep GL numeric values.** Zero churn for GL;
-   `lsVulkan` translates `LS_*` → `Vk*` at its boundary (its own mapping
-   unit). `lsRenderConstants.h` stays the GL bridge only.
-4. **Frame lifecycle enters the interface.** Vulkan needs
-   `BeginFrame()` / `EndFrame()` / `Present()`, `Resize(w,h)`, and a
-   native-window hook (`SetWindow(void* glfwWindow)`). GL implements
-   these as shims; the app keeps calling `glfwSwapBuffers` for GL in V0
-   (swap ownership moves into backends at V6 parity).
-5. **Debug builds use Vulkan validation layers**; Release builds strip.
-6. **No CI** — verification is local: build, doctest suite, demo smoke
-   (per `AGENTS.md` §4).
+## What games actually use in 2025–2026 (research summary)
 
-### Phases
+| Technique | Used by | Takeaway for vortxGE |
+|---|---|---|
+| **Cascaded Shadow Maps (CSM)** | every outdoor game, still the sun-shadow baseline | S2 — 3–4 stable cascades for the sun |
+| **Virtual Shadow Maps (VSM)** | UE5 (Nanite pipeline); cached 16K pages, dirty-page re-render | aspirational; too heavy for our dual GL/VK shim — skip for now |
+| **PCF + improvements** | universal baseline filtering | S1 — 3×3→5×5 PCF w/ rotation/poisson taps |
+| **PCSS / contact-hardening** | NVIDIA hybrid pipelines, many AA titles | S4 — blocker-distance penumbra over CSM |
+| **Screen-space contact shadows** | most engines as gap-filler | S4 — cheap ray march in depth |
+| **Hybrid RT shadows (DXR/VK_RT)** | AAA on RT hardware; RX 7800 XT (RDNA3) has RT cores | L6 optional Vulkan-only path |
+| **Clustered/Forward+ lighting** | industry standard for many lights (AMD Forward+, idTech, etc.) | L5 — replaces the 3-light limit |
+| **Deferred/visibility buffers** | AAA heavy pipelines | out of scope — stay forward |
+| **ReSTIR, Lumen/SDF GI, Nanite** | UE5/CDPR tier | non-goals (see below) |
 
-#### V0 — Interface refactor + backend selection ✅ **DONE** (2026-08-04)
-Add lifecycle methods to `lsRender` (+ GL shims), `RenderType::VULKAN`,
-`VORTX_RENDERER` selection + fallback in `vortxGE`, empty `lsVulkan`
-skeleton compiling in tree. **Done when:** demo runs identically on GL
-(fallback path), selection env var works, suite green.
-
-#### V1 — Vulkan core: clear a window ✅ **DONE** (2026-08-04)
-Instance, physical/logical device, GLFW surface, swapchain, per-frame
-sync, command buffers, `Clear()` + `Present()`. **Done when:** demo
-window clears to a colour through `lsVulkan` (GL untouched).
-
-#### V2 — Buffers + first geometry ✅ **DONE** (2026-08-04)
-Vertex/index buffers (via VMA or manual), pipeline for the output quad,
-GLSL→SPIR-V compile path (`glslang-tools`). **Done when:** FBO→quad
-pipeline draws on Vulkan.
-
-#### V3 — Textures, descriptors, full shaders 🔲
-Texture upload/samplers, descriptor set layout matching engine uniform
-patterns, PBR shader set to SPIR-V. **Done when:** scene renders
-textured on Vulkan.
-
-#### V4 — Offscreen targets (FBO) 🔲
-`lsFBOID` → VkFramebuffer/renderpass; FBO pass + resize parity
-(HiDPI contract). **Done when:** render-to-texture works.
-
-#### V5 — Shadow maps 🔲
-Depth-only targets + sampling in PBR shaders. **Done when:** spot/sun
-shadows match GL output.
-
-#### V6 — Parity & unification 🔲
-Occlusion queries, state audit, present ownership unified in backends
-(app swap removed), runtime side-by-side GL↔Vulkan comparison, docs
-(AGENTS.md, docs/), CHANGELOG, release tag. **Done when:** full demo
-parity, Vulkan default, GL verified as working fallback.
-
-### Out of scope
-Metal/D3D12 backends; Vulkan-specific perf features (bindless, RT);
-Windows/macOS ports (Linux-only project).
-
-### Definition of done (whole plan)
-Demo runs full feature parity on Vulkan by default; GL fallback verified
-by `VORTX_RENDERER=opengl`; test suite green; docs updated; release
-tagged (0.3.0 at V1+ or per milestone review).
+Non-goals: deferred renderer rewrite, virtualized geometry, GI/Lumen,
+ReSTIR, VSM page caching. The engine stays a **forward renderer with
+modern shadow quality + clustered light assignment**.
 
 ---
 
-# Part 3 — Render Pipeline Refactor (lsControl/lsViewer/passes → lsRenderPipeline)
+## Invariants (hold after every phase)
 
-## Why
+1. **GL 3.3 and Vulkan produce matching output** — verify with
+   `VORTX_SHOT` captures on both backends after each phase.
+2. Pipeline architecture (R-series) is the render path: new work
+   lands as stages/pass tokens, not control classes.
+3. No per-frame swapchain recreation; no per-frame driver waits.
+4. `VORTX_PIPELINE=1` demo stays the test bed; legacy path keeps
+   working until L-series is done.
 
-The control/viewer/pass architecture fights everyone (user decision
-2026-08-04: "I was never happy with it"):
+---
 
-- **Composite is implicit magic.** Displaying the scene FBO requires a
-  hidden second scene ("Quad Viewer": lsViewer + lsScene + ortho camera
-  + lsObject with a 180°-rotated quad + lsPass_DR) just to blit a
-  texture to screen. The 180° rotation silently flips winding (backend
-  culling hazard — cost us hours on Vulkan).
-- **Cameras are over-wired.** lsPass carries `camera` AND `cull_camera`;
-  cameras must live as scene nodes; getting a working view means
-  touching scene graph, pass manager and control chain.
-- **Three parallel hierarchies.** lsControl chain (next_control) ×
-  per-control lsSceneManager/lsPassManager/lsAssetManager × per-pass
-  linked list — data flow is unreadable.
-- **Global-state leaks between passes.** Viewport/FBO bindings set in
-  one pass leak into the next (observed: swapchain pass opening with
-  the FBO pass's stale viewport).
-- **HiDPI is scattered.** Logical-vs-physical pixel handling lives in
-  the demo app, passes and FBOs simultaneously (Vulkan swapchain ended
-  up 2400×1350 physical while the engine renders 1920×1080 logical).
+## L0 — Foundations & bug fixes ✅ planned 2026-08-04
 
-## Target architecture
+- L0.1 **Dynamic object lighting**: emitter-spawned objects must
+  register with `lsLightManager` (or per-object light evaluation)
+  so emitted cubes are lit. Root-cause: light linking is a
+  scene-load-time step only.
+- L0.2 **Shadow-map orientation audit on Vulkan**: FBO-rendered
+  depth maps are Y-flipped vs GL (same convention issue as the
+  blit). Verify shadow UV sampling matches on both backends;
+  compensate in one place (shadow matrix or stage), not per shader.
+- L0.3 **Shadow bias/uniform plumbing check**: array-element
+  locations for shadow matrices/samplers on Vulkan.
 
-```
-lsRenderPipeline  (one per view/window; owned by the app, not a control chain)
-├── lsTargetPool            named render targets, auto-resize on ONE
-│                           framebuffer-size event (single HiDPI owner)
-│     "scene" (colour+depth)   "shadow[0..N]" (depth)   "screen"
-├── stages: ordered vector<lsRenderStage*>   (explicit, data-driven)
-│     lsSceneStage   { scene, camera, target, flags }      → renders
-│                    an lsScene with an explicit lsCamera into a target
-│     lsShadowStage  { light, target }                     → depth maps
-│     lsBlitStage    { srcTarget, dstTarget|screen }       → FBO→screen
-│                    (replaces the entire Quad-Viewer hack)
-│     lsEffectStage  { shader, srcTarget, dstTarget }      → post-fx
-│                    (future: bloom/SSAO/TAA chains)
-└── each stage sets ALL state it needs (viewport, depth, blend) —
-    nothing leaks in or out (backends snapshot/restore per stage)
-```
+**Done when:** emitted cubes lit on GL+VK; existing shadows identical
+or better on both backends.
 
-Design rules:
+## L1 — Shadow core rewrite
 
-1. **Explicit over implicit.** Every stage declares inputs/outputs up
-   front — the pipeline can later reorder/parallelise/validate them
-   (this is the hook for a future frame graph and deferred G-buffer
-   stage: `lsDeferredStage` is just another stage type).
-2. **One manager of each kind at engine level** (scene, assets) — no
-   per-control triplication.
-3. **Camera decoupled.** `lsCamera` usable standalone (view/proj
-   without scene-node membership); a stage holds a camera*, period.
-   No `cull_camera` dual-wiring (culling uses the same camera unless a
-   stage explicitly overrides).
-4. **No fake scenes for blits.** FBO→screen is `lsBlitStage`, one line.
-5. **Single resize owner.** The app tells the pipeline the framebuffer
-   size; the target pool resizes every named target; stages never call
-   Viewport themselves (pipeline applies stage rect × framebuffer).
-6. **Backends untouched.** Everything above the lsRender interface;
-   lsOpenGL must not regress; LS_* conventions unchanged.
+Single shadow subsystem owning all shadow rendering/sampling:
 
-## Phases
+- L1.1 `lsShadowMap` (new, engine-level): per-light depth target,
+  atlas allocation option, resolution per light type/config.
+- L1.2 Depth-only pipeline: dedicated fast depth shader path
+  (no material/fragment cost), front-face culling option,
+  polygon offset/depth-bias via pipeline state (Vulkan) and
+  `glPolygonOffset` (GL) — kill hand-tuned shader bias.
+- L1.3 Comparison samplers: GL `GL_COMPARE_REF_TO_TEXTURE` /
+  Vulkan `VK_COMPARE_OP_*` sampler so PCF taps are single
+  texture fetches (`sampler2DShadow` / `texture2DShadow` in
+  shaders on both backends).
+- L1.4 Filtering: 3×3 PCF → 5×5 rotated-poisson PCF; normal-offset
+  bias to kill acne+peter-panning together.
+- L1.5 Directional stability: texel snapping (round light-space
+  origin to texel grid) — no more swimming while moving.
+- L1.6 `lsShadowStage` becomes a thin driver over the subsystem;
+  shadow quality presets (low/med/high) in config.
 
-| Phase | Scope | Done when |
-|-------|-------|-----------|
-| R0 | This plan + current-architecture doc map | committed |
-| R1 | `vortxGE/src/pipeline/`: lsRenderPipeline, lsRenderStage base, lsTargetPool skeleton — alongside existing code, zero removals | builds, old path untouched |
-| R2 | lsSceneStage + lsBlitStage working on GL backend | GLFW demo renders scene→"scene" target→screen via pipeline, visually identical to old path |
-| R3 | Demo switched to pipeline by default (old control path behind `--legacy-controls`), Vulkan backend verified | demo parity on both backends |
-| R4 | lsShadowStage (spot/sun shadow maps as stages) | shadows match old path |
-| R5 | Camera decoupling (standalone lsCamera), remove cull_camera wiring | tests + demo green |
-| R6 | Deprecate/remove lsControl/lsViewer/lsComposite/lsPass_* + lsPassManager/lsControlManager; migrate GTKmm demo; docs (AGENTS.md, docs/controls.md → pipeline.md), CHANGELOG | old classes gone or `#ifdef VORTXGE_LEGACY_CONTROLS`, docs updated |
+**Done when:** sun + both spots cast stable, acne-free shadows on
+GL+VK at 60 fps; quality preset visibly scales.
 
-Out of scope: frame-graph auto-scheduling, deferred renderer itself
-(the stage API makes both possible later), multi-window pipelines.
+## L2 — CSM for the sun
 
-## Definition of done (Part 3)
+- L2.1 3–4 cascades, practical split scheme (lambda blend
+  uniform/log), per-cascade stable ortho fitting to camera
+  frustum slice bounds.
+- L2.2 Per-cascade texel snapping + cascade overlap blend band.
+- L2.3 Atlas: one depth target, 2×2 viewport quadrants (GL/VK
+  identical semantics — scissored viewports both support).
+- L2.4 Shader: cascade select by view depth, blend across seam;
+  keep single-cascade fallback path for low preset.
 
-GLFW demo renders through lsRenderPipeline on GL and Vulkan with visual
-parity; the Quad-Viewer control hack deleted; cameras usable standalone;
-old control/pass classes removed or legacy-gated; CHANGELOG + docs.
+**Done when:** shadows usable from 0.5 m to 300+ m from camera with
+no visible seams while moving/rotating.
+
+## L3 — Full light-type coverage
+
+- L3.1 Spot: tighten frustum fit to cone, perspective-correct
+  filtering.
+- L3.2 **Point lights: omnidirectional shadows** — cube depth
+  target (GL `GL_TEXTURE_CUBE_MAP`, VK cube image view layers,
+  both behind `lsRender`) with 6-face pass; dual-paraboloid as
+  GL-only fallback if cube proves painful.
+- L3.3 Shadow-casting flag per light + per-object (caster mask).
+
+**Done when:** a point light in the demo scene casts correct
+shadows from all directions on both backends.
+
+## L4 — Soft shadows
+
+- L4.1 PCSS: blocker search + variable penumbra from light size
+  (sun angular size, spot/point radius) over L1/L2 maps.
+- L4.2 Screen-space contact shadows (short depth ray march) for
+  fine detail the maps miss.
+- L4.3 Preset gating: PCSS on high only.
+
+**Done when:** penumbra grows with occluder distance; contact
+hardening visible near occluders.
+
+## L5 — Clustered forward lighting (kill the 3-light limit)
+
+- L5.1 Screen-tile/cluster light grid (16 px tiles × depth slices);
+  CPU build first (engine already culls lights by distance),
+  compute-shader build as Vulkan-only upgrade later.
+- L5.2 Light data → SSBO/UBO array (no fixed 3); shaders index per
+  cluster. GL 3.3: UBO-sized light cap (~64–128 visible lights);
+  Vulkan: SSBO.
+- L5.3 Shadow-casting lights stay few (atlas budget); non-casting
+  lights become nearly free.
+- L5.4 Demo: stress scene with 30–100 small lights.
+
+**Done when:** 50-light scene runs interactively on both backends;
+nearest-3 popping gone.
+
+## L6 — (Optional, Vulkan-only) RT shadow path
+
+- VK_KHR_ray_tracing_pipeline on RDNA3: hard RT shadows for sun +
+  SVGF-style temporal denoise; hybrid with L2 CSM (RT near field).
+- Strictly opt-in (`VORTX_RT_SHADOWS=1`); GL path untouched.
+
+---
+
+## Working agreements
+
+- One phase per working session; commit per phase with
+  `VORTX_SHOT` before/after evidence on **both** backends.
+- Update this file's phase checkboxes as work lands; move finished
+  phases to `CHANGELOG.md` when the L-series completes.
