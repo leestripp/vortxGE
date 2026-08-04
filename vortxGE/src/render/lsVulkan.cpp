@@ -763,14 +763,22 @@ void lsVulkan::cleanupSwapchain()
 
 bool lsVulkan::recreateSwapchain()
 {
+	// no-op guard: callers (Resize paths, Wayland configure events) can
+	// fire every frame — recreating the swapchain when the extent has
+	// NOT changed allocates/leaks GBs per minute (the 'swapchain
+	// recreated' storm) and eventually segfaults the driver
+	int cw = 0, ch = 0;
+	glfwGetFramebufferSize( (GLFWwindow*)m_window, &cw, &ch );
+	if( cw == 0 || ch == 0 ) return true;	// minimized
+	if( (uint32_t)cw == m_swapchainExtent.width &&
+		(uint32_t)ch == m_swapchainExtent.height && m_swapchain )
+		return true;	// nothing to do
+
 	m_swapchainRecreates++;
 	vkDeviceWaitIdle( m_device );
 	for( uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++ ) drainRetired( i );
 
-	// Window minimized (0-size): nothing to do until it comes back
-	int w = 0, h = 0;
-	glfwGetFramebufferSize( (GLFWwindow*)m_window, &w, &h );
-	if( w == 0 || h == 0 ) return true;
+	int w = cw, h = ch;
 
 	VkSwapchainKHR oldSwapchain = m_swapchain;
 
