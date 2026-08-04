@@ -16,6 +16,7 @@
 
 // scene
 #include "../scene/lsObject.h"
+#include "../scene/lsScene.h"
 #include "../scene/lsCamera.h"
 #include "../scene/lsLight.h"
 #include "../scene/lsLight_Spot.h"
@@ -553,11 +554,26 @@ bool lsShader::debugProgram()
 
 void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 {
-	const auto& lights = object->getLightManager()->getLights();
-	int num_lights = min((int)lights.size(), 3); // Shader supports max 3 lights
+	// Per-object light lists are filled once by LinkLightsInScene at
+	// scene-load time. Objects created later (lsObjectEmitter pool,
+	// runtime game code) are never linked and would render unlit, so
+	// fall back to the owning scene's light manager — its per-light
+	// active flags are refreshed every frame by setActiveLights().
+	const vector<lsLight*>* lights = &object->getLightManager()->getLights();
+	if( lights->empty() )
+	{
+		for( lsNode* p = object->getParent(); p; p = p->getParent() )
+			if( auto* scn = dynamic_cast<lsScene*>( p ) )
+			{
+				lights = &scn->getLightManager()->getLights();
+				break;
+			}
+	}
+
+	int num_lights = min((int)lights->size(), 3); // Shader supports max 3 lights
 	int i = 0;
-	
-	for( auto light : lights )
+
+	for( auto light : *lights )
 	{
 		// Make sure we break when i it at the light count.
 		if(i > num_lights - 1) break;
