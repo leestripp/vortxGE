@@ -105,3 +105,89 @@ Windows/macOS ports (Linux-only project).
 Demo runs full feature parity on Vulkan by default; GL fallback verified
 by `VORTX_RENDERER=opengl`; test suite green; docs updated; release
 tagged (0.3.0 at V1+ or per milestone review).
+
+---
+
+# Part 3 — Render Pipeline Refactor (lsControl/lsViewer/passes → lsRenderPipeline)
+
+## Why
+
+The control/viewer/pass architecture fights everyone (user decision
+2026-08-04: "I was never happy with it"):
+
+- **Composite is implicit magic.** Displaying the scene FBO requires a
+  hidden second scene ("Quad Viewer": lsViewer + lsScene + ortho camera
+  + lsObject with a 180°-rotated quad + lsPass_DR) just to blit a
+  texture to screen. The 180° rotation silently flips winding (backend
+  culling hazard — cost us hours on Vulkan).
+- **Cameras are over-wired.** lsPass carries `camera` AND `cull_camera`;
+  cameras must live as scene nodes; getting a working view means
+  touching scene graph, pass manager and control chain.
+- **Three parallel hierarchies.** lsControl chain (next_control) ×
+  per-control lsSceneManager/lsPassManager/lsAssetManager × per-pass
+  linked list — data flow is unreadable.
+- **Global-state leaks between passes.** Viewport/FBO bindings set in
+  one pass leak into the next (observed: swapchain pass opening with
+  the FBO pass's stale viewport).
+- **HiDPI is scattered.** Logical-vs-physical pixel handling lives in
+  the demo app, passes and FBOs simultaneously (Vulkan swapchain ended
+  up 2400×1350 physical while the engine renders 1920×1080 logical).
+
+## Target architecture
+
+```
+lsRenderPipeline  (one per view/window; owned by the app, not a control chain)
+├── lsTargetPool            named render targets, auto-resize on ONE
+│                           framebuffer-size event (single HiDPI owner)
+│     "scene" (colour+depth)   "shadow[0..N]" (depth)   "screen"
+├── stages: ordered vector<lsRenderStage*>   (explicit, data-driven)
+│     lsSceneStage   { scene, camera, target, flags }      → renders
+│                    an lsScene with an explicit lsCamera into a target
+│     lsShadowStage  { light, target }                     → depth maps
+│     lsBlitStage    { srcTarget, dstTarget|screen }       → FBO→screen
+│                    (replaces the entire Quad-Viewer hack)
+│     lsEffectStage  { shader, srcTarget, dstTarget }      → post-fx
+│                    (future: bloom/SSAO/TAA chains)
+└── each stage sets ALL state it needs (viewport, depth, blend) —
+    nothing leaks in or out (backends snapshot/restore per stage)
+```
+
+Design rules:
+
+1. **Explicit over implicit.** Every stage declares inputs/outputs up
+   front — the pipeline can later reorder/parallelise/validate them
+   (this is the hook for a future frame graph and deferred G-buffer
+   stage: `lsDeferredStage` is just another stage type).
+2. **One manager of each kind at engine level** (scene, assets) — no
+   per-control triplication.
+3. **Camera decoupled.** `lsCamera` usable standalone (view/proj
+   without scene-node membership); a stage holds a camera*, period.
+   No `cull_camera` dual-wiring (culling uses the same camera unless a
+   stage explicitly overrides).
+4. **No fake scenes for blits.** FBO→screen is `lsBlitStage`, one line.
+5. **Single resize owner.** The app tells the pipeline the framebuffer
+   size; the target pool resizes every named target; stages never call
+   Viewport themselves (pipeline applies stage rect × framebuffer).
+6. **Backends untouched.** Everything above the lsRender interface;
+   lsOpenGL must not regress; LS_* conventions unchanged.
+
+## Phases
+
+| Phase | Scope | Done when |
+|-------|-------|-----------|
+| R0 | This plan + current-architecture doc map | committed |
+| R1 | `vortxGE/src/pipeline/`: lsRenderPipeline, lsRenderStage base, lsTargetPool skeleton — alongside existing code, zero removals | builds, old path untouched |
+| R2 | lsSceneStage + lsBlitStage working on GL backend | GLFW demo renders scene→"scene" target→screen via pipeline, visually identical to old path |
+| R3 | Demo switched to pipeline by default (old control path behind `--legacy-controls`), Vulkan backend verified | demo parity on both backends |
+| R4 | lsShadowStage (spot/sun shadow maps as stages) | shadows match old path |
+| R5 | Camera decoupling (standalone lsCamera), remove cull_camera wiring | tests + demo green |
+| R6 | Deprecate/remove lsControl/lsViewer/lsComposite/lsPass_* + lsPassManager/lsControlManager; migrate GTKmm demo; docs (AGENTS.md, docs/controls.md → pipeline.md), CHANGELOG | old classes gone or `#ifdef VORTXGE_LEGACY_CONTROLS`, docs updated |
+
+Out of scope: frame-graph auto-scheduling, deferred renderer itself
+(the stage API makes both possible later), multi-window pipelines.
+
+## Definition of done (Part 3)
+
+GLFW demo renders through lsRenderPipeline on GL and Vulkan with visual
+parity; the Quad-Viewer control hack deleted; cameras usable standalone;
+old control/pass classes removed or legacy-gated; CHANGELOG + docs.
