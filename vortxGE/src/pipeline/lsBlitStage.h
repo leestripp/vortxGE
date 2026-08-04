@@ -29,9 +29,14 @@ public:
 	/// Vulkan's Y-flipped viewport inverts FBO texel rows vs GL; enable
 	/// to flip V when sampling (backend-agnostic stages need the app to
 	/// say which convention the backend uses).
-	void setFlipY( bool v ) { m_flipY = v; }
 	void setTint( float r, float g, float b, float a )
 	{ m_tint[0]=r; m_tint[1]=g; m_tint[2]=b; m_tint[3]=a; }
+
+	/// Vertical flip of the sampled target. -1 = auto (flips when the
+	/// backend renders FBO textures with a Y-flipped viewport — Vulkan's
+	/// VK_KHR_maintenance1 convention — so the blit matches GL output),
+	/// 0/1 = force off/on. Applies at first execute (lazy init).
+	void setFlipY( int mode ) { m_flipY = mode; }
 
 	/// V-flip the sampled image. Needed on Vulkan: the backend uses a
 	/// negative-height (GL-compatible) viewport, so FBO texels are
@@ -44,7 +49,7 @@ private:
 
 	std::string m_src, m_dst;
 	float		m_tint[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	bool		m_flipY = false;
+	int			m_flipY = -1;	// -1 auto, 0 off, 1 on
 
 	// lazy GL objects
 	lsProgramID	m_prog = 0;

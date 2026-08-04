@@ -74,6 +74,11 @@ bool lsBlitStage::lazyInit( lsRender* render )
 {
 	if( m_ready ) return true;
 
+	// auto flipY: Vulkan renders FBO textures Y-flipped vs GL
+	// (negative-height viewport), so sampling needs V flipped to match
+	if( m_flipY < 0 )
+		m_flipY = ( render->getType() == RenderType::Vulkan ) ? 1 : 0;
+
 	lsShaderID vs = render->CreateShader( LS_VERTEX_SHADER );
 	render->ShaderSource( vs, 1, &BLIT_VS, nullptr );
 	render->CompileShader( vs );
