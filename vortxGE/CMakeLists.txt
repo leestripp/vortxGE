@@ -16,3 +16,16 @@ target_include_directories(vortxGE
 	# see root CMakeLists.txt and src/config.h.in)
 	${CMAKE_BINARY_DIR}/generated
 )
+
+# --- Vulkan backend (Plan.md Part 2: Vulkan primary) -----------------------
+# The Vulkan backend (render/lsVulkan.{h,cpp}) needs the Vulkan loader and
+# GLFW (glfwCreateWindowSurface). Linked PUBLIC so consumers (demos, tests)
+# that pull in the static lib resolve glfwCreateWindowSurface etc.
+find_package(Vulkan REQUIRED)
+find_package(glfw3 3.3 REQUIRED)
+
+target_link_libraries(vortxGE
+	PUBLIC
+	Vulkan::Vulkan
+	glfw
+)

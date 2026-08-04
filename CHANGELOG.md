@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **V1 — Vulkan windowed rendering core (2026-08-04):** `lsVulkan`
+  is now the PRIMARY renderer when available: instance (+debug
+  validation in Debug builds), GLFW surface, device/queues, swapchain
+  with recreation on resize/out-of-date, clear-colour render pass,
+  command buffers, 2-frames-in-flight sync, `Clear`/`Present`.
+  `vortxGE::PreferredRendererType()` probes Vulkan before window
+  creation so apps create the right window type (GLFW_NO_API vs GL
+  context); `ForceRenderer`/`SetWindow` added; `lsRenderConstants.h`
+  now uses numeric literals (99 constants) — no GL header leaks into
+  the Vulkan TU. GLFW demo runs on Vulkan by default
+  (`VORTX_RENDERER=opengl` selects GL), GtkGLArea demo forces OpenGL.
+  Offscreen/shadow passes fail gracefully (V2–V4 stubs).
 - **V0 — renderer interface refactor for dual backends (2026-08-04):**
   `lsRender` gains frame-lifecycle hooks (`SetWindow`, `BeginFrame`,
   `EndFrame`, `Present`, `Resize`) and `Init()` now returns

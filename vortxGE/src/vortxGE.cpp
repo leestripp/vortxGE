@@ -89,25 +89,40 @@ int vortxGE::Init()
 	}
 	
 	// Renderer selection (Plan.md Part 2): Vulkan is the primary backend,
-	// OpenGL the fallback. VORTX_RENDERER=vulkan|opengl overrides.
+	// OpenGL the fallback. ForceRenderer() overrides; otherwise env/probe
+	// (same logic as PreferredRendererType — the app used that result to
+	// create the window, so both paths agree).
 	{
-		const char* env = getenv( "VORTX_RENDERER" );
-		const string want = env ? env : "vulkan";
+		RenderType want = (m_forcedRenderer != RenderType::None)
+			? m_forcedRenderer : PreferredRendererType();
 
-		if( want != "opengl" )
+		if( want == RenderType::Vulkan )
 		{
-			lsRender* vk = new lsVulkan;
-			if( vk && vk->Init() )
+			render = new lsVulkan;
+			if( render )
 			{
-				cout << "INFO: vortxGE::Init() - using Vulkan renderer" << endl;
-				render = vk;
-			} else
-			{
-				cout << "INFO: vortxGE::Init() - Vulkan unavailable, falling back to OpenGL" << endl;
-				if( vk ) delete vk;
+				render->SetWindow( m_nativeWindow );
+				if( render->Init() )
+				{
+					cout << "INFO: vortxGE::Init() - using Vulkan renderer" << endl;
+				} else
+				{
+					// Probe said OK but real init failed — fall back to GL.
+					// NOTE: if the window was created GLFW_NO_API this GL
+					// fallback will not be able to render; log loudly.
+					cout << "ERROR: vortxGE::Init() - Vulkan init failed after a "
+							"successful probe; falling back to OpenGL (window may "
+							"have been created without a GL context!)" << endl;
+					delete render;
+					render = NULL;
+				}
 			}
 		}
-		if(! render ) render = new lsOpenGL;
+		if(! render )
+		{
+			render = new lsOpenGL;
+			if( render ) cout << "INFO: vortxGE::Init() - using OpenGL renderer" << endl;
+		}
 	}
 	if(! render )
 	{
@@ -252,4 +267,25 @@ void vortxGE::Resize( int x, int y, int width, int height )
 {
 	// pass resize up chain
 	if( controlmanager ) controlmanager->Resize( x, y, width, height );
+}
+
+// ---------------------------------------------------------------------
+// Renderer backend selection
+// ---------------------------------------------------------------------
+RenderType vortxGE::PreferredRendererType()
+{
+	const char* env = getenv( "VORTX_RENDERER" );
+	const string want = env ? env : "vulkan";
+
+	if( want == "opengl" )
+		return RenderType::OpenGL;
+
+	// Default/"vulkan": probe the loader + a physical device so the app
+	// can create the correct window type before committing to Vulkan.
+	if( lsVulkan::Probe() )
+		return RenderType::Vulkan;
+
+	cout << "INFO: vortxGE::PreferredRendererType() - no Vulkan device, "
+			"OpenGL selected" << endl;
+	return RenderType::OpenGL;
 }

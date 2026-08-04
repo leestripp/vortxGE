@@ -14,6 +14,9 @@
 #include <iostream>
 
 #include "glfwApp.h"
+
+// vortxGE engine header — PreferredRendererType() for backend selection
+#include "vortxGE.h"
 #include "demoscene.h"
 
 #include <timers/lsTimer.h>
@@ -227,9 +230,19 @@ bool glfwApp::Init()
 		return false;
 	}
 
-	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
-	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
-	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+	// Decide the backend BEFORE creating the window: Vulkan needs a
+	// GLFW_NO_API window (no GL context), OpenGL needs GL context hints.
+	m_renderType = vortxGE::PreferredRendererType();
+	if( m_renderType == RenderType::Vulkan )
+	{
+		glfwWindowHint( GLFW_CLIENT_API, GLFW_NO_API );
+		cout << "glfwApp::Init() - creating window for Vulkan (no GL context)" << endl;
+	} else
+	{
+		glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+		glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
+		glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+	}
 
 	glfwWindowHint( GLFW_DECORATED, true );
 
@@ -261,13 +274,18 @@ bool glfwApp::Init()
 	// receives physical pixels regardless of HiDPI scaling.
 	glfwSetFramebufferSizeCallback( m_window, Resize_Callback );
 
-	glfwMakeContextCurrent( m_window );
-	glfwSwapInterval( 1 ); // vSync
+	if( m_renderType == RenderType::OpenGL )
+	{
+		glfwMakeContextCurrent( m_window );
+		glfwSwapInterval( 1 ); // vSync (Vulkan: FIFO present mode in the backend)
+	}
 	glfwSetWindowPos( m_window, 256, 256 );
 	glfwShowWindow( m_window );
 	
-	// Create demo scene
+	// Create demo scene — hand it the backend choice + window so the
+	// engine initialises the matching renderer.
 	demoscene = new DemoScene();
+	demoscene->SetRendererPreference( m_renderType, m_window );
 	if(! demoscene  )
 	{
 		cout << "ERROR: glfwApp::Init() - Can't create demoscene instance." << endl;
@@ -385,8 +403,10 @@ void glfwApp::Run()
 			demoscene->Render();
 		}
 
-		// Swap
-		glfwSwapBuffers( m_window );
+		// Swap (GL only — the Vulkan backend presents in lsVulkan::Present
+		// via vortxGE::Render, and glfwSwapBuffers has no GL context here)
+		if( m_renderType == RenderType::OpenGL )
+			glfwSwapBuffers( m_window );
 		// Poll
 		glfwPollEvents();
 

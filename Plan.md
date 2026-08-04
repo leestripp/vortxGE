@@ -1,7 +1,7 @@
 # Plan.md — vortxGE Renderer Roadmap
 
 > **Active plan:** Vulkan primary renderer (Part 2).
-> **Status:** V0 done (2026-08-04), V1 in progress.
+> **Status:** V1 done (2026-08-04), V2 in progress.
 
 ---
 
@@ -68,7 +68,7 @@ Add lifecycle methods to `lsRender` (+ GL shims), `RenderType::VULKAN`,
 skeleton compiling in tree. **Done when:** demo runs identically on GL
 (fallback path), selection env var works, suite green.
 
-#### V1 — Vulkan core: clear a window 🔲
+#### V1 — Vulkan core: clear a window ✅ **DONE** (2026-08-04)
 Instance, physical/logical device, GLFW surface, swapchain, per-frame
 sync, command buffers, `Clear()` + `Present()`. **Done when:** demo
 window clears to a colour through `lsVulkan` (GL untouched).

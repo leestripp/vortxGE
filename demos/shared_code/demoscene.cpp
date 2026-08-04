@@ -208,24 +208,38 @@ bool DemoScene::Init()
 {
 	cout << "DemoScene::Init() called" << endl;
 	
-	// create m_vortxge - must have an active GL context
+	// create m_vortxge - must have an active GL context (OpenGL backend)
+	// or a GLFW_NO_API window (Vulkan backend)
 	m_vortxge = new vortxGE();
 	if( m_vortxge )
 	{
-		// start GLEW extension handler
-		glewExperimental = GL_TRUE;
-		glewInit();
-		
-		// Need debug context and extensions loaded first.
-		glEnable( GL_DEBUG_OUTPUT );
-		glDebugMessageCallback( MessageCallback, 0 );
-		
+		// Resolve the effective backend: explicit preference (from the
+		// host app) wins; otherwise engine env/probe logic decides.
+		RenderType rt = (m_prefRenderer != RenderType::None)
+			? m_prefRenderer : vortxGE::PreferredRendererType();
+		m_vortxge->ForceRenderer( rt );
+		m_vortxge->SetWindow( m_prefWindow );
+
+		if( rt == RenderType::OpenGL )
+		{
+			// start GLEW extension handler
+			glewExperimental = GL_TRUE;
+			glewInit();
+
+			// Need debug context and extensions loaded first.
+			glEnable( GL_DEBUG_OUTPUT );
+			glDebugMessageCallback( MessageCallback, 0 );
+		}
+
 		m_vortxge->Init();
-		
-		// Set some openGL defaults
-		glFrontFace( GL_CCW );
-		glEnable( GL_CULL_FACE );
-		glCullFace( GL_BACK );
+
+		if( rt == RenderType::OpenGL )
+		{
+			// Set some openGL defaults
+			glFrontFace( GL_CCW );
+			glEnable( GL_CULL_FACE );
+			glCullFace( GL_BACK );
+		}
 		
 		setupControls();
 		setupTestScene();

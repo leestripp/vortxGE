@@ -199,6 +199,9 @@ void glviewwindow::gla_realize()
   } else
   {
     cout << "glviewwindow::gla_realize() : demoscene instance created." << endl;
+    // GtkGLArea is inherently OpenGL — force the GL backend (no window
+    // handle needed; the Vulkan backend is not usable here).
+    demoscene->SetRendererPreference( RenderType::OpenGL, nullptr );
     if( demoscene->Init() )
     {
       cout << "glviewwindow::gla_realize() : demoscene->Init() OK." << endl;

@@ -32,6 +32,8 @@
 
 class DemoScene;
 
+#include "render/lsRenderTypes.h"
+
 class glfwApp
 {
 public:
@@ -77,6 +79,7 @@ public:
 private:
 	DemoScene* demoscene;
 	GLFWwindow* m_window;
+	RenderType  m_renderType = RenderType::None;   // backend chosen at window creation
 	
 	bool running;
 

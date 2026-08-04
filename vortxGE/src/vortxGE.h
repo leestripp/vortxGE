@@ -49,6 +49,10 @@
 // Forward declarations to avoid circular dependencies
 class lsStats;
 class lsRender;
+
+// RenderType enum for backend selection (lsRenderTypes.h has no
+// backend dependencies — safe to include here).
+#include "render/lsRenderTypes.h"
 class lsShaderManager;
 class lsControlManager;
 class lsAssetManager;
@@ -231,6 +235,34 @@ public:
 	{
 		return render;
 	}
+
+	// -----------------------------------------------------------------
+	// Renderer backend selection (Plan.md Part 2: Vulkan primary, GL
+	// fallback)
+	// -----------------------------------------------------------------
+
+	/**
+	 * @brief Probe which backend should be used BEFORE window creation.
+	 *
+	 * Reads VORTX_RENDERER (default "vulkan"). For "vulkan" it also
+	 * probes actual Vulkan availability (loader + a physical device) so
+	 * the caller can create the right kind of window (GL context vs
+	 * GLFW_NO_API). Falls back to OpenGL when Vulkan is unavailable.
+	 */
+	static RenderType PreferredRendererType();
+
+	/**
+	 * @brief Explicitly force a backend (overrides env/probe).
+	 * Must be called before Init(). Used by apps whose windowing is
+	 * GL-only (e.g. the GtkGLArea demo forces OpenGL).
+	 */
+	void ForceRenderer( RenderType type ) { m_forcedRenderer = type; }
+
+	/**
+	 * @brief Hand the engine its native window (GLFWwindow*) before Init().
+	 * Required for the Vulkan backend (surface creation); ignored by GL.
+	 */
+	void SetWindow( void* nativeWindow ) { m_nativeWindow = nativeWindow; }
 	
     /**
      * @brief Get the audio system
@@ -252,6 +284,12 @@ private:
 	
     /** @brief Rendering system - handles all OpenGL operations */
 	lsRender            *render;
+
+	/** @brief Forced backend override (RenderType::None = auto env/probe). */
+	RenderType m_forcedRenderer = RenderType::None;
+
+	/** @brief Native window handle (GLFWwindow*) for the Vulkan surface. */
+	void* m_nativeWindow = nullptr;
 	
     /** @brief Audio system - handles OpenAL sound */
 	lsOpenAL            *openal;

@@ -22,6 +22,9 @@
 #include <assets/lsAsyncFileLoader.h>
 
 class vortxGE;
+
+// Backend selection (RenderType) — no backend deps, safe to include.
+#include "render/lsRenderTypes.h"
 class lsBatch_Quad;
 class lsScene;
 class lsViewer;
@@ -46,6 +49,19 @@ public:
     void movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch);
     void rotatePlayerView( double delta_x, double delta_y);
     void handleMouseButtons(bool left, bool right); // Add this method
+    /**
+     * @brief Set the renderer backend + native window BEFORE Init().
+     *
+     * The host app decides the backend (vortxGE::PreferredRendererType())
+     * before creating its window, then hands both down here. GL-specific
+     * setup in Init() (glewInit, GL state) is skipped for Vulkan.
+     */
+    void SetRendererPreference( RenderType type, void* nativeWindow )
+    {
+        m_prefRenderer = type;
+        m_prefWindow = nativeWindow;
+    }
+
     // vortxGE - Scene events and Camera
     void Update( double delta );
     void Render();
@@ -60,6 +76,9 @@ protected:
 	
 private:
     vortxGE     *m_vortxge;
+
+    RenderType  m_prefRenderer = RenderType::None;  // backend preference (None = engine auto)
+    void        *m_prefWindow = nullptr;            // native window for Vulkan surface
 
     // Framebuffer pixel dimensions (set by Init() / Resize()).
     int m_view_width;

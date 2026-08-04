@@ -2,17 +2,21 @@
  * @file lsVulkan.h
  * @brief Vulkan implementation of the lsRender interface (PRIMARY backend)
  *
- * Status: V0 skeleton (Plan.md Part 2). Every method is a stub;
- * Init() returns false so vortxGE falls back to lsOpenGL until the
- * V1 milestone (instance/device/surface/swapchain/clear) lands.
+ * Status: V1 (Plan.md Part 2) — windowed rendering core: instance,
+ * surface, device, swapchain, render pass, per-frame sync, Clear +
+ * Present. All draw/buffer/texture/shader methods remain stubs until
+ * V2+.
  *
- * Design rules (see Plan.md Part 2):
+ * Design rules (Plan.md Part 2):
  * - LS_* constants keep their GL numeric values; this backend maps
- *   them to Vk* enums at its boundary (lsVulkanTypes.h, added in V1).
- * - The engine never includes <vulkan/vulkan.h> outside this pair of
- *   files (same rule as <GL/glew.h> for lsOpenGL).
+ *   them to Vk* enums at its boundary.
+ * - <vulkan/vulkan.h> is included ONLY here and in lsVulkan.cpp
+ *   (same rule as <GL/glew.h> for lsOpenGL).
  */
 #pragma once
+
+#include <vulkan/vulkan.h>
+#include <vector>
 
 #include "lsRender.h"
 
@@ -25,6 +29,14 @@ class lsVulkan : public lsRender
 public:
 	lsVulkan();
 	virtual ~lsVulkan();
+
+	/**
+	 * @brief Cheap availability probe — can we create an instance and
+	 * find a physical device? Used by vortxGE::PreferredRendererType()
+	 * BEFORE the window is created (the window type depends on it).
+	 */
+	static bool Probe();
+
 	bool Init(  ) override;
 	void SetWindow( void* nativeWindow ) override;
 	void BeginFrame(  ) override;
@@ -107,5 +119,52 @@ public:
 	void GetIntegerv( lsEnum pname, lsInt* params ) override;
 
 private:
-	// V1: VkInstance, VkDevice, VkSurfaceKHR, VkSwapchainKHR, ...
+	// -----------------------------------------------------------------
+	// V1: init helpers
+	// -----------------------------------------------------------------
+	bool createInstance();
+	bool createSurface();
+	bool pickPhysicalDevice();
+	bool createDevice();
+	bool createSwapchain( VkSwapchainKHR oldSwapchain );
+	bool createImageViews();
+	bool createRenderPass();
+	bool createFramebuffers();
+	bool createCommandPoolAndBuffers();
+	bool createSyncObjects();
+	void cleanupSwapchain();
+	bool recreateSwapchain();
+
+	void* m_window = nullptr;			// GLFWwindow*
+	VkInstance m_instance = VK_NULL_HANDLE;
+	VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
+	VkSurfaceKHR m_surface = VK_NULL_HANDLE;
+	VkPhysicalDevice m_physDevice = VK_NULL_HANDLE;
+	VkDevice m_device = VK_NULL_HANDLE;
+	uint32_t m_graphicsQueueFamily = 0;
+	uint32_t m_presentQueueFamily = 0;
+	VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+	VkQueue m_presentQueue = VK_NULL_HANDLE;
+	VkSwapchainKHR m_swapchain = VK_NULL_HANDLE;
+	VkFormat m_swapchainFormat = VK_FORMAT_UNDEFINED;
+	VkExtent2D m_swapchainExtent = { 0, 0 };
+	std::vector<VkImage> m_swapchainImages;
+	std::vector<VkImageView> m_swapchainImageViews;
+	VkRenderPass m_renderPass = VK_NULL_HANDLE;
+	std::vector<VkFramebuffer> m_framebuffers;
+	VkCommandPool m_commandPool = VK_NULL_HANDLE;
+	static constexpr uint32_t FRAMES_IN_FLIGHT = 2;
+	VkCommandBuffer m_commandBuffers[FRAMES_IN_FLIGHT] = {};
+	VkSemaphore m_imageAvailable[FRAMES_IN_FLIGHT] = {};
+	VkSemaphore m_renderFinished[FRAMES_IN_FLIGHT] = {};
+	VkFence m_inFlight[FRAMES_IN_FLIGHT] = {};
+	uint32_t m_currentFrame = 0;
+	uint32_t m_acquiredImage = 0;
+	bool m_inFrame = false;
+	bool m_swapchainDirty = false;
+	float m_clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	double m_clearDepth = 1.0;
+	int m_viewport[4] = { 0, 0, 0, 0 };		// x, y, w, h (0/0 = full swapchain)
+	VkResult m_lastError = VK_SUCCESS;
+	bool m_initialized = false;
 };
