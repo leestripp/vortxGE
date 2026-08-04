@@ -109,8 +109,48 @@ public:
      *
      * Should set up default states, query driver info, and prepare any
      * internal caches.
+     *
+     * @return true on success. Backends that cannot initialise (e.g.
+     * Vulkan with no capable device) return false so the caller can
+     * fall back to another backend.
      */
-    virtual void Init() = 0;
+    virtual bool Init() = 0;
+
+    //=========================================================================
+    // Frame lifecycle (Vulkan-primary additions; GL implements as shims)
+    //=========================================================================
+
+    /**
+     * @brief Hand the backend its native window handle (e.g. GLFWwindow*).
+     *
+     * Called by the host application before Init(). GL ignores it (the
+     * app owns the GL context); Vulkan needs it to create the window
+     * surface.
+     */
+    virtual void SetWindow( void* nativeWindow ) = 0;
+
+    /**
+     * @brief Begin a frame — acquire resources, open command recording.
+     * Called once per frame before any passes run. GL: no-op.
+     */
+    virtual void BeginFrame() = 0;
+
+    /**
+     * @brief End a frame — close command recording and submit. GL: no-op.
+     */
+    virtual void EndFrame() = 0;
+
+    /**
+     * @brief Present the finished frame to the window. GL: no-op until
+     * present ownership is unified (the app still swaps GL buffers).
+     */
+    virtual void Present() = 0;
+
+    /**
+     * @brief Notify the backend of a drawable-size change (swapchain
+     * recreation on Vulkan). GL: no-op (viewport handled per-pass).
+     */
+    virtual void Resize( int width, int height ) = 0;
 
     /**
      * @brief Drain and log any backend-reported errors.

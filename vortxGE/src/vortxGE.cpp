@@ -7,6 +7,9 @@
 // Render
 #include "render/lsRender.h"
 #include "render/lsOpenGL.h"
+#include "render/lsVulkan.h"
+
+#include <cstdlib>		// getenv - VORTX_RENDERER selection
 
 // OpenAL
 #include "openal/lsOpenAL.h" // Include lsOpenAL header
@@ -85,9 +88,27 @@ int vortxGE::Init()
 		return 1;
 	}
 	
-	// TODO: Support more render libries.
-	// Currently vortxGE only support OpenGL
-	render = new lsOpenGL;
+	// Renderer selection (Plan.md Part 2): Vulkan is the primary backend,
+	// OpenGL the fallback. VORTX_RENDERER=vulkan|opengl overrides.
+	{
+		const char* env = getenv( "VORTX_RENDERER" );
+		const string want = env ? env : "vulkan";
+
+		if( want != "opengl" )
+		{
+			lsRender* vk = new lsVulkan;
+			if( vk && vk->Init() )
+			{
+				cout << "INFO: vortxGE::Init() - using Vulkan renderer" << endl;
+				render = vk;
+			} else
+			{
+				cout << "INFO: vortxGE::Init() - Vulkan unavailable, falling back to OpenGL" << endl;
+				if( vk ) delete vk;
+			}
+		}
+		if(! render ) render = new lsOpenGL;
+	}
 	if(! render )
 	{
 		cout << "ERROR: vortxGE::Init() - Could not instance lsRender" << endl;
@@ -197,12 +218,19 @@ void vortxGE::Render()
 	cout << "vortxGE::Render() - START" << endl;
 #endif
 
+	// Frame begin (Vulkan: acquire + start recording; GL: no-op)
+	if( render ) render->BeginFrame();
+
 	// render - all elements to screen
 	if( controlmanager ) controlmanager->Render();
-	
+
 	// reset framebuffer
 	render->RestoreDefaultFramebuffer();
-	
+
+	// Frame end + present (Vulkan: submit + present; GL: no-op - the app
+	// still calls glfwSwapBuffers until present unification in V6)
+	if( render ) { render->EndFrame(); render->Present(); }
+
 	stats->Loop_Stop();
 	stats->Update();
 

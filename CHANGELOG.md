@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **V0 — renderer interface refactor for dual backends (2026-08-04):**
+  `lsRender` gains frame-lifecycle hooks (`SetWindow`, `BeginFrame`,
+  `EndFrame`, `Present`, `Resize`) and `Init()` now returns
+  `bool` for fallback signalling; `lsOpenGL` implements them as
+  no-op shims (GL context/swap stay app-owned); new `lsVulkan`
+  skeleton (80 stubs) compiles in-tree; `vortxGE` selects the backend
+  via `VORTX_RENDERER=vulkan|opengl` (default: try Vulkan, fall back
+  to OpenGL); `vortxGE::Render` wraps passes with the frame hooks.
 - **Vulkan primary renderer — plan approved (2026-08-04):** Plan.md
   rewritten; completed history condensed to Part 1. New Part 2: Vulkan
   becomes the main renderer with OpenGL as fallback (user decision),

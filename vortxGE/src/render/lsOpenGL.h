@@ -69,7 +69,16 @@ public:
     // lsRender overrides — lifecycle
     //=========================================================================
 
-    virtual void Init() override;
+    virtual bool Init() override;
+
+    // Frame lifecycle shims — GL context and swap are app-owned (glfwApp),
+    // so these are no-ops. Present/swap unification is deferred to the
+    // V6 parity phase of the Vulkan plan.
+    virtual void SetWindow( void* nativeWindow ) override;
+    virtual void BeginFrame() override;
+    virtual void EndFrame() override;
+    virtual void Present() override;
+    virtual void Resize( int width, int height ) override;
     virtual void CheckErrors( const string& name ) override;
     virtual void StoreDefaultFramebuffer() override;
     virtual void RestoreDefaultFramebuffer() override;

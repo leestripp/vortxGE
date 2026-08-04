@@ -41,7 +41,7 @@ lsOpenGL::~lsOpenGL()
 // lsRender overrides — lifecycle
 //=========================================================================
 
-void lsOpenGL::Init()
+bool lsOpenGL::Init()
 {
 #ifdef VORTX_DEBUG_RENDER
 	cout << "lsOpenGL::Init()" << endl;
@@ -52,7 +52,18 @@ void lsOpenGL::Init()
 
 	// collect info
 	GetInfo();
+
+	return true;	// context is app-created; if it were bad we'd have failed earlier
 }
+
+// ---------------------------------------------------------------------
+// Frame lifecycle shims (no-ops — GL context/swap owned by the app)
+// ---------------------------------------------------------------------
+void lsOpenGL::SetWindow( void* nativeWindow ) { (void)nativeWindow; }
+void lsOpenGL::BeginFrame() {}
+void lsOpenGL::EndFrame() {}
+void lsOpenGL::Present() {}
+void lsOpenGL::Resize( int width, int height ) { (void)width; (void)height; }
 
 void lsOpenGL::CheckErrors( const string &name )
 {

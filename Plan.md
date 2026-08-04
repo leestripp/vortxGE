@@ -1,7 +1,7 @@
 # Plan.md — vortxGE Renderer Roadmap
 
 > **Active plan:** Vulkan primary renderer (Part 2).
-> **Status:** V0 not started (approved 2026-08-04).
+> **Status:** V0 done (2026-08-04), V1 in progress.
 
 ---
 
@@ -62,7 +62,7 @@ fallback.**
 
 ### Phases
 
-#### V0 — Interface refactor + backend selection 🔲
+#### V0 — Interface refactor + backend selection ✅ **DONE** (2026-08-04)
 Add lifecycle methods to `lsRender` (+ GL shims), `RenderType::VULKAN`,
 `VORTX_RENDERER` selection + fallback in `vortxGE`, empty `lsVulkan`
 skeleton compiling in tree. **Done when:** demo runs identically on GL

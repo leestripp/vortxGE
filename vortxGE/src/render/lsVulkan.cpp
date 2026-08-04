@@ -1,405 +1,419 @@
 /**
  * @file lsVulkan.cpp
- * @brief Stub bodies for the lsVulkan placeholder backend.
+ * @brief lsVulkan — V0 skeleton. All methods are stubs.
  *
- * ⚠️  NOTHING HERE IS IMPLEMENTED. Every method is a no-op (non-void
- * methods return a default-constructed value). This file exists purely
- * as a scaffold/reminder for the future Vulkan backend — see
- * `lsVulkan.h` and `docs/plans/renderer_abstraction.md` §10.
+ * GENERATED skeleton (from lsRender.h pure virtuals). As V1+ milestones
+ * implement real bodies, keep the method ordering aligned with lsRender.h.
  */
 
 #include "lsVulkan.h"
 
 lsVulkan::lsVulkan()
 {
-    setType( RenderType::Vulkan );
-    std::cout << "WARNING: lsVulkan is a placeholder skeleton — "
-                 "no methods are implemented." << std::endl;
+	setType( RenderType::Vulkan );
 }
 
-lsVulkan::~lsVulkan() = default;
-
-void lsVulkan::Init(  )
+lsVulkan::~lsVulkan()
 {
-    // TODO(vulkan): implement
+	// V1: destroy swapchain, device, surface, instance (reverse order)
+}
+bool lsVulkan::Init(  )
+{
+	cout << "INFO: lsVulkan::Init() - not implemented yet (V0 skeleton)" << endl;
+	return false;	// triggers vortxGE fallback to lsOpenGL
 }
 
-void lsVulkan::CheckErrors( const string& name )
+void lsVulkan::SetWindow( void* )
 {
-    (void)name;
-    // TODO(vulkan): implement
+	// V1+ stub
+}
+
+void lsVulkan::BeginFrame(  )
+{
+	// V1+ stub
+}
+
+void lsVulkan::EndFrame(  )
+{
+	// V1+ stub
+}
+
+void lsVulkan::Present(  )
+{
+	// V1+ stub
+}
+
+void lsVulkan::Resize( int, int )
+{
+	// V1+ stub
+}
+
+void lsVulkan::CheckErrors( const string& )
+{
+	// V1+ stub
 }
 
 void lsVulkan::StoreDefaultFramebuffer(  )
 {
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
 void lsVulkan::RestoreDefaultFramebuffer(  )
 {
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::GenTextures( lsSizei n, lsTextureID* textures )
+void lsVulkan::GenTextures( lsSizei, lsTextureID* )
 {
-    (void)n; (void)textures;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::DeleteTextures( lsSizei n, lsTextureID* textures )
+void lsVulkan::DeleteTextures( lsSizei, lsTextureID* )
 {
-    (void)n; (void)textures;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::BindTexture( lsEnum target, lsTextureID texture )
+void lsVulkan::BindTexture( lsEnum, lsTextureID )
 {
-    (void)target; (void)texture;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::ActiveTexture( lsEnum texture )
+void lsVulkan::ActiveTexture( lsEnum )
 {
-    (void)texture;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::TexParameteri( lsEnum target, lsEnum pname, lsInt param )
+void lsVulkan::TexImage2D( lsEnum, lsInt, lsInt, lsSizei, lsSizei, lsInt, lsEnum, lsEnum, const void* )
 {
-    (void)target; (void)pname; (void)param;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::TexParameterf( lsEnum target, lsEnum pname, lsFloat param )
+void lsVulkan::TexParameteri( lsEnum, lsEnum, lsInt )
 {
-    (void)target; (void)pname; (void)param;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::TexParameterfv( lsEnum target, lsEnum pname, const lsFloat* params )
+void lsVulkan::TexParameterf( lsEnum, lsEnum, lsFloat )
 {
-    (void)target; (void)pname; (void)params;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::GenerateMipmap( lsEnum target )
+void lsVulkan::TexParameterfv( lsEnum, lsEnum, const lsFloat* )
 {
-    (void)target;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::PixelStorei( lsEnum pname, lsInt param )
+void lsVulkan::GenerateMipmap( lsEnum )
 {
-    (void)pname; (void)param;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::GenFramebuffers( lsSizei n, lsFBOID* fbos )
+void lsVulkan::PixelStorei( lsEnum, lsInt )
 {
-    (void)n; (void)fbos;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::DeleteFramebuffers( lsSizei n, lsFBOID* fbos )
+void lsVulkan::GenFramebuffers( lsSizei, lsFBOID* )
 {
-    (void)n; (void)fbos;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::BindFramebuffer( lsEnum target, lsFBOID fbo )
+void lsVulkan::DeleteFramebuffers( lsSizei, lsFBOID* )
 {
-    (void)target; (void)fbo;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-lsEnum lsVulkan::CheckFramebufferStatus( lsEnum target )
+void lsVulkan::BindFramebuffer( lsEnum, lsFBOID )
 {
-    (void)target;
-    // TODO(vulkan): implement
-    return lsEnum{};
+	// V1+ stub
 }
 
-void lsVulkan::DrawBuffer( lsEnum mode )
+void lsVulkan::FramebufferTexture2D( lsEnum, lsEnum, lsEnum, lsTextureID, lsInt )
 {
-    (void)mode;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::ReadBuffer( lsEnum mode )
+lsEnum lsVulkan::CheckFramebufferStatus( lsEnum )
 {
-    (void)mode;
-    // TODO(vulkan): implement
+	return (lsEnum){};
 }
 
-void lsVulkan::GenBuffers( lsSizei n, lsBufferID* buffers )
+void lsVulkan::DrawBuffer( lsEnum )
 {
-    (void)n; (void)buffers;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::DeleteBuffers( lsSizei n, lsBufferID* buffers )
+void lsVulkan::ReadBuffer( lsEnum )
 {
-    (void)n; (void)buffers;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::BindBuffer( lsEnum target, lsBufferID buffer )
+void lsVulkan::ReadPixels( lsInt, lsInt, lsSizei, lsSizei, lsEnum, lsEnum, void* )
 {
-    (void)target; (void)buffer;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::GenVertexArrays( lsSizei n, lsVAOID* arrays )
+void lsVulkan::GenBuffers( lsSizei, lsBufferID* )
 {
-    (void)n; (void)arrays;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::DeleteVertexArrays( lsSizei n, lsVAOID* arrays )
+void lsVulkan::DeleteBuffers( lsSizei, lsBufferID* )
 {
-    (void)n; (void)arrays;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::BindVertexArray( lsVAOID vao )
+void lsVulkan::BindBuffer( lsEnum, lsBufferID )
 {
-    (void)vao;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::EnableVertexAttribArray( lsUInt index )
+void lsVulkan::BufferData( lsEnum, lsSizeiptr, const void*, lsEnum )
 {
-    (void)index;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
+void lsVulkan::GenVertexArrays( lsSizei, lsVAOID* )
 {
-    (void)mode; (void)first; (void)count;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-lsShaderID lsVulkan::CreateShader( lsEnum type )
+void lsVulkan::DeleteVertexArrays( lsSizei, lsVAOID* )
 {
-    (void)type;
-    // TODO(vulkan): implement
-    return lsShaderID{};
+	// V1+ stub
+}
+
+void lsVulkan::BindVertexArray( lsVAOID )
+{
+	// V1+ stub
+}
+
+void lsVulkan::EnableVertexAttribArray( lsUInt )
+{
+	// V1+ stub
+}
+
+void lsVulkan::VertexAttribPointer( lsUInt, lsInt, lsEnum, lsBoolean, lsSizei, const void* )
+{
+	// V1+ stub
+}
+
+void lsVulkan::DrawArrays( lsEnum, lsInt, lsSizei )
+{
+	// V1+ stub
+}
+
+void lsVulkan::DrawElements( lsEnum, lsSizei, lsEnum, const void* )
+{
+	// V1+ stub
+}
+
+lsShaderID lsVulkan::CreateShader( lsEnum )
+{
+	return (lsShaderID){};
 }
 
 lsProgramID lsVulkan::CreateProgram(  )
 {
-    // TODO(vulkan): implement
-    return lsProgramID{};
+	return (lsProgramID){};
 }
 
-void lsVulkan::CompileShader( lsShaderID shader )
+void lsVulkan::ShaderSource( lsShaderID, lsSizei, const lsChar**, const lsInt* )
 {
-    (void)shader;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::AttachShader( lsProgramID program, lsShaderID shader )
+void lsVulkan::CompileShader( lsShaderID )
 {
-    (void)program; (void)shader;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::DetachShader( lsProgramID program, lsShaderID shader )
+void lsVulkan::AttachShader( lsProgramID, lsShaderID )
 {
-    (void)program; (void)shader;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::LinkProgram( lsProgramID program )
+void lsVulkan::DetachShader( lsProgramID, lsShaderID )
 {
-    (void)program;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::UseProgram( lsProgramID program )
+void lsVulkan::LinkProgram( lsProgramID )
 {
-    (void)program;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::DeleteShader( lsShaderID shader )
+void lsVulkan::UseProgram( lsProgramID )
 {
-    (void)shader;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::DeleteProgram( lsProgramID program )
+void lsVulkan::DeleteShader( lsShaderID )
 {
-    (void)program;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-lsUniformID lsVulkan::GetUniformLocation( lsProgramID program, const lsChar* name )
+void lsVulkan::DeleteProgram( lsProgramID )
 {
-    (void)program; (void)name;
-    // TODO(vulkan): implement
-    return lsUniformID{};
+	// V1+ stub
 }
 
-void lsVulkan::GetShaderiv( lsShaderID shader, lsEnum pname, lsInt* params )
+lsUniformID lsVulkan::GetUniformLocation( lsProgramID, const lsChar* )
 {
-    (void)shader; (void)pname; (void)params;
-    // TODO(vulkan): implement
+	return (lsUniformID){};
 }
 
-void lsVulkan::GetProgramiv( lsProgramID program, lsEnum pname, lsInt* params )
+void lsVulkan::GetShaderiv( lsShaderID, lsEnum, lsInt* )
 {
-    (void)program; (void)pname; (void)params;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::Uniform1i( lsUniformID location, lsInt v0 )
+void lsVulkan::GetShaderInfoLog( lsShaderID, lsSizei, lsSizei*, lsChar* )
 {
-    (void)location; (void)v0;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::Uniform1f( lsUniformID location, lsFloat v0 )
+void lsVulkan::GetProgramiv( lsProgramID, lsEnum, lsInt* )
 {
-    (void)location; (void)v0;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::Uniform3f( lsUniformID location, lsFloat v0, lsFloat v1, lsFloat v2 )
+void lsVulkan::GetProgramInfoLog( lsProgramID, lsSizei, lsSizei*, lsChar* )
 {
-    (void)location; (void)v0; (void)v1; (void)v2;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::Uniform4f( lsUniformID location, lsFloat v0, lsFloat v1, lsFloat v2, lsFloat v3 )
+void lsVulkan::Uniform1i( lsUniformID, lsInt )
 {
-    (void)location; (void)v0; (void)v1; (void)v2; (void)v3;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::Enable( lsEnum cap )
+void lsVulkan::Uniform1f( lsUniformID, lsFloat )
 {
-    (void)cap;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::Disable( lsEnum cap )
+void lsVulkan::Uniform3f( lsUniformID, lsFloat, lsFloat, lsFloat )
 {
-    (void)cap;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::CullFace( lsEnum mode )
+void lsVulkan::Uniform4f( lsUniformID, lsFloat, lsFloat, lsFloat, lsFloat )
 {
-    (void)mode;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::BlendFunc( lsEnum sfactor, lsEnum dfactor )
+void lsVulkan::UniformMatrix3fv( lsUniformID, lsSizei, lsBoolean, const lsFloat* )
 {
-    (void)sfactor; (void)dfactor;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::DepthFunc( lsEnum func )
+void lsVulkan::UniformMatrix4fv( lsUniformID, lsSizei, lsBoolean, const lsFloat* )
 {
-    (void)func;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::DepthMask( lsBoolean flag )
+void lsVulkan::Enable( lsEnum )
 {
-    (void)flag;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::DepthRangef( lsFloat near, lsFloat far )
+void lsVulkan::Disable( lsEnum )
 {
-    (void)near; (void)far;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::ColorMask( lsBoolean r, lsBoolean g, lsBoolean b, lsBoolean a )
+void lsVulkan::CullFace( lsEnum )
 {
-    (void)r; (void)g; (void)b; (void)a;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::PolygonOffset( lsFloat factor, lsFloat units )
+void lsVulkan::BlendFunc( lsEnum, lsEnum )
 {
-    (void)factor; (void)units;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::ShadeModel( lsEnum mode )
+void lsVulkan::DepthFunc( lsEnum )
 {
-    (void)mode;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::Viewport( lsInt x, lsInt y, lsSizei w, lsSizei h )
+void lsVulkan::DepthMask( lsBoolean )
 {
-    (void)x; (void)y; (void)w; (void)h;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::Clear( lsBitfield mask )
+void lsVulkan::DepthRangef( lsFloat, lsFloat )
 {
-    (void)mask;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::ClearColor( lsFloat r, lsFloat g, lsFloat b, lsFloat a )
+void lsVulkan::ColorMask( lsBoolean, lsBoolean, lsBoolean, lsBoolean )
 {
-    (void)r; (void)g; (void)b; (void)a;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::ClearDepth( lsDouble d )
+void lsVulkan::PolygonOffset( lsFloat, lsFloat )
 {
-    (void)d;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::GenQueries( lsSizei n, lsQueryID* ids )
+void lsVulkan::ShadeModel( lsEnum )
 {
-    (void)n; (void)ids;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::DeleteQueries( lsSizei n, lsQueryID* ids )
+void lsVulkan::Viewport( lsInt, lsInt, lsSizei, lsSizei )
 {
-    (void)n; (void)ids;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::BeginQuery( lsEnum target, lsQueryID id )
+void lsVulkan::Clear( lsBitfield )
 {
-    (void)target; (void)id;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::EndQuery( lsEnum target )
+void lsVulkan::ClearColor( lsFloat, lsFloat, lsFloat, lsFloat )
 {
-    (void)target;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
 
-void lsVulkan::GetQueryObjectiv( lsQueryID id, lsEnum pname, lsInt* params )
+void lsVulkan::ClearDepth( lsDouble )
 {
-    (void)id; (void)pname; (void)params;
-    // TODO(vulkan): implement
+	// V1+ stub
+}
+
+void lsVulkan::GenQueries( lsSizei, lsQueryID* )
+{
+	// V1+ stub
+}
+
+void lsVulkan::DeleteQueries( lsSizei, lsQueryID* )
+{
+	// V1+ stub
+}
+
+void lsVulkan::BeginQuery( lsEnum, lsQueryID )
+{
+	// V1+ stub
+}
+
+void lsVulkan::EndQuery( lsEnum )
+{
+	// V1+ stub
+}
+
+void lsVulkan::GetQueryObjectiv( lsQueryID, lsEnum, lsInt* )
+{
+	// V1+ stub
 }
 
 lsEnum lsVulkan::GetError(  )
 {
-    // TODO(vulkan): implement
-    return lsEnum{};
+	return (lsEnum){};
 }
 
-void lsVulkan::GetIntegerv( lsEnum pname, lsInt* params )
+void lsVulkan::GetIntegerv( lsEnum, lsInt* )
 {
-    (void)pname; (void)params;
-    // TODO(vulkan): implement
+	// V1+ stub
 }
-
