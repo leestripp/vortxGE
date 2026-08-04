@@ -809,11 +809,40 @@ void lsVulkan::Present()
 	if( s_shotFrames < 0x7FFFFF && --s_shotFrames == 0 )
 	{
 		if( getenv( "VORTX_VK_DEBUG" ) )
+		{
 			cout << "VK DRAWS: calls=" << s_callsDE
 				 << " skipFrame=" << s_skipFrame << " skipProg=" << s_skipProg
 				 << " skipVao=" << s_skipVao << " skipPass=" << s_skipPass
 				 << " skipPipe=" << s_skipPipe << " issued=" << s_issued
 				 << " indices=" << s_indices << endl;
+			// dump first linked program's UBO staging (are matrices real?)
+			for( auto& [pid, prog] : m_programs )
+			{
+				if(! prog.linked ) continue;
+				cout << "PROG " << pid << " members:";
+				for( auto& mem : prog.layout.members )
+					cout << " " << mem.name << "@" << mem.offset;
+				cout << endl << "  staging[0..63]:";
+				const float* f = (const float*)prog.uboStaging.data();
+				for( int i = 0; i < 16 && i*4 < (int)prog.uboStaging.size(); i++ )
+					printf( " %.3g", f[i] );
+				cout << endl;
+				break;
+			}
+			// dump first vertex buffer's first floats (is vertex data real?)
+			for( auto& [bid, buf] : m_buffers )
+			{
+				if(! buf.buffer || buf.size < 32 ) continue;
+				void* m = nullptr;
+				vkMapMemory( m_device, buf.memory, 0, 32, 0, &m );
+				const float* f = (const float*)m;
+				cout << "BUF " << bid << " (" << buf.size << "B):";
+				for( int i = 0; i < 8; i++ ) printf( " %.3g", f[i] );
+				cout << endl;
+				vkUnmapMemory( m_device, buf.memory );
+				break;
+			}
+		}
 		if( getenv( "VORTX_SHOT" ) )
 			captureScreenshot( getenv( "VORTX_SHOT" ) );
 	}
