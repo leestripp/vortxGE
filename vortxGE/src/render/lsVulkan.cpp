@@ -490,18 +490,20 @@ bool lsVulkan::createSwapchain( VkSwapchainKHR oldSwapchain )
 	}
 	m_swapchainFormat = chosen.format;
 
-	// extent: caps.currentExtent or the window framebuffer size
-	if( caps.currentExtent.width != std::numeric_limits<uint32_t>::max() )
+	// extent: the LIVE framebuffer size first (tracks fullscreen/resize
+	// immediately; caps.currentExtent can lag behind on Wayland),
+	// caps.currentExtent as fallback
+	int fw = 0, fh = 0;
+	glfwGetFramebufferSize( (GLFWwindow*)m_window, &fw, &fh );
+	if( fw > 0 && fh > 0 )
+	{
+		m_swapchainExtent.width = std::clamp( (uint32_t)fw, caps.minImageExtent.width,
+									  caps.maxImageExtent.width );
+		m_swapchainExtent.height = std::clamp( (uint32_t)fh, caps.minImageExtent.height,
+									   caps.maxImageExtent.height );
+	} else if( caps.currentExtent.width != std::numeric_limits<uint32_t>::max() )
 	{
 		m_swapchainExtent = caps.currentExtent;
-	} else
-	{
-		int w = 0, h = 0;
-		glfwGetFramebufferSize( (GLFWwindow*)m_window, &w, &h );
-		m_swapchainExtent.width = std::clamp( (uint32_t)w, caps.minImageExtent.width,
-											  caps.maxImageExtent.width );
-		m_swapchainExtent.height = std::clamp( (uint32_t)h, caps.minImageExtent.height,
-											   caps.maxImageExtent.height );
 	}
 
 	uint32_t imageCount = caps.minImageCount + 1;

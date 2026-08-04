@@ -267,6 +267,12 @@ void vortxGE::Render()
  */
 void vortxGE::Resize( int x, int y, int width, int height )
 {
+	// tell the renderer FIRST (Vulkan: marks the swapchain dirty so it
+	// is recreated at the new framebuffer size next frame — without
+	// this, fullscreen transitions leave the swapchain stale and the
+	// image clipped/off-center)
+	if( render ) render->Resize( width, height );
+
 	// pass resize up chain
 	if( controlmanager ) controlmanager->Resize( x, y, width, height );
 }
