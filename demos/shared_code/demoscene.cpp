@@ -631,6 +631,11 @@ void DemoScene::setupObjectEmitter()
 	
 	// Set randomization properties for more interesting emission
 	emitter->setRand_area(lsVector3(2.0f, 0.0f, 2.0f)); // Random area around emitter
+
+	// Object pool (emitter redesign): pre-allocate everything now —
+	// nothing is created/deleted at spawn time (VRAM churn -> RADV crash)
+	emitter->setPoolSize( 100 );
+	emitter->PreAllocate( m_viewer_scene, m_vortxge->getRender() );
 	emitter->setRand_velocity(lsVector3(2.0f, 5.0f, 2.0f)); // Random velocity
 	emitter->setRand_rotation(true); // Random rotation
 	

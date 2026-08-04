@@ -738,6 +738,7 @@ void lsVulkan::cleanupSwapchain()
 
 bool lsVulkan::recreateSwapchain()
 {
+	m_swapchainRecreates++;
 	vkDeviceWaitIdle( m_device );
 
 	// Window minimized (0-size): nothing to do until it comes back
@@ -853,6 +854,30 @@ void lsVulkan::Present()
 
 	m_inFrame = false;
 	m_currentFrame = ( m_currentFrame + 1 ) % FRAMES_IN_FLIGHT;
+
+	// growth probe: VORTX_VK_STATS=1 -> one line every 300 frames
+	static int s_statFrame = 0;
+	if( getenv( "VORTX_VK_STATS" ) && ++s_statFrame % 300 == 0 )
+	{
+		long rssKb = -1;
+		if( FILE* f = fopen( "/proc/self/status", "r" ) )
+		{
+			char line[256];
+			while( fgets( line, sizeof(line), f ) )
+				if( sscanf( line, "VmRSS: %ld kB", &rssKb ) == 1 ) break;
+			fclose( f );
+		}
+		cout << "VK STATS f=" << s_statFrame
+			 << " pipes=" << m_pipelineCache.size()
+			 << " progs=" << m_programs.size()
+			 << " shaders=" << m_shaders.size()
+			 << " texs=" << m_textures.size()
+			 << " bufs=" << m_buffers.size()
+			 << " vaos=" << m_vaos.size()
+			 << " fbos=" << m_fbos.size()
+			 << " swapRecreate=" << m_swapchainRecreates
+			 << " rssMB=" << ( rssKb / 1024 ) << endl;
+	}
 
 	// DIAGNOSTIC: one-shot swapchain readback (VORTX_SHOT=path.ppm)
 	static int s_shotFrames = -1;

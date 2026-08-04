@@ -353,6 +353,9 @@ private:
 	struct PipelineEntry { VkPipeline pipeline = VK_NULL_HANDLE; };
 	std::unordered_map<std::string, VkPipeline> m_pipelineCache;
 
+	// growth diagnostics (progressive-slowdown hunt)
+	uint32_t m_swapchainRecreates = 0;
+
 	// owned descriptor-image-info arrays (sampler arrays need stable
 	// per-element VkDescriptorImageInfo lists; freed in the destructor)
 	std::vector<std::vector<VkDescriptorImageInfo>*> m_descriptorImageInfos;

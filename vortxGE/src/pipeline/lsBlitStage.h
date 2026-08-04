@@ -26,6 +26,10 @@ public:
 
 	void setSource( const std::string& src ) { m_src = src; }
 	void setDest( const std::string& dst ) { m_dst = dst; }
+	/// Vulkan's Y-flipped viewport inverts FBO texel rows vs GL; enable
+	/// to flip V when sampling (backend-agnostic stages need the app to
+	/// say which convention the backend uses).
+	void setFlipY( bool v ) { m_flipY = v; }
 	void setTint( float r, float g, float b, float a )
 	{ m_tint[0]=r; m_tint[1]=g; m_tint[2]=b; m_tint[3]=a; }
 
@@ -34,7 +38,6 @@ public:
 	/// stored V-mirrored vs OpenGL — "offscreen rendering must be
 	/// compensated" (VK_KHR_maintenance1 viewport-flip convention).
 	/// X is NOT affected (the viewport flip only negates height).
-	void setFlipY( bool v ) { m_flipY = v; }
 
 private:
 	bool lazyInit( lsRender* render );

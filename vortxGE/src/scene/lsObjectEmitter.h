@@ -22,6 +22,8 @@
 
 class lsAsset_Mesh;
 class lsAsset;
+class lsObject;
+class lsBulletObject;
 class lsScene;
 class lsLight;
 
@@ -44,6 +46,16 @@ public:
 
 	// Emit
 	void EmitObject( lsScene *scn, lsRender *render );
+
+	// Object pool (redesign 2026-08-04): pre-allocate ALL emitted objects
+	// once — hidden, immortal (life==0), physics bodies parked asleep.
+	// Spawns just reset an entry's transform/velocity; when the pool is
+	// exhausted the OLDEST entry is reused (ring cursor). Nothing is ever
+	// created or deleted at spawn time — no VRAM/body churn.
+	void PreAllocate( lsScene* scn, lsRender* render );	// idempotent
+	void setPoolSize( int n ) { if( !m_allocated && n > 0 ) m_poolSize = n; }
+	int getPoolSize() const { return m_poolSize; }
+	size_t getSpawnedCount() const { return m_spawned; }
 
 	// Override functions
 	virtual void Move( lsScene* scn, lsRender* render, double delta );
@@ -98,4 +110,17 @@ private:
 	lsVector3   rand_area;
 	lsVector3   rand_velocity;
 	bool        rand_rotation;
+
+	// Object pool (see PreAllocate)
+	struct PoolEntry
+	{
+		lsObject*		object = nullptr;
+		lsBulletObject*	body = nullptr;
+	};
+	std::vector<PoolEntry>	m_pool;
+	int			m_poolSize = 100;
+	size_t		m_cursor = 0;		// ring cursor == oldest entry
+	size_t		m_spawned = 0;
+	bool		m_allocated = false;
+	class lsBulletShape* resolveBulletShape( lsRender* render );
 };
