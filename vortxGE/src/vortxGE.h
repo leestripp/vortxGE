@@ -175,6 +175,13 @@ public:
      * @note Depends on Update() being called first
      */
 	void Render();
+
+	/// Render-pipeline hook (Plan.md Part 3): when set, Render() runs the
+	/// pipeline INSTEAD of the legacy control-manager chain. Non-owning —
+	/// the app owns the pipeline. Frame lifecycle (BeginFrame/EndFrame/
+	/// Present) stays here either way.
+	void setRenderPipeline( class lsRenderPipeline* p ) { m_renderPipeline = p; }
+	lsRenderPipeline* getRenderPipeline() const { return m_renderPipeline; }
 	
     /**
      * @brief Get the control manager for input handling
@@ -302,6 +309,7 @@ private:
 	
     /** @brief Control manager - handles user input */
 	lsControlManager    *controlmanager;
+	lsRenderPipeline    *m_renderPipeline = nullptr;  // non-owning (Part 3)
 	
     /** @brief Statistics tracker - FPS and performance metrics */
 	lsStats             *stats;

@@ -45,6 +45,11 @@ public:
 
     bool Init();
     void Resize( int x, int y, int w, int h );
+
+    /// Plan.md Part 3 Phase R2: explicit render pipeline (created when
+    /// VORTX_PIPELINE=1 is set at Init). Owned by DemoScene.
+    class lsRenderPipeline* m_pipeline = nullptr;
+    void initPipeline();
     // Player movement
     void movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch);
     void rotatePlayerView( double delta_x, double delta_y);

@@ -13,6 +13,9 @@
  * signatures.
  */
 
+#include <vector>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include "../vortx_debug.h"
 
@@ -61,7 +64,32 @@ bool lsOpenGL::Init()
 // ---------------------------------------------------------------------
 void lsOpenGL::SetWindow( void* nativeWindow ) { (void)nativeWindow; }
 void lsOpenGL::BeginFrame() {}
-void lsOpenGL::EndFrame() {}
+void lsOpenGL::EndFrame()
+{
+	// VORTX_SHOT: capture the framebuffer at frame 30 (same convention
+	// as the Vulkan backend) for GL<->Vulkan / legacy<->pipeline
+	// side-by-side comparison
+	static const char* shotPath = getenv( "VORTX_SHOT" );
+	if( !shotPath ) return;
+	static int s_frames = 30;
+	if( --s_frames != 0 ) return;
+
+	GLint vp[4] = { 0, 0, 0, 0 };
+	glGetIntegerv( GL_VIEWPORT, vp );
+	const int w = vp[2], h = vp[3];
+	if( w <= 0 || h <= 0 ) return;
+
+	std::vector<unsigned char> px( (size_t)w * (size_t)h * 3 );
+	glPixelStorei( GL_PACK_ALIGNMENT, 1 );
+	glReadPixels( 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, px.data() );
+
+	FILE* f = fopen( shotPath, "wb" );
+	if( !f ) return;
+	fprintf( f, "P6\n%d %d\n255\n", w, h );
+	for( int y = h - 1; y >= 0; y-- )	// glReadPixels is bottom-up
+		fwrite( px.data() + (size_t)y * (size_t)w * 3, 1, (size_t)w * 3, f );
+	fclose( f );
+}
 void lsOpenGL::Present() {}
 void lsOpenGL::Resize( int width, int height ) { (void)width; (void)height; }
 

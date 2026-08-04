@@ -32,6 +32,7 @@ struct lsVkUniformMember
 	std::string name;
 	std::string glslType;		// "float", "vec3", "mat4", "int", ...
 	uint32_t	offset = 0;		// std140 byte offset (assigned at merge)
+	uint32_t	elemStride = 0;	// array element byte stride (arrays only)
 	uint32_t	arraySize = 0;	// 0 = scalar
 	uint32_t	size = 0;		// bytes the matching Uniform* call writes
 };

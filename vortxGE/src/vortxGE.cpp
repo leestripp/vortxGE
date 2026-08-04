@@ -27,6 +27,7 @@
 #include "datablocks/lsStats.h"
 
 #include "vortxGE.h"
+#include "pipeline/lsRenderPipeline.h"
 
 //! Core class of the library
 /*!
@@ -236,8 +237,9 @@ void vortxGE::Render()
 	// Frame begin (Vulkan: acquire + start recording; GL: no-op)
 	if( render ) render->BeginFrame();
 
-	// render - all elements to screen
-	if( controlmanager ) controlmanager->Render();
+	// render - pipeline (Part 3) or legacy control chain
+	if( m_renderPipeline ) m_renderPipeline->render();
+	else if( controlmanager ) controlmanager->Render();
 
 	// reset framebuffer
 	render->RestoreDefaultFramebuffer();

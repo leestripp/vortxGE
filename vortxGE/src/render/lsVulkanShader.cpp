@@ -148,6 +148,7 @@ lsVkProgramLayout lsVkShader::mergeLayouts( const lsVkStageParse& vs,
 		mem.offset = cursor;
 		const uint32_t stride = mem.arraySize
 			? alignUp( sizeOf( mem.glslType ), 16 ) : sizeOf( mem.glslType );
+		mem.elemStride = stride;	// for [i] element location decoding
 		cursor += stride * ( mem.arraySize ? mem.arraySize : 1 );
 	}
 	layout.blockSize = alignUp( cursor, 16 );

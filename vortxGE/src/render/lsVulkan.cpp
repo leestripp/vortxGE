@@ -1665,6 +1665,24 @@ lsUniformID lsVulkan::GetUniformLocation( lsProgramID program, const lsChar* nam
 	auto mi = it->second.uniformIndex.find( name );
 	if( mi != it->second.uniformIndex.end() )
 		return (lsUniformID)mi->second;
+
+	// GL-style array element lookup: "vxLightPos[2]". Members are stored
+	// by base name with arraySize/elemStride; encode the element index in
+	// bits 16+ of the location (member indices are < 1000, sampler
+	// locations are 1000+binding, element locations are >= 65536).
+	const std::string n = name;
+	const size_t lb = n.find( '[' );
+	if( lb != std::string::npos && n.back() == ']' )
+	{
+		const uint32_t elem = (uint32_t)strtoul( n.c_str() + lb + 1, nullptr, 10 );
+		auto bi = it->second.uniformIndex.find( n.substr( 0, lb ) );
+		if( bi != it->second.uniformIndex.end() )
+		{
+			const lsVkUniformMember& mem = it->second.layout.members[bi->second];
+			if( mem.arraySize && elem < mem.arraySize )
+				return (lsUniformID)( bi->second + ( elem << 16 ) );
+		}
+	}
 	return -1;
 }
 
@@ -1674,17 +1692,27 @@ lsUniformID lsVulkan::GetUniformLocation( lsProgramID program, const lsChar* nam
 void lsVulkan::writeUniformMember( VkProgramObj& prog, lsUniformID location,
 								   const void* data, uint32_t bytes )
 {
-	if( location < 0 || location >= (lsUniformID)prog.layout.members.size() )
-		return;
-	const lsVkUniformMember& mem = prog.layout.members[location];
-	if( mem.offset + bytes > prog.uboStaging.size() ) return;
-	memcpy( prog.uboStaging.data() + mem.offset, data, bytes );
+	if( location < 0 ) return;
+	const uint32_t memIdx = (uint32_t)location & 0xFFFF;
+	const uint32_t elem = (uint32_t)location >> 16;
+	if( memIdx >= prog.layout.members.size() ) return;
+	const lsVkUniformMember& mem = prog.layout.members[memIdx];
+	if( elem && ( !mem.arraySize || elem >= mem.arraySize ) ) return;
+	const uint32_t off = mem.offset + elem * mem.elemStride;
+	if( off + bytes > prog.uboStaging.size() ) return;
+	memcpy( prog.uboStaging.data() + off, data, bytes );
 }
 
 void lsVulkan::Uniform1i( lsUniformID location, lsInt v0 )
 {
 	auto it = m_programs.find( m_currentProgram );
 	if( it == m_programs.end() ) return;
+	if( location >= 65536 )
+	{
+		// array element uniform (e.g. vxLightType[1]) — staged below
+		writeUniformMember( it->second, location, &v0, sizeof( v0 ) );
+		return;
+	}
 	if( location >= 1000 )
 	{
 		// sampler assignment: record binding -> GL texture unit (V3)
@@ -1726,13 +1754,17 @@ void lsVulkan::UniformMatrix3fv( lsUniformID location, lsSizei count,
 {
 	(void)transpose;	// engine never transposes
 	auto it = m_programs.find( m_currentProgram );
-	if( it == m_programs.end() || location < 0 ||
-		location >= (lsUniformID)it->second.layout.members.size() ) return;
-	const lsVkUniformMember& mem = it->second.layout.members[location];
+	if( it == m_programs.end() || location < 0 ) return;
+	const uint32_t memIdx = (uint32_t)location & 0xFFFF;
+	const uint32_t elem = (uint32_t)location >> 16;
+	if( memIdx >= it->second.layout.members.size() ) return;
+	const lsVkUniformMember& mem = it->second.layout.members[memIdx];
+	if( elem && ( !mem.arraySize || elem >= mem.arraySize ) ) return;
+	const uint32_t baseOff = mem.offset + elem * mem.elemStride;
 	// std140 mat3: 3 columns at 16-byte stride (packed 9 floats in)
 	for( lsSizei m = 0; m < count; m++ )
 	{
-		uint8_t* dst = it->second.uboStaging.data() + mem.offset + m * 48;
+		uint8_t* dst = it->second.uboStaging.data() + baseOff + m * 48;
 		const float* src = value + m * 9;
 		for( int col = 0; col < 3; col++ )
 			memcpy( dst + col * 16, src + col * 3, 12 );

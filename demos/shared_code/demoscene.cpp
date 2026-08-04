@@ -78,6 +78,12 @@
 #include <controls/lsComposite.h>
 #include <controls/lsViewer.h>
 
+// Plan.md Part 3: render pipeline (R2)
+#include <pipeline/lsRenderPipeline.h>
+#include <pipeline/lsSceneStage.h>
+#include <pipeline/lsBlitStage.h>
+#include <pipeline/lsShadowStage.h>
+
 // Passes
 #include <passes/lsPassManager.h>
 #include <passes/lsPass.h>
@@ -173,6 +179,7 @@ DemoScene::DemoScene()
 
 DemoScene::~DemoScene()
 {
+	if( m_pipeline ) { m_vortxge->setRenderPipeline( nullptr ); delete m_pipeline; }
 	if(m_vortxge)
 	{
 		m_vortxge->Cleanup();
@@ -243,6 +250,12 @@ bool DemoScene::Init()
 		
 		setupControls();
 		setupTestScene();
+
+		// Plan.md Part 3 Phase R2: opt-in explicit render pipeline.
+		// Scene->FBO via lsSceneStage, FBO->screen via lsBlitStage —
+		// replaces the Quad-Viewer control + pass_fbo at render time.
+		if( getenv( "VORTX_PIPELINE" ) )
+			initPipeline();
 		
 	} else
 	{
@@ -271,6 +284,8 @@ void DemoScene::Resize( int x, int y, int w, int h )
 	m_view_height = h;
 
 	m_vortxge->Resize( x, y, w, h );
+
+	if( m_pipeline ) m_pipeline->setFramebufferSize( w, h );
 }
 
 // ************************************
@@ -723,6 +738,43 @@ void DemoScene::Render()
 	// cout << "DemoScene::Render END" << endl;
 }
 
+
+void DemoScene::initPipeline()
+{
+	cout << "DemoScene::initPipeline() - Plan.md Part 3 (R2)" << endl;
+
+	lsRender* r = m_vortxge->getRender();
+	m_pipeline = new lsRenderPipeline( r );
+	m_pipeline->setFramebufferSize( m_view_width, m_view_height );
+
+	// named target for the main scene (colour + depth)
+	m_pipeline->targets().acquire( "scene", true );
+
+	// stage 0: shadow maps (Plan.md Part 3 R4 pulled forward — the PBR
+	// shaders sample them; without shadow stages every lit surface is
+	// black). Each stage owns its depth FBO and self-wires it to the
+	// light, replacing DemoScene::setupShadows in pipeline mode.
+	for( lsLight* light : m_viewer_scene->getLightManager()->getLights() )
+	{
+		int size = ( light->getLight_type() == LSLT_DIRECT ) ? 4096 :
+				   ( light->getLight_type() == LSLT_SPOT ) ? 2048 : 0;
+		if( !size ) continue;
+		auto* sh = m_pipeline->addStage<lsShadowStage>(
+			m_viewer_scene, light, size, r );
+		sh->setName( string( "shadow-" ) + light->getName() );
+	}
+
+	// stage 1: main scene -> "scene" target
+	auto* scene = m_pipeline->addStage<lsSceneStage>(
+		m_viewer_scene, m_playerRig->getCamera(), "scene" );
+	scene->setName( "main-scene" );
+
+	// stage 2: "scene" target -> screen (replaces the Quad Viewer)
+	auto* blit = m_pipeline->addStage<lsBlitStage>( "scene", "" );
+	blit->setName( "blit-to-screen" );
+
+	m_vortxge->setRenderPipeline( m_pipeline );
+}
 
 void DemoScene::processEvent( lsEvent* event )
 {
