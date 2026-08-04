@@ -107,6 +107,9 @@ lsVulkan::~lsVulkan()
 
 	vkDeviceWaitIdle( m_device );
 
+	// device idle -> every retire bucket is safe to destroy
+	for( uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++ ) drainRetired( i );
+
 	// V2 resources
 	for( auto& [key, pipeline] : m_pipelineCache )
 		vkDestroyPipeline( m_device, pipeline, nullptr );
@@ -127,6 +130,10 @@ lsVulkan::~lsVulkan()
 		if( buf.memory ) vkFreeMemory( m_device, buf.memory, nullptr );
 	}
 	m_buffers.clear();
+	if( m_dummyAttribBuffer ) vkDestroyBuffer( m_device, m_dummyAttribBuffer, nullptr );
+	if( m_dummyAttribMemory ) vkFreeMemory( m_device, m_dummyAttribMemory, nullptr );
+	m_dummyAttribBuffer = VK_NULL_HANDLE;
+	m_dummyAttribMemory = VK_NULL_HANDLE;
 	for( auto& [id, tex] : m_textures )
 	{
 		if( tex.sampler ) vkDestroySampler( m_device, tex.sampler, nullptr );
@@ -156,7 +163,6 @@ lsVulkan::~lsVulkan()
 	for( uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++ )
 	{
 		if( m_imageAvailable[i] ) vkDestroySemaphore( m_device, m_imageAvailable[i], nullptr );
-		if( m_renderFinished[i] ) vkDestroySemaphore( m_device, m_renderFinished[i], nullptr );
 		if( m_inFlight[i] ) vkDestroyFence( m_device, m_inFlight[i], nullptr );
 	}
 	if( m_commandPool ) vkDestroyCommandPool( m_device, m_commandPool, nullptr );
@@ -549,6 +555,22 @@ bool lsVulkan::createSwapchain( VkSwapchainKHR oldSwapchain )
 	vkGetSwapchainImagesKHR( m_device, m_swapchain, &realCount, nullptr );
 	m_swapchainImages.resize( realCount );
 	vkGetSwapchainImagesKHR( m_device, m_swapchain, &realCount, m_swapchainImages.data() );
+
+	// present-complete semaphores are PER SWAPCHAIN IMAGE: the present
+	// engine's wait is not covered by the frame fence, so a per-frame-slot
+	// semaphore can be re-signalled while still in use
+	// (VUID-vkQueueSubmit-pSignalSemaphores-00067)
+	for( auto s : m_renderFinished )
+		if( s ) vkDestroySemaphore( m_device, s, nullptr );
+	m_renderFinished.clear();
+	m_renderFinished.resize( m_swapchainImages.size(), VK_NULL_HANDLE );
+	{
+		VkSemaphoreCreateInfo sci{};
+		sci.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		for( auto& s : m_renderFinished )
+			if( vkCreateSemaphore( m_device, &sci, nullptr, &s ) != VK_SUCCESS )
+				return false;
+	}
 	return true;
 }
 
@@ -704,7 +726,6 @@ bool lsVulkan::createSyncObjects()
 	for( uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++ )
 	{
 		if( vkCreateSemaphore( m_device, &si, nullptr, &m_imageAvailable[i] ) != VK_SUCCESS ||
-			vkCreateSemaphore( m_device, &si, nullptr, &m_renderFinished[i] ) != VK_SUCCESS ||
 			vkCreateFence( m_device, &fi, nullptr, &m_inFlight[i] ) != VK_SUCCESS )
 		{
 			cout << "ERROR: lsVulkan - sync object creation failed" << endl;
@@ -719,6 +740,10 @@ bool lsVulkan::createSyncObjects()
 // ---------------------------------------------------------------------
 void lsVulkan::cleanupSwapchain()
 {
+	for( auto s : m_renderFinished )
+		if( s ) vkDestroySemaphore( m_device, s, nullptr );
+	m_renderFinished.clear();
+
 	for( auto fb : m_framebuffers )
 		vkDestroyFramebuffer( m_device, fb, nullptr );
 	m_framebuffers.clear();
@@ -740,6 +765,7 @@ bool lsVulkan::recreateSwapchain()
 {
 	m_swapchainRecreates++;
 	vkDeviceWaitIdle( m_device );
+	for( uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++ ) drainRetired( i );
 
 	// Window minimized (0-size): nothing to do until it comes back
 	int w = 0, h = 0;
@@ -777,6 +803,10 @@ void lsVulkan::BeginFrame()
 		if(! recreateSwapchain() ) return;
 
 	vkWaitForFences( m_device, 1, &m_inFlight[m_currentFrame], VK_TRUE, UINT64_MAX );
+
+	// the fence also guarantees nothing in flight references resources
+	// retired into this slot — safe to actually destroy them now
+	drainRetired( m_currentFrame );
 
 	// the fence guarantees nothing pending references sets allocated from
 	// this frame slot's draw pool — reset it for this frame's per-draw sets
@@ -828,7 +858,7 @@ void lsVulkan::EndFrame()
 	submit.commandBufferCount = 1;
 	submit.pCommandBuffers = &cmd;
 	submit.signalSemaphoreCount = 1;
-	submit.pSignalSemaphores = &m_renderFinished[m_currentFrame];
+	submit.pSignalSemaphores = &m_renderFinished[m_acquiredImage];
 
 	m_lastError = vkQueueSubmit( m_graphicsQueue, 1, &submit, m_inFlight[m_currentFrame] );
 	if( m_lastError != VK_SUCCESS )
@@ -842,7 +872,7 @@ void lsVulkan::Present()
 	VkPresentInfoKHR pi{};
 	pi.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	pi.waitSemaphoreCount = 1;
-	pi.pWaitSemaphores = &m_renderFinished[m_currentFrame];
+	pi.pWaitSemaphores = &m_renderFinished[m_acquiredImage];
 	pi.swapchainCount = 1;
 	pi.pSwapchains = &m_swapchain;
 	pi.pImageIndices = &m_acquiredImage;
@@ -1279,8 +1309,7 @@ uint32_t lsVulkan::findMemoryType( uint32_t typeBits, VkMemoryPropertyFlags prop
 bool lsVulkan::createBufferStorage( VkBuf& buf, VkDeviceSize size, const void* data )
 {
 	// Recreate semantics: BufferData on an existing GL buffer replaces it
-	if( buf.buffer ) vkDestroyBuffer( m_device, buf.buffer, nullptr );
-	if( buf.memory ) vkFreeMemory( m_device, buf.memory, nullptr );
+	if( buf.buffer || buf.memory ) retireBuffer( buf.buffer, buf.memory );
 	buf.buffer = VK_NULL_HANDLE;
 	buf.memory = VK_NULL_HANDLE;
 	buf.size = size;
@@ -1330,6 +1359,124 @@ void lsVulkan::GenBuffers( lsSizei n, lsBufferID* buffers )
 	}
 }
 
+// ---------------------------------------------------------------------
+// Deferred destruction (retire buckets)
+// ---------------------------------------------------------------------
+// Bucket selection: a resource deleted DURING frame M may be referenced
+// by frame M's own submission -> bucket slot M, drained when slot M's
+// fence is next waited (frame M+FRAMES_IN_FLIGHT). A resource deleted
+// OUTSIDE a frame (m_currentFrame already advanced past the last
+// submission that could reference it) must wait one more slot.
+static inline uint32_t retireSlotFor( bool inFrame, uint32_t current, uint32_t n )
+{
+	return inFrame ? current : ( current + 1 ) % n;
+}
+
+void lsVulkan::retireBuffer( VkBuffer b, VkDeviceMemory m )
+{
+	if( m_device == VK_NULL_HANDLE ) return;
+	if( ! m_initialized )
+	{
+		if( b ) vkDestroyBuffer( m_device, b, nullptr );
+		if( m ) vkFreeMemory( m_device, m, nullptr );
+		return;
+	}
+	m_retiredBufs[retireSlotFor( m_inFrame, m_currentFrame, FRAMES_IN_FLIGHT )]
+		.push_back( { b, m } );
+}
+
+void lsVulkan::retireImage( VkImage i, VkDeviceMemory m )
+{
+	if( m_device == VK_NULL_HANDLE ) return;
+	if( ! m_initialized )
+	{
+		if( i ) vkDestroyImage( m_device, i, nullptr );
+		if( m ) vkFreeMemory( m_device, m, nullptr );
+		return;
+	}
+	m_retiredImgs[retireSlotFor( m_inFrame, m_currentFrame, FRAMES_IN_FLIGHT )]
+		.push_back( { i, m } );
+}
+
+void lsVulkan::retireView( VkImageView v )
+{
+	if( m_device == VK_NULL_HANDLE ) return;
+	if( ! m_initialized ) { if( v ) vkDestroyImageView( m_device, v, nullptr ); return; }
+	m_retiredViews[retireSlotFor( m_inFrame, m_currentFrame, FRAMES_IN_FLIGHT )]
+		.push_back( v );
+}
+
+void lsVulkan::retireSampler( VkSampler s )
+{
+	if( m_device == VK_NULL_HANDLE ) return;
+	if( ! m_initialized ) { if( s ) vkDestroySampler( m_device, s, nullptr ); return; }
+	m_retiredSamplers[retireSlotFor( m_inFrame, m_currentFrame, FRAMES_IN_FLIGHT )]
+		.push_back( s );
+}
+
+void lsVulkan::retireFbo( VkFramebuffer f )
+{
+	if( m_device == VK_NULL_HANDLE ) return;
+	if( ! m_initialized ) { if( f ) vkDestroyFramebuffer( m_device, f, nullptr ); return; }
+	m_retiredFbos[retireSlotFor( m_inFrame, m_currentFrame, FRAMES_IN_FLIGHT )]
+		.push_back( f );
+}
+
+void lsVulkan::drainRetired( uint32_t slot )
+{
+	for( auto& r : m_retiredBufs[slot] )
+	{
+		if( r.buffer ) vkDestroyBuffer( m_device, r.buffer, nullptr );
+		if( r.memory ) vkFreeMemory( m_device, r.memory, nullptr );
+	}
+	m_retiredBufs[slot].clear();
+	for( auto& r : m_retiredImgs[slot] )
+	{
+		if( r.image ) vkDestroyImage( m_device, r.image, nullptr );
+		if( r.memory ) vkFreeMemory( m_device, r.memory, nullptr );
+	}
+	m_retiredImgs[slot].clear();
+	for( auto v : m_retiredViews[slot] )
+		if( v ) vkDestroyImageView( m_device, v, nullptr );
+	m_retiredViews[slot].clear();
+	for( auto s : m_retiredSamplers[slot] )
+		if( s ) vkDestroySampler( m_device, s, nullptr );
+	m_retiredSamplers[slot].clear();
+	for( auto f : m_retiredFbos[slot] )
+		if( f ) vkDestroyFramebuffer( m_device, f, nullptr );
+	m_retiredFbos[slot].clear();
+}
+
+void lsVulkan::ensureDummyAttribBuffer()
+{
+	if( m_dummyAttribBuffer ) return;
+
+	VkBufferCreateInfo bi{};
+	bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bi.size = 16;
+	bi.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	if( vkCreateBuffer( m_device, &bi, nullptr, &m_dummyAttribBuffer ) != VK_SUCCESS )
+		return;
+
+	VkMemoryRequirements reqs;
+	vkGetBufferMemoryRequirements( m_device, m_dummyAttribBuffer, &reqs );
+	VkMemoryAllocateInfo ai{};
+	ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	ai.allocationSize = reqs.size;
+	ai.memoryTypeIndex = findMemoryType( reqs.memoryTypeBits,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT );
+	if( vkAllocateMemory( m_device, &ai, nullptr, &m_dummyAttribMemory ) != VK_SUCCESS )
+		return;
+	vkBindBufferMemory( m_device, m_dummyAttribBuffer, m_dummyAttribMemory, 0 );
+
+	const float def[4] = { 0.0f, 0.0f, 0.0f, 1.0f };	// GL attrib default
+	void* mapped = nullptr;
+	vkMapMemory( m_device, m_dummyAttribMemory, 0, 16, 0, &mapped );
+	memcpy( mapped, def, 16 );
+	vkUnmapMemory( m_device, m_dummyAttribMemory );
+}
+
 void lsVulkan::DeleteBuffers( lsSizei n, lsBufferID* buffers )
 {
 	for( lsSizei i = 0; i < n; i++ )
@@ -1337,8 +1484,7 @@ void lsVulkan::DeleteBuffers( lsSizei n, lsBufferID* buffers )
 		auto it = m_buffers.find( buffers[i] );
 		if( it != m_buffers.end() )
 		{
-			if( it->second.buffer ) vkDestroyBuffer( m_device, it->second.buffer, nullptr );
-			if( it->second.memory ) vkFreeMemory( m_device, it->second.memory, nullptr );
+			retireBuffer( it->second.buffer, it->second.memory );
 			m_buffers.erase( it );
 		}
 	}
@@ -1517,6 +1663,31 @@ bool lsVulkan::linkProgramResources( VkProgramObj& prog )
 	prog.layout = lsVkShader::mergeLayouts( vit->second.parsed, fit->second.parsed );
 
 	const std::string vsSrc = lsVkShader::assemble( vit->second.parsed, prog.layout );
+
+	// collect every vertex-shader input location from the assembled source
+	// (explicit layouts pass through; implicit ones got sequential numbers)
+	{
+		prog.vsInputLocations.clear();
+		// engine sources write "layout (location = N)" (space before the
+		// paren); the assembler emits "layout(location = N)" — handle both
+		for( const char* key : { "layout(location = ", "layout (location = " } )
+		{
+			size_t pos = 0;
+			const size_t keyLen = strlen( key );
+			while( ( pos = vsSrc.find( key, pos ) ) != std::string::npos )
+			{
+				size_t numStart = pos + keyLen;
+				size_t numEnd = vsSrc.find( ')', numStart );
+				if( numEnd == std::string::npos ) break;
+				uint32_t loc = (uint32_t)atoi( vsSrc.substr( numStart, numEnd - numStart ).c_str() );
+				// only count `in` declarations (skip varyings written as `out`)
+				size_t declStart = vsSrc.find_first_not_of( " \t", numEnd + 1 );
+				if( declStart != std::string::npos && vsSrc.compare( declStart, 3, "in " ) == 0 )
+					prog.vsInputLocations.push_back( loc );
+				pos = numEnd;
+			}
+		}
+	}
 	const std::string fsSrc = lsVkShader::assemble( fit->second.parsed, prog.layout );
 
 	std::string log;
@@ -1885,6 +2056,35 @@ VkPipeline lsVulkan::getPipeline( VkProgramObj& prog, const VkVao& vao,
 		attributes.push_back( ad );
 	}
 
+	// Shader inputs the VAO does not provide: GL reads the attrib default
+	// (0,0,0,1). Vulkan has no default — back those locations with a
+	// stride-0 instance-rate dummy binding (every vertex reads offset 0).
+	{
+		bool needDummy = false;
+		for( uint32_t loc : prog.vsInputLocations )
+		{
+			bool covered = false;
+			for( const auto& ad : attributes )
+				if( ad.location == loc ) { covered = true; break; }
+			if( covered ) continue;
+			VkVertexInputAttributeDescription ad{};
+			ad.location = loc;
+			ad.binding = DUMMY_ATTRIB_BINDING;
+			ad.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+			ad.offset = 0;
+			attributes.push_back( ad );
+			needDummy = true;
+		}
+		if( needDummy )
+		{
+			VkVertexInputBindingDescription b{};
+			b.binding = DUMMY_ATTRIB_BINDING;
+			b.stride = 0;
+			b.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+			bindings.push_back( b );
+		}
+	}
+
 	VkPipelineVertexInputStateCreateInfo vi{};
 	vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vi.vertexBindingDescriptionCount = (uint32_t)bindings.size();
@@ -2027,6 +2227,13 @@ void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
 		VkDeviceSize zero = 0;
 		vkCmdBindVertexBuffers( cmd, idx, 1, &bit->second.buffer, &zero );
 	}
+	// harmless when the pipeline has no dummy attributes
+	ensureDummyAttribBuffer();
+	if( m_dummyAttribBuffer )
+	{
+		VkDeviceSize zero = 0;
+		vkCmdBindVertexBuffers( cmd, DUMMY_ATTRIB_BINDING, 1, &m_dummyAttribBuffer, &zero );
+	}
 
 	uint32_t uboOffset = 0;
 	if( pit->second.layout.blockSize > 0 )
@@ -2099,6 +2306,13 @@ void lsVulkan::DrawElements( lsEnum mode, lsSizei count, lsEnum type,
 		if( bit == m_buffers.end() || ! bit->second.buffer ) continue;
 		VkDeviceSize zero = 0;
 		vkCmdBindVertexBuffers( cmd, idx, 1, &bit->second.buffer, &zero );
+	}
+	// harmless when the pipeline has no dummy attributes
+	ensureDummyAttribBuffer();
+	if( m_dummyAttribBuffer )
+	{
+		VkDeviceSize zero = 0;
+		vkCmdBindVertexBuffers( cmd, DUMMY_ATTRIB_BINDING, 1, &m_dummyAttribBuffer, &zero );
 	}
 
 	// index buffer: GL's `indices` is a byte offset into the bound buffer
@@ -2177,10 +2391,9 @@ void lsVulkan::DeleteTextures( lsSizei n, lsTextureID* textures )
 		auto it = m_textures.find( textures[i] );
 		if( it == m_textures.end() ) continue;
 		VkTex& t = it->second;
-		if( t.sampler ) vkDestroySampler( m_device, t.sampler, nullptr );
-		if( t.view ) vkDestroyImageView( m_device, t.view, nullptr );
-		if( t.image ) vkDestroyImage( m_device, t.image, nullptr );
-		if( t.memory ) vkFreeMemory( m_device, t.memory, nullptr );
+		if( t.sampler ) retireSampler( t.sampler );
+		if( t.view ) retireView( t.view );
+		if( t.image || t.memory ) retireImage( t.image, t.memory );
 		m_textures.erase( it );
 	}
 }
@@ -2199,8 +2412,8 @@ void lsVulkan::BindTexture( lsEnum target, lsTextureID texture )
 
 bool lsVulkan::createTextureViewAndSampler( VkTex& tex )
 {
-	if( tex.view ) vkDestroyImageView( m_device, tex.view, nullptr );
-	if( tex.sampler ) vkDestroySampler( m_device, tex.sampler, nullptr );
+	if( tex.view ) retireView( tex.view );
+	if( tex.sampler ) retireSampler( tex.sampler );
 	tex.view = VK_NULL_HANDLE;
 	tex.sampler = VK_NULL_HANDLE;
 
@@ -2281,9 +2494,9 @@ bool lsVulkan::uploadTexture( VkTex& tex, lsEnum internalFormat, lsEnum format,
 		expand = ( format == LS_RGB );
 	}
 
-	// recreate image storage
-	if( tex.image ) vkDestroyImage( m_device, tex.image, nullptr );
-	if( tex.memory ) vkFreeMemory( m_device, tex.memory, nullptr );
+	// recreate image storage (retired: the old image may be referenced by
+	// an in-flight frame's descriptor set — eager destruction faults the GPU)
+	if( tex.image || tex.memory ) retireImage( tex.image, tex.memory );
 	tex.image = VK_NULL_HANDLE;
 	tex.memory = VK_NULL_HANDLE;
 	tex.format = vkFormat;
@@ -2501,11 +2714,24 @@ void lsVulkan::generateMipmaps( VkTex& tex )
 	int32_t mipH = (int32_t)tex.height;
 
 	// Layout state on entry (set by uploadTexture):
-	//   level 0   = SHADER_READ_ONLY_OPTIMAL
-	//   levels 1+ = TRANSFER_DST_OPTIMAL
-	// The blit chain therefore needs PER-LEVEL transitions:
+	//   ALL levels = SHADER_READ_ONLY_OPTIMAL
+	// The blit chain below wants destinations in TRANSFER_DST_OPTIMAL —
+	// restore that invariant with one bulk transition of levels 1..N
+	// (fixes VUID-vkCmdDraw-None-09600).
+	barrier.subresourceRange.baseMipLevel = 1;
+	barrier.subresourceRange.levelCount = tex.mipLevels - 1;
+	barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+						  VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+						  0, nullptr, 0, nullptr, 1, &barrier );
+	barrier.subresourceRange.levelCount = 1;
+
+	// Per-level transitions:
 	//   level i-1: (i==1 ? SHADER_READ_ONLY : TRANSFER_DST) -> TRANSFER_SRC
-	//   blit i-1 -> i  (dst level i is already TRANSFER_DST)
+	//   blit i-1 -> i  (dst level i is now TRANSFER_DST)
 	//   level i-1: TRANSFER_SRC -> SHADER_READ_ONLY
 	// and finally the last level TRANSFER_DST -> SHADER_READ_ONLY.
 	for( uint32_t i = 1; i < tex.mipLevels; i++ )
@@ -3011,7 +3237,7 @@ void lsVulkan::DeleteFramebuffers( lsSizei n, lsFBOID* framebuffers )
 	{
 		auto it = m_fbos.find( framebuffers[i] );
 		if( it == m_fbos.end() ) continue;
-		if( it->second.fb ) vkDestroyFramebuffer( m_device, it->second.fb, nullptr );
+		if( it->second.fb ) retireFbo( it->second.fb );
 		m_fbos.erase( it );
 	}
 }

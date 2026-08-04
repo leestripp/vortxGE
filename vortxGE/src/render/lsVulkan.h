@@ -160,7 +160,7 @@ private:
 	static constexpr uint32_t FRAMES_IN_FLIGHT = 2;
 	VkCommandBuffer m_commandBuffers[FRAMES_IN_FLIGHT] = {};
 	VkSemaphore m_imageAvailable[FRAMES_IN_FLIGHT] = {};
-	VkSemaphore m_renderFinished[FRAMES_IN_FLIGHT] = {};
+	std::vector<VkSemaphore> m_renderFinished;	// PER SWAPCHAIN IMAGE (present wait not fence-covered)
 	VkFence m_inFlight[FRAMES_IN_FLIGHT] = {};
 	uint32_t m_currentFrame = 0;
 	uint32_t m_acquiredImage = 0;
@@ -223,6 +223,7 @@ private:
 		// binding -> last texture ID written to the descriptor
 		std::unordered_map<uint32_t, uint32_t> samplerUnits;
 		std::unordered_map<uint32_t, uint32_t> lastBoundTex[FRAMES_IN_FLIGHT];
+		std::vector<uint32_t> vsInputLocations;	// all vertex-shader input locations (assembled source scan)
 	};
 
 	// V3: texture object
@@ -336,6 +337,32 @@ private:
 	// and bound immediately, so texture state matches GL's per-draw binding
 	// semantics exactly (pool reset at BeginFrame after the fence wait)
 	VkDescriptorPool m_drawPools[FRAMES_IN_FLIGHT] = {};
+
+	// Deferred destruction: GL delete calls map to retire buckets that are
+	// only destroyed after the owning frame slot's fence has been waited.
+	// Freeing GPU memory while an in-flight command buffer still references
+	// it is a GPU page fault (RADV reset -> hard crash).
+	struct RetiredBuffer { VkBuffer buffer; VkDeviceMemory memory; };
+	struct RetiredImage  { VkImage image;  VkDeviceMemory memory; };
+	std::vector<RetiredBuffer> m_retiredBufs[FRAMES_IN_FLIGHT];
+	std::vector<RetiredImage>  m_retiredImgs[FRAMES_IN_FLIGHT];
+	std::vector<VkImageView>   m_retiredViews[FRAMES_IN_FLIGHT];
+	std::vector<VkSampler>     m_retiredSamplers[FRAMES_IN_FLIGHT];
+	std::vector<VkFramebuffer> m_retiredFbos[FRAMES_IN_FLIGHT];
+
+	// GL vertex-attrib default: a shader input with no enabled attrib array
+	// reads (0,0,0,1). Emulated with a stride-0 INSTANCE-rate dummy binding
+	// fed by this 16-byte buffer (VUID-...-Input-07904).
+	static constexpr uint32_t DUMMY_ATTRIB_BINDING = 15;
+	VkBuffer		m_dummyAttribBuffer = VK_NULL_HANDLE;
+	VkDeviceMemory	m_dummyAttribMemory = VK_NULL_HANDLE;
+	void ensureDummyAttribBuffer();
+	void retireBuffer( VkBuffer b, VkDeviceMemory m );
+	void retireImage( VkImage i, VkDeviceMemory m );
+	void retireView( VkImageView v );
+	void retireSampler( VkSampler s );
+	void retireFbo( VkFramebuffer f );
+	void drainRetired( uint32_t slot );
 
 	// dummy 1x1 white texture for all sampler bindings (real uploads in V3)
 	VkImage		m_dummyImage = VK_NULL_HANDLE;
