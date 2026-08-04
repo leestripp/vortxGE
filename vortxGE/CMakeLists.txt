@@ -29,3 +29,12 @@ target_link_libraries(vortxGE
 	Vulkan::Vulkan
 	glfw
 )
+
+# glslang: runtime GLSL->SPIR-V compilation for the Vulkan backend
+# (render/lsVulkanShader.cpp). Static libs from the glslang-dev package.
+target_link_libraries(vortxGE
+	PRIVATE
+	glslang
+	SPIRV
+	glslang-default-resource-limits
+)

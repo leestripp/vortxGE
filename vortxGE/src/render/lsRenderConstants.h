@@ -177,3 +177,17 @@
 #define LS_INVALID_INDEX  0xFFFFFFFF  /* GL_INVALID_INDEX */
 
 #endif // LS_RENDER_CONSTANTS_H
+// Additional constants needed by the Vulkan backend mappings
+// (lsVulkanTypes.h) — same literal-value convention as above.
+#define LS_ZERO  0  /* GL_ZERO */
+#define LS_ONE  1  /* GL_ONE */
+#define LS_SRC_COLOR  0x0300  /* GL_SRC_COLOR */
+#define LS_ONE_MINUS_SRC_COLOR  0x0301  /* GL_ONE_MINUS_SRC_COLOR */
+#define LS_DST_COLOR  0x0306  /* GL_DST_COLOR */
+#define LS_ONE_MINUS_DST_COLOR  0x0307  /* GL_ONE_MINUS_DST_COLOR */
+#define LS_DST_ALPHA  0x0304  /* GL_DST_ALPHA */
+#define LS_ONE_MINUS_DST_ALPHA  0x0305  /* GL_ONE_MINUS_DST_ALPHA */
+#define LS_NOTEQUAL  0x0205  /* GL_NOTEQUAL */
+#define LS_TRIANGLE_STRIP  0x0005  /* GL_TRIANGLE_STRIP */
+#define LS_LINE_STRIP  0x0003  /* GL_LINE_STRIP */
+#define LS_POINTS  0x0000  /* GL_POINTS */
