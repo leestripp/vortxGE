@@ -43,6 +43,27 @@ Non-goals: deferred renderer rewrite, virtualized geometry, GI/Lumen,
 ReSTIR, VSM page caching. The engine stays a **forward renderer with
 modern shadow quality + clustered light assignment**.
 
+## Decision record — forward vs deferred (2026-08-04, agreed)
+
+**Decision: stay forward; do NOT build a deferred renderer first.**
+
+- Shadow work (L1–L4) is renderer-agnostic: maps are rendered from the
+  light's POV and merely sampled by the shading pass. Deferred would
+  delay shadows without improving them.
+- Deferred costs this engine specifically: MRT G-buffer through
+  `lsRender` on BOTH backends (new parity surface), a rewrite of every
+  fragment shader + a material-model constraint, a hybrid forward pass
+  for transparency anyway, and 3–5 full-res targets at 3840×2160.
+- Many lights do not require deferred — clustered forward (L5) is the
+  industry answer (AMD Forward+, Doom 2016).
+- 2025-26 trend for new engines is clustered forward / visibility
+  buffers, not classic deferred.
+- **Where deferred genuinely wins** (recorded for future review):
+  SSAO/SSR and especially screen-space decals. Mitigation chosen: a
+  **depth+normal prepass** added in L4 — SSAO/SSR/contact-shadows all
+  work on depth+normals. Revisit deferred only if decals become a
+  hard requirement.
+
 ---
 
 ## Invariants (hold after every phase)
@@ -128,6 +149,9 @@ shadows from all directions on both backends.
 
 - L4.1 PCSS: blocker search + variable penumbra from light size
   (sun angular size, spot/point radius) over L1/L2 maps.
+- L4.1b **Depth+normal prepass** (forward-compatible): small 2-target
+  pass before the main scene pass; enables contact shadows now and
+  SSAO/SSR later without a deferred rewrite (see decision record).
 - L4.2 Screen-space contact shadows (short depth ray march) for
   fine detail the maps miss.
 - L4.3 Preset gating: PCSS on high only.
