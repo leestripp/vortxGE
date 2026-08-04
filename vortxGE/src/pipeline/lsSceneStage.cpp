@@ -36,6 +36,14 @@ void lsSceneStage::execute( lsRender* render, lsTargetPool& targets )
 	render->Viewport( (lsInt)( m_rect[0] * tw ), (lsInt)( m_rect[1] * th ),
 					  (lsSizei)( m_rect[2] * tw ), (lsSizei)( m_rect[3] * th ) );
 
+	// keep the camera aspect/frustum matched to the stage viewport
+	// (legacy passes did this in Resize; the pipeline owns it now —
+	// Plan.md Part 3 rule 5). A stale ratio stretches the projection,
+	// which skews perceived movement angles.
+	const float vw = m_rect[2] * tw, vh = m_rect[3] * th;
+	if( vw > 0.0f && vh > 0.0f )
+		m_camera->Set_ViewRatio( vw / vh );
+
 	// complete state setup — nothing inherited from earlier stages
 	render->ClearColor( m_clear[0], m_clear[1], m_clear[2], m_clear[3] );
 	render->ClearDepth( 1.0 );
