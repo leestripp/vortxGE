@@ -79,6 +79,9 @@ public:
     virtual void EndFrame() override;
     virtual void Present() override;
     virtual void Resize( int width, int height ) override;
+    /// Builtin screenshot: glReadPixels on the default framebuffer,
+    /// flipped to top-down rows, written via lsScreenshot::saveRGB.
+    virtual bool Screenshot( const char* path ) override;
     virtual void CheckErrors( const string& name ) override;
     virtual void StoreDefaultFramebuffer() override;
     virtual void RestoreDefaultFramebuffer() override;

@@ -71,6 +71,9 @@ public:
     void Update( double delta );
     void Render();
 
+    /// Engine instance (valid after Init()) — e.g. for getRender()->Screenshot().
+    vortxGE* getEngine() { return m_vortxge; }
+
 protected:
     void setupControls();
     void setupTestScene();

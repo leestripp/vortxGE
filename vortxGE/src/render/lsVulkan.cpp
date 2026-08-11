@@ -15,12 +15,16 @@
 // lsVulkan.h FIRST: glfw3.h only declares glfwCreateWindowSurface etc.
 // when VK_VERSION_1_0 is already defined.
 #include "lsVulkan.h"
+#include "lsScreenshot.h"
 #include "lsVulkanTypes.h"
 
 #define GLFW_INCLUDE_NONE		// keep glfw3.h from pulling in GL headers
 #include <GLFW/glfw3.h>
 
 #include <cstring>
+#include <dlfcn.h>
+
+#include "renderdoc_app.h" // vendored (MIT) — in-app capture API, VORTX_RDC
 #include <set>
 #include <algorithm>
 #include <limits>
@@ -921,9 +925,10 @@ void lsVulkan::Present()
 	static int s_shotFrames = -1;
 	if( s_shotFrames < 0 )
 		s_shotFrames = ( getenv( "VORTX_SHOT" ) || getenv( "VORTX_VK_DEBUG" ) ||
-						 getenv( "VORTX_FBO_SHOT" ) ) ? 30 : 0x7FFFFF;
+						 getenv( "VORTX_FBO_SHOT" ) || getenv( "VORTX_RDC" ) ) ? 30 : 0x7FFFFF;
 	if( s_shotFrames < 0x7FFFFF && --s_shotFrames == 0 )
 	{
+		s_shotFrames = 0x7FFFFF; // disarm: the whole block is one-shot
 		if( getenv( "VORTX_VK_DEBUG" ) )
 		{
 			cout << "VK DRAWS: calls=" << s_callsDE
@@ -999,7 +1004,41 @@ void lsVulkan::Present()
 			}
 		}
 		if( getenv( "VORTX_SHOT" ) )
-			captureScreenshot( getenv( "VORTX_SHOT" ) );
+			Screenshot( getenv( "VORTX_SHOT" ) );
+		if( getenv( "VORTX_RDC" ) ) // RenderDoc capture: VORTX_RDC=1 or =file-template
+		{
+			static RENDERDOC_API_1_4_2* rdoc = nullptr;
+			static bool rdocTried = false;
+			if(! rdocTried )
+			{
+				rdocTried = true;
+				// RTLD_NOLOAD: only succeed when injected by renderdoccmd/qrenderdoc
+				void* mod = dlopen( "librenderdoc.so", RTLD_NOW | RTLD_NOLOAD );
+				if( mod )
+				{
+					pRENDERDOC_GetAPI getAPI =
+						(pRENDERDOC_GetAPI)dlsym( mod, "RENDERDOC_GetAPI" );
+					if( getAPI )
+						getAPI( eRENDERDOC_API_Version_1_4_2, (void**)&rdoc );
+				}
+				if( rdoc )
+				{
+					const char* tpl = getenv( "VORTX_RDC" );
+					if( tpl && tpl[0] && !( tpl[0] == '1' && ! tpl[1] ) )
+						rdoc->SetCaptureFilePathTemplate( tpl );
+					else
+						rdoc->SetCaptureFilePathTemplate( "/tmp/vortx_vk" );
+				}
+			}
+			if( rdoc )
+			{
+				rdoc->TriggerCapture();
+				cout << "RDC: capture triggered" << endl;
+			}
+			else
+				cout << "RDC: librenderdoc.so not loaded "
+						 "(launch under renderdoccmd capture)" << endl;
+		}
 		if( getenv( "VORTX_FBO_SHOT" ) )	// format: "id:path.ppm"
 		{
 			std::string spec = getenv( "VORTX_FBO_SHOT" );
@@ -3498,29 +3537,24 @@ bool lsVulkan::readbackImage( VkImage img, VkImageLayout layout,
 	bool ok = false;
 	void* mapped = nullptr;
 	vkMapMemory( m_device, mem, 0, size, 0, &mapped );
-	FILE* f = fopen( path, "wb" );
-	if( f )
+	if( mapped )
 	{
-		fprintf( f, "P6\n%u %u\n255\n", w, h );
 		const uint8_t* px = (const uint8_t*)mapped;
-		// row-batched writes (was: one 3-byte fwrite per pixel — 8M calls
-		// at 4K, slow enough that timeouts truncated captures)
-		std::vector<uint8_t> row( w * 3 );
+		// 4-channel readback -> packed top-down RGB for saveRGB
+		// (B8G8R8A8 swapchains need B/R swapped; R8G8B8A8 don't)
+		std::vector<uint8_t> rgb( (size_t)w * h * 3 );
 		for( uint32_t y = 0; y < h; y++ )
 		{
 			const uint8_t* src = px + (size_t)y * w * 4;
+			uint8_t* dst = rgb.data() + (size_t)y * w * 3;
 			for( uint32_t x = 0; x < w; x++ )
 			{
-				// B8G8R8A8 swapchains need B/R swapped; R8G8B8A8 don't
-				row[x*3+0] = src[x*4 + (isBGR?2:0)];
-				row[x*3+1] = src[x*4 + 1];
-				row[x*3+2] = src[x*4 + (isBGR?0:2)];
+				dst[x*3+0] = src[x*4 + (isBGR?2:0)];
+				dst[x*3+1] = src[x*4 + 1];
+				dst[x*3+2] = src[x*4 + (isBGR?0:2)];
 			}
-			fwrite( row.data(), 1, w * 3, f );
 		}
-		fclose( f );
-		cout << "SCREENSHOT written: " << path << " (" << w << "x" << h << ")" << endl;
-		ok = true;
+		ok = lsScreenshot::saveRGB( path, (int)w, (int)h, rgb.data() );
 	}
 	vkUnmapMemory( m_device, mem );
 	vkDestroyBuffer( m_device, buf, nullptr );
@@ -3528,9 +3562,9 @@ bool lsVulkan::readbackImage( VkImage img, VkImageLayout layout,
 	return ok;
 }
 
-void lsVulkan::captureScreenshot( const char* path )
+bool lsVulkan::Screenshot( const char* path )
 {
-	readbackImage( m_swapchainImages[m_acquiredImage],
+	return readbackImage( m_swapchainImages[m_acquiredImage],
 				   VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 				   m_swapchainExtent.width, m_swapchainExtent.height,
 				   true, path );

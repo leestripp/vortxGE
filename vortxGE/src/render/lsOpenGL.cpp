@@ -23,6 +23,9 @@
 #include "../datablocks/lsString.h"
 
 #include "lsOpenGL.h"
+#include "lsScreenshot.h"
+
+#include <cstring>
 
 //=========================================================================
 // Construction / destruction
@@ -68,27 +71,32 @@ void lsOpenGL::EndFrame()
 {
 	// VORTX_SHOT: capture the framebuffer at frame 30 (same convention
 	// as the Vulkan backend) for GL<->Vulkan / legacy<->pipeline
-	// side-by-side comparison
+	// side-by-side comparison. One-shot.
 	static const char* shotPath = getenv( "VORTX_SHOT" );
 	if( !shotPath ) return;
 	static int s_frames = 30;
-	if( --s_frames != 0 ) return;
+	if( s_frames <= 0 || --s_frames != 0 ) return;
+	Screenshot( shotPath );
+}
 
+bool lsOpenGL::Screenshot( const char* path )
+{
 	GLint vp[4] = { 0, 0, 0, 0 };
 	glGetIntegerv( GL_VIEWPORT, vp );
 	const int w = vp[2], h = vp[3];
-	if( w <= 0 || h <= 0 ) return;
+	if( w <= 0 || h <= 0 ) return false;
 
 	std::vector<unsigned char> px( (size_t)w * (size_t)h * 3 );
 	glPixelStorei( GL_PACK_ALIGNMENT, 1 );
 	glReadPixels( 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, px.data() );
 
-	FILE* f = fopen( shotPath, "wb" );
-	if( !f ) return;
-	fprintf( f, "P6\n%d %d\n255\n", w, h );
-	for( int y = h - 1; y >= 0; y-- )	// glReadPixels is bottom-up
-		fwrite( px.data() + (size_t)y * (size_t)w * 3, 1, (size_t)w * 3, f );
-	fclose( f );
+	// glReadPixels is bottom-up; lsScreenshot::saveRGB wants top-down
+	std::vector<unsigned char> flipped( px.size() );
+	const size_t stride = (size_t)w * 3;
+	for( int y = 0; y < h; y++ )
+		memcpy( flipped.data() + (size_t)y * stride,
+				px.data() + (size_t)( h - 1 - y ) * stride, stride );
+	return lsScreenshot::saveRGB( path, w, h, flipped.data() );
 }
 void lsOpenGL::Present() {}
 void lsOpenGL::Resize( int width, int height ) { (void)width; (void)height; }

@@ -153,6 +153,23 @@ public:
     virtual void Resize( int width, int height ) = 0;
 
     /**
+     * @brief Save the current framebuffer to an image file (builtin
+     * screenshot feature).
+     *
+     * Reads back the presented/default framebuffer and writes top-down
+     * 8-bit RGB to @p path — PNG when the path ends in ".png", binary
+     * PPM otherwise (see lsScreenshot::saveRGB).
+     *
+     * Call AFTER Render()/Present() of the frame you want captured.
+     * Vulkan: reads back the last presented swapchain image.
+     * OpenGL: glReadPixels on the default framebuffer (pre-swap).
+     *
+     * @param path output file path (".png" or ".ppm")
+     * @return true on success
+     */
+    virtual bool Screenshot( const char* path ) = 0;
+
+    /**
      * @brief Drain and log any backend-reported errors.
      *
      * @param name Label to identify where the check is being made.

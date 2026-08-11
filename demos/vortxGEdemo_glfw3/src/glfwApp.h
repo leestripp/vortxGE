@@ -75,8 +75,13 @@ public:
 	
 	// Get demoscene
 	DemoScene* getDemoscene() { return demoscene; }
-	
+
+	/// Builtin screenshot (F12): request a capture; the Run loop takes it
+	/// after the next Render so both backends are in a readable state.
+	void requestScreenshot() { m_screenshotRequested = true; }
+
 private:
+	bool m_screenshotRequested = false;
 	DemoScene* demoscene;
 	GLFWwindow* m_window;
 	RenderType  m_renderType = RenderType::None;   // backend chosen at window creation

@@ -12,11 +12,13 @@
  */
 
 #include <iostream>
+#include <ctime>
 
 #include "glfwApp.h"
 
 // vortxGE engine header — PreferredRendererType() for backend selection
 #include "vortxGE.h"
+#include "render/lsRender.h" // lsRender::Screenshot (builtin screenshot, F12)
 #include "demoscene.h"
 
 #include <timers/lsTimer.h>
@@ -44,6 +46,10 @@ static void key_callback(GLFWwindow* window, int key, __attribute__((unused)) in
 			case GLFW_KEY_F1:
 				glfw_app.setFullscreen(!glfw_app.getFullscreen());
 				glfw_app.CheckFullScreen();
+				break;
+
+			case GLFW_KEY_F12:
+				glfw_app.requestScreenshot();
 				break;
 		}
 	}
@@ -403,26 +409,19 @@ void glfwApp::Run()
 			demoscene->Render();
 		}
 
-		// DIAGNOSTIC: GL framebuffer readback (VORTX_SHOT=path.ppm, frame 30)
-		static int s_shotFrames = -1;
-		if( s_shotFrames < 0 )
-			s_shotFrames = getenv( "VORTX_SHOT" ) ? 30 : 0x7FFFFF;
-		if( m_renderType == RenderType::OpenGL &&
-			s_shotFrames < 0x7FFFFF && --s_shotFrames == 0 )
+		// Builtin screenshot (F12): take the requested capture AFTER the
+		// frame rendered — for GL the back buffer is still intact here
+		// (pre-swap); Vulkan reads back the last presented swapchain image.
+		if( m_screenshotRequested )
 		{
-			int w = 0, h = 0;
-			glfwGetFramebufferSize( m_window, &w, &h );
-			std::vector<unsigned char> px( (size_t)w * h * 3 );
-			glReadPixels( 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, px.data() );
-			FILE* f = fopen( getenv( "VORTX_SHOT" ), "wb" );
-			if( f )
-			{
-				fprintf( f, "P6\n%d %d\n255\n", w, h );
-				for( int row = h - 1; row >= 0; row-- )	// GL is bottom-up
-					fwrite( px.data() + (size_t)row * w * 3, 1, (size_t)w * 3, f );
-				fclose( f );
-				cout << "SCREENSHOT written: " << getenv( "VORTX_SHOT" ) << endl;
-			}
+			m_screenshotRequested = false;
+			time_t t = time( nullptr );
+			char name[128];
+			strftime( name, sizeof(name),
+					  "screenshot_%Y%m%d_%H%M%S.png", localtime( &t ) );
+			if( demoscene && demoscene->getEngine() &&
+				demoscene->getEngine()->getRender() )
+				demoscene->getEngine()->getRender()->Screenshot( name );
 		}
 
 		// Swap (GL only — the Vulkan backend presents in lsVulkan::Present

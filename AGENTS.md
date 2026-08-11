@@ -250,7 +250,26 @@ cd build
 ```
 
 The GLFW3 demo controls (from `Readme.md`): WASD move, mouse look, Space
-jump, Left Shift sprint, Left Ctrl crouch, F1 fullscreen toggle, Esc quit.
+jump, Left Shift sprint, Left Ctrl crouch, F1 fullscreen toggle, F12 save
+screenshot (PNG, `screenshot_<timestamp>.png` in the working directory),
+Esc quit.
+
+### Screenshots & diagnostics (env vars)
+
+Builtin screenshot: `lsRender::Screenshot(path)` (both backends; `.png`
+extension selects PNG via stb_image_write, otherwise binary PPM). GLFW
+demo: F12. Headless / scripted captures use env vars:
+
+| Env var | Effect |
+|---|---|
+| `VORTX_RENDERER=vulkan\|opengl` | backend selection (Vulkan tried first by default) |
+| `VORTX_PIPELINE=1` | explicit render-pipeline mode |
+| `VORTX_SHOT=path.png` | one-shot screenshot at frame 30 (both backends) |
+| `VORTX_FBO_SHOT=id:path.png` | Vulkan: read back FBO `id`'s colour attachment at frame 30 |
+| `VORTX_VK_DEBUG=1` | Vulkan: dump draw/VAO/UBO counters at frame 30 |
+| `VORTX_VK_NOCULL` / `VORTX_VK_CCW` | Vulkan: pipeline cull-mode / front-face overrides |
+| `VORTX_DISABLE_SHADOWS=1` | force `use_shadowmap=0` (shadow-related A/B tests) |
+| `VORTX_RDC=1` or `=template` | RenderDoc: trigger capture at frame 30 (launch under `renderdoccmd capture`; needs X11/XCB — RenderDoc has no Wayland support, use `DISPLAY=:99 GLFW_PLATFORM=x11`) |
 
 ### Build only a single target
 

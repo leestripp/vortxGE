@@ -283,7 +283,8 @@ private:
 	bool createOffscreenRenderPasses();
 	bool buildFbo( VkFbo& fbo );
 	void ensurePassActive();
-	void captureScreenshot( const char* path );
+	/// Builtin screenshot: read back the last presented swapchain image.
+	bool Screenshot( const char* path ) override;
 	void captureFbo( uint32_t fboID, const char* path );	// DIAGNOSTIC
 	bool readbackImage( VkImage img, VkImageLayout layout, uint32_t w,
 						uint32_t h, bool isBGR, const char* path );	// DIAGNOSTIC
