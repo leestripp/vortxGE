@@ -3708,12 +3708,25 @@ bool lsVulkan::readbackDepthImage( VkImage img, VkImageLayout layout,
 	vkMapMemory( m_device, mem, 0, size, 0, &mapped );
 	if( mapped )
 	{
-		// D32 float depth -> grayscale (depth 1.0 = white "far/cleared")
+		// D32 float depth -> grayscale with auto-contrast stretch.
+		// DIRECT-light ortho maps often cluster near 1.0; raw 8-bit
+		// quantization would hide real silhouettes, so report min/max
+		// and stretch the occupied range to full contrast.
 		const float* px = (const float*)mapped;
+		float dmin = 1e30f, dmax = -1e30f;
+		for( uint32_t i = 0; i < w * h; i++ )
+		{
+			const float d = px[i];
+			if( d < dmin ) dmin = d;
+			if( d > dmax ) dmax = d;
+		}
+		cout << "readbackDepthImage " << path << ": depth min=" << dmin
+			 << " max=" << dmax << " (uniform if min==max)" << endl;
+		const float range = ( dmax - dmin > 1e-6f ) ? ( dmax - dmin ) : 1.0f;
 		std::vector<uint8_t> rgb( (size_t)w * h * 3 );
 		for( uint32_t i = 0; i < w * h; i++ )
 		{
-			float d = px[i];
+			float d = ( px[i] - dmin ) / range; // stretched 0..1
 			if( d < 0.0f ) d = 0.0f;
 			if( d > 1.0f ) d = 1.0f;
 			const uint8_t g = (uint8_t)( d * 255.0f );

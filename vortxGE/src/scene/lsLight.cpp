@@ -68,17 +68,24 @@ void lsLight::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((un
     // This should happen after its transform has been updated in the Move pass,
     // and before any pass that might need to sample its shadow map.
     if (has_shadowmap) {
-        buildShadowmap_matrix();
+        buildShadowmap_matrix(render);
     }
 }
 
-void lsLight::buildShadowmap_matrix()
+void lsLight::buildShadowmap_matrix( lsRender* render )
 {
     // Classic GL-style bias: NDC [-1,1] -> texture [0,1].
-    const lsFloat bias[] = {0.5, 0.0, 0.0, 0.0,
-                            0.0, 0.5, 0.0, 0.0,
-                            0.0, 0.0, 0.5, 0.0,
-                            0.5, 0.5, 0.5, 1.0 };
+    lsFloat bias[] = {0.5, 0.0, 0.0, 0.0,
+                      0.0, 0.5, 0.0, 0.0,
+                      0.0, 0.0, 0.5, 0.0,
+                      0.5, 0.5, 0.5, 1.0 };
+    // Vulkan renders offscreen FBOs through a negative-height viewport
+    // (GL-convention Y-flip), so the shadow map texels are V-mirrored
+    // relative to GL-convention sampling — same reason the blit stage
+    // needs flipY. Compensate in the bias (y' = 0.5 - 0.5*y_ndc) so the
+    // shared light shaders sample correctly on both backends.
+    if( render && render->getType() == RenderType::Vulkan )
+        bias[5] = -0.5;
     lsMatrix4x4 biasMatrix;
     biasMatrix = bias;
 	

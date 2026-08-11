@@ -254,9 +254,14 @@ that can shade must have a valid map); (2) UseShader's shadow-map
 binding now uses the SAME active-filter + slot compaction as
 Setup_Lights (resolveLightList helper — light->slot mapping can never
 disagree again; this misalignment was also latent on GL). Remaining
-shadow-quality items (separate): sun map shows no silhouettes (DIRECT
-ortho precision or empty draw list), mid-floor dark band vs GL,
-VK swapchain subregion viewport mismatch.
+shadow-quality items (separate): VK swapchain subregion viewport
+mismatch. RESOLVED since: mid-floor dark band was the shadow-map
+V-mirror (VK offscreen FBOs render V-flipped; fixed by y-flipped
+shadow bias on RenderType::Vulkan in lsLight::buildShadowmap_matrix,
+same precedent as blit flipY); "sun map no silhouettes" was an 8-bit
+readback artifact — auto-contrast readback shows all 3 maps have
+correct content (objects + floor gradient), depths merely compressed
+by the deep light frusta.
 
 - D1.1 `VORTX_ONLY_LIGHT=i`: process only light i in the shader light
   loop (others skipped); `VORTX_LIGHTS_OFF=1`: ambient only.

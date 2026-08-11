@@ -111,7 +111,7 @@ public:
      * Creates the matrix that transforms world coordinates
      * to shadow map texture coordinates.
      */
-    void buildShadowmap_matrix();
+    void buildShadowmap_matrix( lsRender* render );
 	
     //=========================================================================
 	// Serialization

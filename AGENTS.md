@@ -275,6 +275,10 @@ matthewwellings.com/blog/the-new-vulkan-coordinate-system,
 GL_ARB_clip_control. Remaining known gap: VK clips z_ndc<0 (GL's near
 half-space) — relevant only for geometry at the near plane;
 VK_EXT_depth_clip_control is the future fix.
+Offscreen FBOs render V-MIRRORED on Vulkan (negative-height viewport).
+Compensate at the SAMPLING site, never in shaders: scene FBO via blit
+flipY, shadow maps via the y-flipped bias in lsLight::buildShadowmap_matrix
+(RenderType::Vulkan -> bias[5] = -0.5). GL needs nothing.
 
 ### Debug tools compile-time gate (D-series)
 
