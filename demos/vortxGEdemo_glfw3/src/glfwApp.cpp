@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <ctime>
+#include <cstring>
 
 #include "glfwApp.h"
 
@@ -230,6 +231,18 @@ bool glfwApp::Init()
 {
 	// Setup glfw error callback
 	glfwSetErrorCallback( error_callback );
+
+	// GLFW_PLATFORM: this distro's GLFW 3.4 ignores the GLFW_PLATFORM env
+	// var (probe: always Wayland), so apply the platform hint ourselves.
+	// Needed for RenderDoc captures (no Wayland support) via
+	// GLFW_PLATFORM=x11 DISPLAY=:99 (XWayland).
+	if( const char* plat = getenv( "GLFW_PLATFORM" ) )
+	{
+		if( strcmp( plat, "x11" ) == 0 )
+			glfwInitHint( GLFW_PLATFORM, GLFW_PLATFORM_X11 );
+		else if( strcmp( plat, "wayland" ) == 0 )
+			glfwInitHint( GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND );
+	}
 
 	if(! glfwInit() )
 	{
