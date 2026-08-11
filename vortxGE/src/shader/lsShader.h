@@ -278,6 +278,7 @@ private:
 	
     /** @brief Number of active lights */
 	lsUniformID iLightCount;
+	lsUniformID iDebugView;		///< D1.2: vxDebugView selector (light_tex_* shaders)
     
     /** @brief Light types (up to 3) */
 	lsUniformID iLightType[3];

@@ -70,6 +70,7 @@ lsShader::lsShader( lsRender *render )
 	}
 
 	iLightCount = -1;
+	iDebugView = -1;
 	iMatAlbedo = -1;
 	iMatRoughness = -1;
 	iMatMetallic = -1;
@@ -118,6 +119,7 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 			
 			// Lights uniforms (arrays)
 			iLightCount = getRender()->GetUniformLocation( shader, "vxLightCount" );
+			iDebugView = getRender()->GetUniformLocation( shader, "vxDebugView" );
 			for(int i = 0; i < 3; ++i) {
 				iLightType[i] = getRender()->GetUniformLocation( shader, ("vxLightType[" + to_string(i) + "]").c_str() );
 				iLightPos[i] = getRender()->GetUniformLocation( shader, ("vxLightPos[" + to_string(i) + "]").c_str() );
@@ -168,6 +170,45 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 	getRender()->UseProgram(0);
 }
 
+#if defined(VORTX_DEBUG_TOOLS)
+// D1.1: VORTX_ONLY_LIGHT=i renders with only light i; VORTX_LIGHTS_OFF=1
+// renders ambient-only. Applied to BOTH the shadow-binding loop here and
+// Setup_Lights' uniform upload so the two never disagree.
+static std::vector<lsLight*> filterDebugLights( const std::vector<lsLight*>& in )
+{
+	static const int only = []
+	{
+		const char* e = getenv( "VORTX_ONLY_LIGHT" );
+		return e ? atoi( e ) : -1;
+	}();
+	static const bool off = getenv( "VORTX_LIGHTS_OFF" ) != nullptr;
+	if( off ) return {};
+	if( only >= 0 )
+	{
+		if( only < (int)in.size() && in[only] ) return { in[only] };
+		return {};
+	}
+	return in;
+}
+
+// D1.2: VORTX_DEBUG_VIEW=lightcount|shadow|normals|depth -> vxDebugView
+static int debugViewMode()
+{
+	static const int mode = []
+	{
+		const char* dv = getenv( "VORTX_DEBUG_VIEW" );
+		if( ! dv ) return 0;
+		const std::string s = dv;
+		if( s == "lightcount" ) return 1;
+		if( s == "shadow" ) return 2;
+		if( s == "normals" ) return 3;
+		if( s == "depth" ) return 4;
+		return 0;
+	}();
+	return mode;
+}
+#endif
+
 void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, lsBatch *batch )
 {
 #ifdef VORTX_DEBUG_SHADERS
@@ -214,7 +255,12 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 		case ShaderKind::LightTexNone:
 			// Shadow Map & Light Uniforms
 			{
+#if defined(VORTX_DEBUG_TOOLS)
+				const std::vector<lsLight*> lights = filterDebugLights(
+					object->getLightManager()->getLights() );
+#else
 				const auto& lights = object->getLightManager()->getLights();
+#endif
 				int active_lights_count = 0;
 				for (int i = 0; i < min((int)lights.size(), 3); ++i)
 				{
@@ -247,6 +293,11 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 				}
 				// Pass the count of active lights to the shader
 				getRender()->Uniform1i(iLightCount, active_lights_count);
+#if defined(VORTX_DEBUG_TOOLS)
+				getRender()->Uniform1i( iDebugView, debugViewMode() );
+#else
+				getRender()->Uniform1i( iDebugView, 0 );
+#endif
 				Setup_Lights(cam, object); // Now Setup_Lights will pass all light properties
 			}
 			
@@ -580,6 +631,10 @@ void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 			}
 	}
 
+#if defined(VORTX_DEBUG_TOOLS)
+	const vector<lsLight*> filtered = filterDebugLights( *lights );
+	lights = &filtered;
+#endif
 	int num_lights = min((int)lights->size(), 3); // Shader supports max 3 lights
 	int i = 0;
 

@@ -217,7 +217,19 @@ debug tooling — it is a real feature and stays always-on.
   contains none of the env-var strings (`strings` check) and the demo
   runs identically.
 
-### D1 — Light isolation & debug views (dark-floor attack)
+### D1 — Light isolation & debug views (dark-floor attack) — done 2026-08-11
+
+**RESULT — dark-floor root cause found:** Vulkan shadow map sampling
+returns ~0 everywhere (shadow debug view: whole scene black on VK,
+correct lit/shadow shapes on GL) -> every light's contribution is
+multiplied to zero -> "ambient-only" floor. With
+`VORTX_DISABLE_SHADOWS=1` the VK scene is fully lit, identical to GL.
+Lights/UBOs/materials/geometry are all FINE — the bug is isolated to
+the shadow-map path (shadow FBO depth content or sampler binding).
+Fix belongs to L1 (shadow core rewrite) or a targeted patch before it.
+Side observation: VK viewport renders into a subregion of the
+swapchain (black band right/bottom in 2400x1350 captures) — separate
+viewport/extent mismatch to fix.
 
 - D1.1 `VORTX_ONLY_LIGHT=i`: process only light i in the shader light
   loop (others skipped); `VORTX_LIGHTS_OFF=1`: ambient only.

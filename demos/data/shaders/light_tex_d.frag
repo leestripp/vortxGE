@@ -14,6 +14,7 @@ uniform vec3 vxLightDir[3];
 uniform float vxLightCutoff[3];
 uniform float vxLightOuterCutoff[3];
 uniform int vxLightCount;
+uniform int vxDebugView; // D1.2: 0=off 1=lightcount 2=shadow 3=normals 4=depth
 
 // Material
 uniform vec4 vxMatAlbedo;
@@ -128,6 +129,7 @@ void main(void) {
 
 	// Radiance accumulator
 	vec3 Lo = vec3(0.0);
+	float dbgShadow = 1.0; // D1.2: product of per-light shadow factors
 
 	// Loop over lights
 	for (int i = 0; i < vxLightCount; ++i) {
@@ -182,12 +184,34 @@ void main(void) {
 			light_shadow = calculateShadow(osShadowCoords[i], tex_shadowmaps[i]);
 		}
 		
+		dbgShadow *= light_shadow; // D1.2
 		Lo += (kD * albedo / PI + specular) * radiance * NdotL * light_shadow;
 	}
 
 	// Ambient lighting
 	vec3 ambient = vec3(0.03) * albedo * ao;
 	vec3 color = ambient + Lo; // Lo already includes shadow per-light
+
+		// D1.2 debug views (vxDebugView; driven by VORTX_DEBUG_VIEW in
+	// debug-tools builds, 0 otherwise)
+	if (vxDebugView == 1) {      // lightcount heat map: blue=0 .. red=3
+		float t = clamp(float(vxLightCount) / 3.0, 0.0, 1.0);
+		fragColour = vec4(t, 0.0, 1.0 - t, 1.0);
+		return;
+	}
+	if (vxDebugView == 2) {      // shadow factor: white=lit, black=shadowed
+		fragColour = vec4(vec3(dbgShadow), 1.0);
+		return;
+	}
+	if (vxDebugView == 3) {      // view-space normals as color
+		fragColour = vec4(normalize(osNormal) * 0.5 + 0.5, 1.0);
+		return;
+	}
+	if (vxDebugView == 4) {      // camera distance: near=white, 30m+=black
+		float d = clamp(length(osVertex) / 30.0, 0.0, 1.0);
+		fragColour = vec4(vec3(1.0 - d), 1.0);
+		return;
+	}
 
 	fragColour = vec4(color, 1.0);
 }
