@@ -168,6 +168,7 @@ private:
 	bool m_swapchainDirty = false;
 	float m_clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	double m_clearDepth = 1.0;
+	double m_depthRangeN = 0.0, m_depthRangeF = 1.0;	// GL-convention depth range
 	int m_viewport[4] = { 0, 0, 0, 0 };		// x, y, w, h (0/0 = full swapchain)
 	VkResult m_lastError = VK_SUCCESS;
 	bool m_initialized = false;
@@ -286,6 +287,9 @@ private:
 	/// Builtin screenshot: read back the last presented swapchain image.
 	bool Screenshot( const char* path ) override;
 	void captureFbo( uint32_t fboID, const char* path );	// DIAGNOSTIC
+	void captureFboDepth( uint32_t fboID, const char* path );	// DIAGNOSTIC
+	bool readbackDepthImage( VkImage img, VkImageLayout layout, uint32_t w,
+							 uint32_t h, const char* path );	// DIAGNOSTIC
 	bool readbackImage( VkImage img, VkImageLayout layout, uint32_t w,
 						uint32_t h, bool isBGR, const char* path );	// DIAGNOSTIC
 	void beginPassForTarget( uint32_t fboID );	// 0 = swapchain

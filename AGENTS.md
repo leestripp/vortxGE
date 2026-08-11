@@ -254,6 +254,28 @@ jump, Left Shift sprint, Left Ctrl crouch, F1 fullscreen toggle, F12 save
 screenshot (PNG, `screenshot_<timestamp>.png` in the working directory),
 Esc quit.
 
+### Coordinate-system conventions (GL vs Vulkan — do not re-learn the hard way)
+
+| | OpenGL (default) | Vulkan |
+|---|---|---|
+| NDC z range | [-1, 1] | [0, 1] |
+| Clip volume z | -w ≤ z ≤ w | 0 ≤ z ≤ w |
+| Window z | z_w = (f-n)/2·z_ndc + (n+f)/2 (glDepthRange) | z_f = (max-min)·z_ndc + min (VkViewport) |
+| NDC y | up | down (handled by negative-height viewport) |
+
+Rules: **never split shaders per backend** — both APIs deliver [0,1]
+framebuffer depth, and shadow comparisons (`projCoords.z > pcfDepth`)
+operate in that space on both. The projection matrix and the viewport
+transform are the ONLY places the difference exists. lsVulkan translates
+at its own boundary: `DepthRangef(n,f)` stores GL semantics and Viewport
+emits `minDepth=(n+f)/2, maxDepth=minDepth+(f-n)/2`, so ALL Vulkan depth
+buffers carry GL-convention content and GL-convention matrices (e.g. the
+shadow bias in `ShadowmapMatrix`) work unchanged. References:
+matthewwellings.com/blog/the-new-vulkan-coordinate-system,
+GL_ARB_clip_control. Remaining known gap: VK clips z_ndc<0 (GL's near
+half-space) — relevant only for geometry at the near plane;
+VK_EXT_depth_clip_control is the future fix.
+
 ### Debug tools compile-time gate (D-series)
 
 CMake option `VORTX_DEBUG_TOOLS` (default ON for Debug, OFF for Release)

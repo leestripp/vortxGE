@@ -928,7 +928,8 @@ void lsVulkan::Present()
 	static int s_shotFrames = -1;
 	if( s_shotFrames < 0 )
 		s_shotFrames = ( getenv( "VORTX_SHOT" ) || getenv( "VORTX_VK_DEBUG" ) ||
-						 getenv( "VORTX_FBO_SHOT" ) || getenv( "VORTX_RDC" ) ) ? 30 : 0x7FFFFF;
+						 getenv( "VORTX_FBO_SHOT" ) || getenv( "VORTX_DEPTH_SHOT" ) ||
+						 getenv( "VORTX_RDC" ) ) ? 30 : 0x7FFFFF;
 	if( s_shotFrames < 0x7FFFFF && --s_shotFrames == 0 )
 	{
 		s_shotFrames = 0x7FFFFF; // disarm: the whole block is one-shot
@@ -1050,6 +1051,14 @@ void lsVulkan::Present()
 				captureFbo( (uint32_t)atoi( spec.c_str() ),
 							spec.c_str() + colon + 1 );
 		}
+		if( getenv( "VORTX_DEPTH_SHOT" ) )	// format: "id:path.png" (depth FBO)
+		{
+			std::string spec = getenv( "VORTX_DEPTH_SHOT" );
+			const size_t colon = spec.find( ':' );
+			if( colon != std::string::npos )
+				captureFboDepth( (uint32_t)atoi( spec.c_str() ),
+								 spec.c_str() + colon + 1 );
+		}
 	}
 #endif
 }
@@ -1135,8 +1144,8 @@ void lsVulkan::Viewport( lsInt x, lsInt y, lsSizei w, lsSizei h )
 		vp.y = (float)( y + h );		// Y-flip for GL conventions
 		vp.width = (float)w;
 		vp.height = -(float)h;
-		vp.minDepth = 0.0f;
-		vp.maxDepth = 1.0f;
+		vp.minDepth = (float)( ( m_depthRangeN + m_depthRangeF ) * 0.5 );
+		vp.maxDepth = (float)( vp.minDepth + ( m_depthRangeF - m_depthRangeN ) * 0.5 );
 		vkCmdSetViewport( m_commandBuffers[m_currentFrame], 0, 1, &vp );
 	}
 }
@@ -3308,8 +3317,8 @@ void lsVulkan::beginPassForTarget( uint32_t fboID )
 	vp.y = vy + vh;
 	vp.width = vw;
 	vp.height = -vh;
-	vp.minDepth = 0.0f;
-	vp.maxDepth = 1.0f;
+	vp.minDepth = (float)( ( m_depthRangeN + m_depthRangeF ) * 0.5 );
+	vp.maxDepth = (float)( vp.minDepth + ( m_depthRangeF - m_depthRangeN ) * 0.5 );
 	vkCmdSetViewport( cmd, 0, 1, &vp );
 
 	VkRect2D sc{};
@@ -3438,9 +3447,16 @@ void lsVulkan::ReadPixels( lsInt, lsInt, lsSizei, lsSizei, lsEnum, lsEnum, void*
 	// V5+ stub
 }
 
-void lsVulkan::DepthRangef( lsFloat, lsFloat )
+void lsVulkan::DepthRangef( lsFloat near, lsFloat far )
 {
-	// V5+ stub
+	// GL->VK depth-range translation at the backend boundary.
+	// GL: z_w = (f-n)/2 * z_ndc + (n+f)/2  (z_ndc in [-1,1])
+	// VK: z_f = (max-min) * z_ndc + min    (applied in Viewport)
+	// Storing GL (n,f); the viewport transform makes VK depth content
+	// match GL conventions exactly, so GL-convention shadow bias
+	// matrices (sMatrices) compare correctly on both backends.
+	m_depthRangeN = near;
+	m_depthRangeF = far;
 }
 
 void lsVulkan::ColorMask( lsBoolean, lsBoolean, lsBoolean, lsBoolean )
@@ -3603,4 +3619,104 @@ void lsVulkan::captureFbo( uint32_t fboID, const char* path )
 	{ cout << "captureFbo: FBO " << fboID << " has no colour image" << endl; return; }
 	readbackImage( tit->second.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 				   tit->second.width, tit->second.height, false, path );
+}
+
+// DIAGNOSTIC (D-series): read back a depth image (D32_SFLOAT) as grayscale
+bool lsVulkan::readbackDepthImage( VkImage img, VkImageLayout layout,
+								   uint32_t w, uint32_t h, const char* path )
+{
+	vkDeviceWaitIdle( m_device );
+
+	const VkDeviceSize size = (VkDeviceSize)w * h * 4;
+
+	VkBufferCreateInfo bi{};
+	bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bi.size = size;
+	bi.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	VkBuffer buf;
+	if( vkCreateBuffer( m_device, &bi, nullptr, &buf ) != VK_SUCCESS ) return false;
+	VkMemoryRequirements reqs;
+	vkGetBufferMemoryRequirements( m_device, buf, &reqs );
+	VkMemoryAllocateInfo ai{};
+	ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	ai.allocationSize = reqs.size;
+	ai.memoryTypeIndex = findMemoryType( reqs.memoryTypeBits,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT );
+	VkDeviceMemory mem;
+	if( vkAllocateMemory( m_device, &ai, nullptr, &mem ) != VK_SUCCESS ) return false;
+	vkBindBufferMemory( m_device, buf, mem, 0 );
+
+	VkCommandBuffer cmd = beginOneShot();
+
+	VkImageMemoryBarrier b{};
+	b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	b.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	b.image = img;
+	b.subresourceRange = { VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 };
+	b.oldLayout = layout;
+	b.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	b.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	b.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+						  VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
+						  0, nullptr, 1, &b );
+
+	VkBufferImageCopy copy{};
+	copy.imageSubresource = { VK_IMAGE_ASPECT_DEPTH_BIT, 0, 0, 1 };
+	copy.imageExtent = { w, h, 1 };
+	vkCmdCopyImageToBuffer( cmd, img, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+							buf, 1, &copy );
+
+	b.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	b.newLayout = layout;
+	b.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+	b.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	vkCmdPipelineBarrier( cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
+						  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr,
+						  0, nullptr, 1, &b );
+	endOneShot( cmd );
+
+	bool ok = false;
+	void* mapped = nullptr;
+	vkMapMemory( m_device, mem, 0, size, 0, &mapped );
+	if( mapped )
+	{
+		// D32 float depth -> grayscale (depth 1.0 = white "far/cleared")
+		const float* px = (const float*)mapped;
+		std::vector<uint8_t> rgb( (size_t)w * h * 3 );
+		for( uint32_t i = 0; i < w * h; i++ )
+		{
+			float d = px[i];
+			if( d < 0.0f ) d = 0.0f;
+			if( d > 1.0f ) d = 1.0f;
+			const uint8_t g = (uint8_t)( d * 255.0f );
+			rgb[i*3+0] = g; rgb[i*3+1] = g; rgb[i*3+2] = g;
+		}
+		ok = lsScreenshot::saveRGB( path, (int)w, (int)h, rgb.data() );
+	}
+	vkUnmapMemory( m_device, mem );
+	vkDestroyBuffer( m_device, buf, nullptr );
+	vkFreeMemory( m_device, mem, nullptr );
+	return ok;
+}
+
+// DIAGNOSTIC (D-series): read back an FBO's DEPTH attachment (VORTX_DEPTH_SHOT=id:path)
+void lsVulkan::captureFboDepth( uint32_t fboID, const char* path )
+{
+	auto fit = m_fbos.find( fboID );
+	if( fit == m_fbos.end() || ! fit->second.built || ! fit->second.depthTex )
+	{
+		cout << "captureFboDepth: FBO " << fboID << " not found; m_fbos:";
+		for( auto& [id, f] : m_fbos )
+			cout << " [" << id << " built=" << f.built
+				 << " depthTex=" << f.depthTex << " " << f.w << "x" << f.h << "]";
+		cout << endl;
+		return;
+	}
+	auto tit = m_textures.find( fit->second.depthTex );
+	if( tit == m_textures.end() || ! tit->second.image )
+	{ cout << "captureFboDepth: FBO " << fboID << " has no depth image" << endl; return; }
+	readbackDepthImage( tit->second.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+						tit->second.width, tit->second.height, path );
 }

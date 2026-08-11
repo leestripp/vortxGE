@@ -231,6 +231,16 @@ Side observation: VK viewport renders into a subregion of the
 swapchain (black band right/bottom in 2400x1350 captures) — separate
 viewport/extent mismatch to fix.
 
+**UPDATE (same day):** GL-vs-VK depth-range mismatch fixed at the
+backend boundary (lsVulkan::DepthRangef now translates GL(n,f) ->
+viewport min/max, all VK depth buffers GL-convention). Necessary but
+NOT sufficient: VORTX_DEPTH_SHOT (new depth-readback diagnostic)
+proves the scene FBO depth is written correctly but the shadow FBOs
+are uniform 0.0 — the shadow render pass NEVER executes on Vulkan
+(no clear, no geometry writes). Next: find why lsShadowStage's draws
+never begin the depth-only render pass (draw skip, pass-token path,
+or FBO bind before ensurePassActive).
+
 - D1.1 `VORTX_ONLY_LIGHT=i`: process only light i in the shader light
   loop (others skipped); `VORTX_LIGHTS_OFF=1`: ambient only.
   Per-light `VORTX_SHOT` runs on both backends -> exactly which light
