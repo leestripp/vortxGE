@@ -280,6 +280,25 @@ Compensate at the SAMPLING site, never in shaders: scene FBO via blit
 flipY, shadow maps via the y-flipped bias in lsLight::buildShadowmap_matrix
 (RenderType::Vulkan -> bias[5] = -0.5). GL needs nothing.
 
+### Wayland / HiDPI windowing lessons (2026-08-11, do not re-learn)
+
+- **Never trust sizes queried before the window is mapped.** On
+  HiDPI Wayland (e.g. 125% scale), the compositor applies the scale
+  factor only when the window is first mapped — `glfwGetFramebufferSize`
+  during init returns the LOGICAL size, and the later switch to the
+  physical size fires NO framebuffer-size callback. Result was the
+  "startup black bands" (scene FBO stuck at 1920x1080 inside a
+  2400x1350 swapchain until any user resize).
+- **Fix pattern (glfwApp):** poll the raw `glfwGetFramebufferSize`
+  each frame and propagate on change (the demo's per-frame
+  `demoscene->Resize` heals FBO sizes; recreation happens only on
+  actual change). Do NOT multiply by `glfwGetWindowContentScale` in
+  the poll — post-mapping the getter already returns physical pixels,
+  so multiplying would double-apply (the init-time multiply exists
+  only because the pre-mapping getter is logical there).
+- The framebuffer-size callback and the raw getter agree post-mapping;
+  they only disagree pre-mapping.
+
 ### Debug tools compile-time gate (D-series)
 
 CMake option `VORTX_DEBUG_TOOLS` (default ON for Debug, OFF for Release)
@@ -302,6 +321,7 @@ demo: F12. Headless / scripted captures use env vars:
 | `VORTX_PIPELINE=1` | explicit render-pipeline mode |
 | `VORTX_SHOT=path.png` | one-shot screenshot at frame 30 (both backends) |
 | `VORTX_FBO_SHOT=id:path.png` | Vulkan: read back FBO `id`'s colour attachment at frame 30 |
+| `VORTX_DEPTH_SHOT=id:path.png` | Vulkan: read back FBO `id`'s D32 depth attachment at frame 30 (auto-contrast grayscale + min/max report) |
 | `VORTX_VK_DEBUG=1` | Vulkan: dump draw/VAO/UBO counters at frame 30 |
 | `VORTX_VK_NOCULL` / `VORTX_VK_CCW` | Vulkan: pipeline cull-mode / front-face overrides |
 | `VORTX_DISABLE_SHADOWS=1` | force `use_shadowmap=0` (shadow-related A/B tests) |

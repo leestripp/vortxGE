@@ -79,6 +79,7 @@ void lsLight::buildShadowmap_matrix( lsRender* render )
                       0.0, 0.5, 0.0, 0.0,
                       0.0, 0.0, 0.5, 0.0,
                       0.5, 0.5, 0.5, 1.0 };
+    // FIX 2026-08-11 (Vulkan dark floor, 4/4 — see Plan.md "D1").
     // Vulkan renders offscreen FBOs through a negative-height viewport
     // (GL-convention Y-flip), so the shadow map texels are V-mirrored
     // relative to GL-convention sampling — same reason the blit stage

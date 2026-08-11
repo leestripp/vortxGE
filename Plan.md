@@ -7,6 +7,47 @@
 
 ---
 
+## ⏭️ Session handoff — resume here 2026-08-12
+
+**State at end of 2026-08-11: the "Vulkan dark floor" saga is CLOSED.**
+Vulkan now matches OpenGL visually in the demo (fully lit floor,
+shaded objects, soft shadows, correct startup size). ctest 100%.
+
+Five commits (newest first):
+
+| Commit | What |
+|---|---|
+| `cfb92a7` | Startup black bands: self-healing framebuffer-size poll in glfwApp (Wayland applies scale only at window mapping, after Init's size query; no callback fires — poll heals it) |
+| `2c5d033` | Shadow-map V-mirror: VK offscreen FBOs render V-flipped (negative-height viewport) — y-flipped shadow bias on `RenderType::Vulkan` in `lsLight::buildShadowmap_matrix` (same precedent as blit `flipY`) |
+| `b528b5f` | THE dark-floor fix: (1) `lsShadowStage` no longer gates on `getActive()` (flags refresh AFTER shadow stages run → spot maps never rendered, shading sampled zeroed maps); (2) `lsShader` shadow binding shares `resolveLightList` + active-filter + slot compaction with `Setup_Lights` (latent GL bug too). New hooks: `VORTX_PASS_TRACE`, `VORTX_SHADOW_TRACE` |
+| `e719282` | GL↔VK depth-range translation at the backend boundary (`lsVulkan::DepthRangef` stores GL (n,f), viewport emits `min=(n+f)/2, max=min+(f−n)/2`) — all VK depth buffers GL-convention. New hook: `VORTX_DEPTH_SHOT` (D32 depth readback, auto-contrast) |
+| `8fc03f4` | D1 debug tools: `VORTX_ONLY_LIGHT` / `VORTX_LIGHTS_OFF` / `VORTX_DEBUG_VIEW` (lightcount, shadow, normals, depth false-color) |
+
+Every fix site carries a `FIX 2026-08-11` comment cross-referencing
+this section. Root-cause write-ups are in the D1 section below and in
+AGENTS.md (coordinate conventions, V-mirror rule, debug env table).
+
+**Debug tooling now available** (all gated behind `VORTX_DEBUG_TOOLS`,
+zero Release footprint): `VORTX_SHOT`/`F12` screenshots, FBO colour +
+depth readback, per-light isolation, false-color debug views, pass/
+shadow tracing. Full table in AGENTS.md §debug env vars.
+
+**Tomorrow's priorities, in order:**
+1. **D2 — JSON frame dump + GL/VK diff script** (Plan.md §D2 below):
+   automate the A/B image forensics done by hand today.
+2. **Validate all fixes in real game scenes** (not just the demo).
+3. Then resume the L-series at **L1 — Shadow core rewrite** (§L1):
+   the shadow path is now well-instrumented and the fixes above are
+   the foundation L1 builds on (texel snapping, cascades, point-light
+   shadows remain open by design).
+4. Backlog (non-blocking): VK z_ndc<0 clip gap
+   (`VK_EXT_depth_clip_control`), sun-map depth compression
+   (deep ortho frusta → consider tighter fitting in L1/L2).
+
+---
+
+---
+
 ## Why rewrite (current state, honest assessment)
 
 - Forward renderer with **3 lights hard-coded** in shaders

@@ -417,6 +417,7 @@ void glfwApp::Run()
 			// Update
 			demoscene->Update( delta );
 
+			// FIX 2026-08-11 (startup black bands — see Plan.md "D1").
 			// Self-healing size poll. The framebuffer's PHYSICAL size can
 			// change without a Resize_Callback: at startup the Wayland
 			// compositor applies the monitor scale factor only when the

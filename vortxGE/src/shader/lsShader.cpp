@@ -277,6 +277,7 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 #else
 				const auto& lights = resolveLightList( object );
 #endif
+				// FIX 2026-08-11 (Vulkan dark floor, 2/4 — see Plan.md "D1").
 				// Slot compaction MUST match Setup_Lights exactly (active
 				// filter + running index) — shader slot j samples
 				// tex_shadowmaps[j]/sMatrices[j] for the light whose

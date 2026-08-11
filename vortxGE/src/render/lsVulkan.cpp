@@ -3475,6 +3475,7 @@ void lsVulkan::ReadPixels( lsInt, lsInt, lsSizei, lsSizei, lsEnum, lsEnum, void*
 
 void lsVulkan::DepthRangef( lsFloat near, lsFloat far )
 {
+	// FIX 2026-08-11 (Vulkan dark floor, 3/4 — see Plan.md "D1").
 	// GL->VK depth-range translation at the backend boundary.
 	// GL: z_w = (f-n)/2 * z_ndc + (n+f)/2  (z_ndc in [-1,1])
 	// VK: z_f = (max-min) * z_ndc + min    (applied in Viewport)
