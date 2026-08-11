@@ -183,9 +183,87 @@ nearest-3 popping gone.
 
 ---
 
+## D-series — Built-in debug & profiler tooling (agreed 2026-08-11)
+
+Motivation: RenderDoc has no Wayland support (upstream issue #853), the
+XWayland path in our container falls back to llvmpipe (no DRI3 on the
+:99 display, RADV can't present) and produces no capture; no other
+Wayland-capable frame debugger exists (GFXReconstruct is capture/replay
+only, Nsight is NVIDIA-only, RGP is a profiler not a pixel debugger).
+So the diagnostic capability we need — "which lights reach which pixels",
+per-stage timings — gets built into the engine, engine-native and
+GL<->VK comparable.
+
+**Release-bloat rule (hard requirement):** everything in the D-series is
+compiled out in Release builds. Mechanism: CMake option
+`VORTX_DEBUG_TOOLS` (default ON for Debug, OFF for Release), adds
+`VORTX_DEBUG_TOOLS=1` compile definition. All D-series code lives behind
+`#if VORTX_DEBUG_TOOLS` / `lsDebug.h` macros that vanish in Release.
+Env-var checks must not exist in Release binaries at all.
+The builtin screenshot feature (`lsRender::Screenshot`, F12) is NOT
+debug tooling — it is a real feature and stays always-on.
+
+### D0 — Gating infrastructure
+
+- D0.1 CMake option `VORTX_DEBUG_TOOLS` with build-type default;
+  compile definition on the vortxGE target (PUBLIC so demos see it).
+- D0.2 `vortxGE/src/debug/lsDebug.h`: `VORTX_DEBUG_ONLY(x)` macro
+  (compiles to nothing in Release), shared env-var helpers.
+- D0.3 Migrate existing diagnostics behind the switch: `VORTX_SHOT`
+  frame-30 auto-capture, `VORTX_FBO_SHOT`, `VORTX_VK_DEBUG`,
+  `VORTX_VK_NOCULL`/`VORTX_VK_CCW`, `VORTX_DISABLE_SHADOWS`,
+  `VORTX_RDC` (RenderDoc trigger — keep for the day RenderDoc works).
+- **Done when:** Debug build behaves exactly as today; Release build
+  contains none of the env-var strings (`strings` check) and the demo
+  runs identically.
+
+### D1 — Light isolation & debug views (dark-floor attack)
+
+- D1.1 `VORTX_ONLY_LIGHT=i`: process only light i in the shader light
+  loop (others skipped); `VORTX_LIGHTS_OFF=1`: ambient only.
+  Per-light `VORTX_SHOT` runs on both backends -> exactly which light
+  is missing/dim on Vulkan's floor.
+- D1.2 `VORTX_DEBUG_VIEW=lightcount|shadow|normals|depth`: lighting
+  shader outputs false-color debug channels instead of shaded color
+  (uniform switch, one uber-shader branch).
+- **Done when:** per-light and debug-view PNGs exist for GL and VK,
+  dark-floor cause identified or narrowed to a single light/uniform.
+
+### D2 — Frame state dump ("mini-RenderDoc")
+
+- D2.1 `VORTX_FRAME_DUMP=N:path.json`: at frame N, dump the full frame
+  state as JSON — every draw call in order with: object id, program,
+  UBO contents (matrices + light array), texture/unit bindings,
+  pipeline state. Extends the existing `VORTX_VK_DEBUG` dump code;
+  implement per-backend (Vulkan first).
+- D2.2 Comparison script `tools/diff_frames.py`: diff GL vs VK dumps,
+  flag state mismatches per draw.
+- **Done when:** a GL/VK dump pair diffs clean except for the actual
+  bug; script flags a deliberately-broken state in a test.
+
+### D3 — CPU/GPU profiler
+
+- D3.1 `lsProfiler` scoped zones (`lsProfileZone` RAII) over frame
+  phases: Update, Shadow pass, Scene pass, Blit/present.
+- D3.2 GPU timings: Vulkan timestamp queries around each pipeline
+  stage (pool of query pairs, 1-frame latency); GL: `GL_EXT_timer_query`
+  where available, CPU-only otherwise.
+- D3.3 Output: rolling 120-frame summary to console every N frames
+  (`VORTX_PROF=1`) or CSV (`VORTX_PROF=path.csv`); per-stage avg/max ms.
+- **Done when:** per-stage GPU+CPU ms table on both backends; Release
+  binary has no profiler code (size/strings check); profiler overhead
+  <1% frame time when enabled, 0 when compiled out.
+
+### D4 — (optional, deferred) on-screen overlay
+
+Needs text rendering; defer until a real need exists. Console/CSV
+output of D3 covers diagnostics for now.
+
 ## Working agreements
 
 - One phase per working session; commit per phase with
   `VORTX_SHOT` before/after evidence on **both** backends.
 - Update this file's phase checkboxes as work lands; move finished
   phases to `CHANGELOG.md` when the L-series completes.
+- D-series only: every phase must prove Release-build exclusion
+  (`strings` + binary-size check) before being marked done.
