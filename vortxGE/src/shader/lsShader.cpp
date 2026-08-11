@@ -222,7 +222,13 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 					if (light)
 					{
 						// Bind shadow map texture for this light
+#if defined(VORTX_DEBUG_TOOLS)
+						// DIAGNOSTIC: VORTX_DISABLE_SHADOWS=1 forces
+						// use_shadowmap=0 for shadow-casting lights too
 						static const bool s_disableShadows = !!getenv( "VORTX_DISABLE_SHADOWS" );
+#else
+						constexpr bool s_disableShadows = false;
+#endif
 						if (light->getHas_shadowmap() && !s_disableShadows)
 						{
 							getRender()->ActiveTexture(LS_TEXTURE3 + i); // Use texture units 3, 4, 5 for shadow maps

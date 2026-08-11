@@ -17,14 +17,16 @@
 #include "lsVulkan.h"
 #include "lsScreenshot.h"
 #include "lsVulkanTypes.h"
+#include "../debug/lsDebug.h"
 
 #define GLFW_INCLUDE_NONE		// keep glfw3.h from pulling in GL headers
 #include <GLFW/glfw3.h>
 
 #include <cstring>
+#if defined(VORTX_DEBUG_TOOLS)
 #include <dlfcn.h>
-
 #include "renderdoc_app.h" // vendored (MIT) — in-app capture API, VORTX_RDC
+#endif
 #include <set>
 #include <algorithm>
 #include <limits>
@@ -921,6 +923,7 @@ void lsVulkan::Present()
 			 << " rssMB=" << ( rssKb / 1024 ) << endl;
 	}
 
+#if defined(VORTX_DEBUG_TOOLS)
 	// DIAGNOSTIC: one-shot swapchain readback (VORTX_SHOT=path.ppm)
 	static int s_shotFrames = -1;
 	if( s_shotFrames < 0 )
@@ -1048,6 +1051,7 @@ void lsVulkan::Present()
 							spec.c_str() + colon + 1 );
 		}
 	}
+#endif
 }
 
 void lsVulkan::Resize( int width, int height )
@@ -2193,12 +2197,17 @@ VkPipeline lsVulkan::getPipeline( VkProgramObj& prog, const VkVao& vao,
 	rs.polygonMode = VK_POLYGON_MODE_FILL;
 	rs.cullMode = m_cullEnabled ? lsVkMap::cullMode( m_cullFace )
 								: VK_CULL_MODE_NONE;
+	// Empirically CCW matches the engine's meshes AND the composite quad
+	// with the Y-flipped viewport
+#if defined(VORTX_DEBUG_TOOLS)
 	// DIAGNOSTIC: VORTX_VK_NOCULL=1 disables culling entirely
 	static const bool nocull = getenv( "VORTX_VK_NOCULL" ) != nullptr;
 	if( nocull ) rs.cullMode = VK_CULL_MODE_NONE;
-	// Empirically CCW matches the engine's meshes AND the composite quad
-	// with the Y-flipped viewport (VORTX_VK_CW=1 flips back for testing)
+	// DIAGNOSTIC: VORTX_VK_CW=1 flips front-face back for testing
 	static const bool forceCW = getenv( "VORTX_VK_CW" ) != nullptr;
+#else
+	constexpr bool forceCW = false;
+#endif
 	rs.frontFace = forceCW ? VK_FRONT_FACE_CLOCKWISE
 						   : VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rs.lineWidth = 1.0f;
@@ -2210,8 +2219,10 @@ VkPipeline lsVulkan::getPipeline( VkProgramObj& prog, const VkVao& vao,
 	VkPipelineDepthStencilStateCreateInfo ds{};
 	ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 	ds.depthTestEnable = m_depthTestEnabled ? VK_TRUE : VK_FALSE;
+#if defined(VORTX_DEBUG_TOOLS)
 	static const bool nodepth = getenv( "VORTX_VK_NODEPTH" ) != nullptr;
 	if( nodepth ) ds.depthTestEnable = VK_FALSE;	// DIAGNOSTIC
+#endif
 	ds.depthWriteEnable = m_depthWrite ? VK_TRUE : VK_FALSE;
 	ds.depthCompareOp = lsVkMap::compareOp( m_depthFunc );
 	ds.depthBoundsTestEnable = VK_FALSE;
@@ -2325,6 +2336,7 @@ void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
 	}
 	// per-draw set: written NOW with the current GL texture state
 	// DIAGNOSTIC: dump texture resolution for swapchain-targeted draws
+#if defined(VORTX_DEBUG_TOOLS)
 	if( getenv( "VORTX_VK_DEBUG" ) && m_activeTarget == 0 )
 	{
 		static int s_dumped = 0;
@@ -2347,6 +2359,7 @@ void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
 			cout << endl;
 		}
 	}
+#endif
 	VkDescriptorSet drawSet = allocDrawSet( pit->second );
 	vkCmdBindDescriptorSets( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
 							 pit->second.pipelineLayout, 0, 1,
@@ -3310,6 +3323,7 @@ void lsVulkan::beginPassForTarget( uint32_t fboID )
 	(void)hasDepth;
 
 	// DIAGNOSTIC: pass-open state for the swapchain target
+#if defined(VORTX_DEBUG_TOOLS)
 	if( getenv( "VORTX_VK_DEBUG" ) && fboID == 0 )
 	{
 		static int s_passDump = 0;
@@ -3322,6 +3336,7 @@ void lsVulkan::beginPassForTarget( uint32_t fboID )
 			cout << endl;
 		}
 	}
+#endif
 }
 
 void lsVulkan::endActivePass()

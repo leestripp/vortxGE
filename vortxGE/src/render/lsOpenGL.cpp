@@ -24,6 +24,7 @@
 
 #include "lsOpenGL.h"
 #include "lsScreenshot.h"
+#include "../debug/lsDebug.h"
 
 #include <cstring>
 
@@ -69,6 +70,7 @@ void lsOpenGL::SetWindow( void* nativeWindow ) { (void)nativeWindow; }
 void lsOpenGL::BeginFrame() {}
 void lsOpenGL::EndFrame()
 {
+#if defined(VORTX_DEBUG_TOOLS)
 	// VORTX_SHOT: capture the framebuffer at frame 30 (same convention
 	// as the Vulkan backend) for GL<->Vulkan / legacy<->pipeline
 	// side-by-side comparison. One-shot.
@@ -77,6 +79,7 @@ void lsOpenGL::EndFrame()
 	static int s_frames = 30;
 	if( s_frames <= 0 || --s_frames != 0 ) return;
 	Screenshot( shotPath );
+#endif
 }
 
 bool lsOpenGL::Screenshot( const char* path )

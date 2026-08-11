@@ -203,7 +203,7 @@ Env-var checks must not exist in Release binaries at all.
 The builtin screenshot feature (`lsRender::Screenshot`, F12) is NOT
 debug tooling — it is a real feature and stays always-on.
 
-### D0 — Gating infrastructure
+### D0 — Gating infrastructure — done 2026-08-11
 
 - D0.1 CMake option `VORTX_DEBUG_TOOLS` with build-type default;
   compile definition on the vortxGE target (PUBLIC so demos see it).

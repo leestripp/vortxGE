@@ -254,6 +254,16 @@ jump, Left Shift sprint, Left Ctrl crouch, F1 fullscreen toggle, F12 save
 screenshot (PNG, `screenshot_<timestamp>.png` in the working directory),
 Esc quit.
 
+### Debug tools compile-time gate (D-series)
+
+CMake option `VORTX_DEBUG_TOOLS` (default ON for Debug, OFF for Release)
+compiles ALL diagnostic env vars out of the binary — Release builds
+contain none of them (`strings`-verified). The diagnostics table below
+only applies to builds with the tools enabled. The builtin screenshot
+(`lsRender::Screenshot`, F12) is a feature, NOT gated. The `build/` dir
+is a Release build with tools force-enabled
+(`cmake -DVORTX_DEBUG_TOOLS=ON`).
+
 ### Screenshots & diagnostics (env vars)
 
 Builtin screenshot: `lsRender::Screenshot(path)` (both backends; `.png`

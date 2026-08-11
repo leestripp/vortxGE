@@ -1,6 +1,8 @@
 # project vortxGE
 
 build/
+build-release/
+build-*/
 secrets/
 blender/
 game/

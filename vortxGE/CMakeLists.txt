@@ -17,6 +17,21 @@ target_include_directories(vortxGE
 	${CMAKE_BINARY_DIR}/generated
 )
 
+# --- D-series (Plan.md): built-in debug & profiler tooling -----------------
+# Everything behind VORTX_DEBUG_TOOLS compiles out completely in Release:
+# no env-var strings, no branches, no bloat. Default: ON in Debug,
+# OFF in Release; override with -DVORTX_DEBUG_TOOLS=ON/OFF.
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+	set(_vortx_debug_tools_default OFF)
+else()
+	set(_vortx_debug_tools_default ON)
+endif()
+option(VORTX_DEBUG_TOOLS "Built-in debug/profiler tooling (Plan.md D-series)" ${_vortx_debug_tools_default})
+if(VORTX_DEBUG_TOOLS)
+	target_compile_definitions(vortxGE PUBLIC VORTX_DEBUG_TOOLS=1)
+endif()
+message(STATUS "vortxGE debug tools (D-series): ${VORTX_DEBUG_TOOLS}")
+
 # --- Vulkan backend (Plan.md Part 2: Vulkan primary) -----------------------
 # The Vulkan backend (render/lsVulkan.{h,cpp}) needs the Vulkan loader and
 # GLFW (glfwCreateWindowSurface). Linked PUBLIC so consumers (demos, tests)
