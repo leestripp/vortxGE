@@ -170,6 +170,22 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 	getRender()->UseProgram(0);
 }
 
+// Resolve the effective light list for an object: the per-object list
+// filled by LinkLightsInScene, else the owning scene's light manager
+// (whose per-light active flags are refreshed every frame). Single
+// source of truth for BOTH UseShader's shadow binding and Setup_Lights'
+// uniform upload — they must never disagree about which light occupies
+// which shader slot.
+static const std::vector<lsLight*>& resolveLightList( lsObject* object )
+{
+	const std::vector<lsLight*>& own = object->getLightManager()->getLights();
+	if( ! own.empty() ) return own;
+	for( lsNode* p = object->getParent(); p; p = p->getParent() )
+		if( auto* scn = dynamic_cast<lsScene*>( p ) )
+			return scn->getLightManager()->getLights();
+	return own; // empty
+}
+
 #if defined(VORTX_DEBUG_TOOLS)
 // D1.1: VORTX_ONLY_LIGHT=i renders with only light i; VORTX_LIGHTS_OFF=1
 // renders ambient-only. Applied to BOTH the shadow-binding loop here and
@@ -257,15 +273,19 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 			{
 #if defined(VORTX_DEBUG_TOOLS)
 				const std::vector<lsLight*> lights = filterDebugLights(
-					object->getLightManager()->getLights() );
+					resolveLightList( object ) );
 #else
-				const auto& lights = object->getLightManager()->getLights();
+				const auto& lights = resolveLightList( object );
 #endif
-				int active_lights_count = 0;
-				for (int i = 0; i < min((int)lights.size(), 3); ++i)
+				// Slot compaction MUST match Setup_Lights exactly (active
+				// filter + running index) — shader slot j samples
+				// tex_shadowmaps[j]/sMatrices[j] for the light whose
+				// properties Set_Light(j, ...) uploaded.
+				int slot = 0;
+				for (int i = 0; i < (int)lights.size() && slot < 3; ++i)
 				{
 					lsLight* light = lights[i];
-					if (light)
+					if (light && light->getActive())
 					{
 						// Bind shadow map texture for this light
 #if defined(VORTX_DEBUG_TOOLS)
@@ -277,22 +297,22 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 #endif
 						if (light->getHas_shadowmap() && !s_disableShadows)
 						{
-							getRender()->ActiveTexture(LS_TEXTURE3 + i); // Use texture units 3, 4, 5 for shadow maps
+							getRender()->ActiveTexture(LS_TEXTURE3 + slot); // texture units 3, 4, 5 for shadow maps
 							getRender()->BindTexture(LS_TEXTURE_2D, light->getTex_shadowmap());
-							getRender()->Uniform1i(iTex_shadowmaps[i], 3 + i);
-							getRender()->Uniform1i(iUse_shadowmap[i], 1);
-							getRender()->UniformMatrix4fv(isMatrices[i], 1, LS_FALSE, light->ShadowmapMatrix.matrix);
+							getRender()->Uniform1i(iTex_shadowmaps[slot], 3 + slot);
+							getRender()->Uniform1i(iUse_shadowmap[slot], 1);
+							getRender()->UniformMatrix4fv(isMatrices[slot], 1, LS_FALSE, light->ShadowmapMatrix.matrix);
 						} else {
 							// DIAGNOSTIC: VORTX_DISABLE_SHADOWS=1 forces use_shadowmap=0
 							// for shadow-casting lights too, to verify whether the
 							// 'ambient-only' symptom is shadow-related.
-							getRender()->Uniform1i(iUse_shadowmap[i], 0);
+							getRender()->Uniform1i(iUse_shadowmap[slot], 0);
 						}
-						active_lights_count++; // Count actual lights processed
+						slot++;
 					}
 				}
 				// Pass the count of active lights to the shader
-				getRender()->Uniform1i(iLightCount, active_lights_count);
+				getRender()->Uniform1i(iLightCount, slot);
 #if defined(VORTX_DEBUG_TOOLS)
 				getRender()->Uniform1i( iDebugView, debugViewMode() );
 #else
@@ -620,16 +640,7 @@ void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 	// runtime game code) are never linked and would render unlit, so
 	// fall back to the owning scene's light manager — its per-light
 	// active flags are refreshed every frame by setActiveLights().
-	const vector<lsLight*>* lights = &object->getLightManager()->getLights();
-	if( lights->empty() )
-	{
-		for( lsNode* p = object->getParent(); p; p = p->getParent() )
-			if( auto* scn = dynamic_cast<lsScene*>( p ) )
-			{
-				lights = &scn->getLightManager()->getLights();
-				break;
-			}
-	}
+	const vector<lsLight*>* lights = &resolveLightList( object );
 
 #if defined(VORTX_DEBUG_TOOLS)
 	const vector<lsLight*> filtered = filterDebugLights( *lights );

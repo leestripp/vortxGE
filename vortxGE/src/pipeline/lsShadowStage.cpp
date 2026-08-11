@@ -5,10 +5,29 @@
 #include "../scene/lsScene.h"
 #include "lsStagePassToken.h"
 
+#if defined(VORTX_DEBUG_TOOLS)
+#include <cstdlib>
+#include <iostream>
+// VORTX_SHADOW_TRACE=1: log stage construction + per-frame early-out
+// reasons (first frames only) — catches type/gating mismatches between
+// shadow rendering and shading.
+static bool shadowTrace()
+{
+	static const bool v = std::getenv( "VORTX_SHADOW_TRACE" ) != nullptr;
+	return v;
+}
+#endif
+
 lsShadowStage::lsShadowStage( lsScene* scene, lsLight* light, int size,
 							  lsRender* render )
 	: m_scene( scene ), m_light( light ), m_size( size )
 {
+#if defined(VORTX_DEBUG_TOOLS)
+	if( shadowTrace() )
+		std::cout << "SHADOWSTAGE ctor light=" << ( light ? light->getName() : "(null)" )
+				  << " type=" << ( light ? (int)light->getLight_type() : -1 )
+				  << " size=" << size << std::endl;
+#endif
 	if( !light || size <= 0 ) return;
 
 	m_fbo = new lsFBO_Depth( (double)size, (double)size, render );
@@ -31,8 +50,29 @@ lsShadowStage::~lsShadowStage()
 void lsShadowStage::execute( lsRender* render, lsTargetPool& targets )
 {
 	(void)targets;
+#if defined(VORTX_DEBUG_TOOLS)
+	static uint32_t traceLeft = 12;
+	if( shadowTrace() && traceLeft &&
+		( !m_scene || !m_light || !m_fbo || !m_light->getActive() ) )
+	{
+		traceLeft--;
+		std::cout << "SHADOWSTAGE skip light="
+				  << ( m_light ? m_light->getName() : "(null)" )
+				  << " scene=" << ( m_scene != nullptr )
+				  << " fbo=" << ( m_fbo != nullptr )
+				  << " active=" << ( m_light ? m_light->getActive() : false )
+				  << std::endl;
+	}
+#endif
 	if( !m_scene || !m_light || !m_fbo ) return;
-	if( !m_light->getActive() ) return;
+	// NOTE: deliberately NOT gated on m_light->getActive(). The active
+	// flags are refreshed by the scene stage's Optimize (render camera)
+	// AFTER the shadow stages run, so gating here reads stale flags:
+	// lights that shade this frame would sample never-rendered (zeroed)
+	// shadow maps -> their contribution is multiplied to zero (the
+	// "Vulkan dark floor" bug). The legacy GL pass path renders all
+	// shadow maps unconditionally; pipeline mode now matches.
+
 
 	if( !m_passToken )
 		m_passToken = new lsStagePassToken( render, LSPT_SHADOWMAP );

@@ -303,6 +303,8 @@ demo: F12. Headless / scripted captures use env vars:
 | `VORTX_DISABLE_SHADOWS=1` | force `use_shadowmap=0` (shadow-related A/B tests) |
 | `VORTX_ONLY_LIGHT=i` | render with only light `i` (light isolation) |
 | `VORTX_LIGHTS_OFF=1` | ambient-only (all lights skipped) |
+| `VORTX_PASS_TRACE=1` | log first 40 render-pass begins (target, fb, extent, depth view) — catches passes that never begin (VK) |
+| `VORTX_SHADOW_TRACE=1` | log shadow-stage construction + early-out reasons per light |
 | `VORTX_DEBUG_VIEW=lightcount\|shadow\|normals\|depth` | false-color debug output in `light_tex_*` shaders (`vxDebugView` uniform) |
 | `VORTX_RDC=1` or `=template` | RenderDoc: trigger capture at frame 30 (launch under `renderdoccmd capture`; needs X11/XCB — RenderDoc has no Wayland support, use `DISPLAY=:99 GLFW_PLATFORM=x11`) |
 

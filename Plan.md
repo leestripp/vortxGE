@@ -241,6 +241,23 @@ are uniform 0.0 — the shadow render pass NEVER executes on Vulkan
 never begin the depth-only render pass (draw skip, pass-token path,
 or FBO bind before ensurePassActive).
 
+**RESOLVED (same day, two commits):** the actual mechanism was a
+*gating mismatch*, found via the new VORTX_PASS_TRACE /
+VORTX_SHADOW_TRACE hooks: lsShadowStage::execute early-outed on
+light->getActive(), but the active flags are refreshed by the scene
+stage's Optimize AFTER the shadow stages run — so the spot stages read
+stale-false flags and never rendered, while shading counted all 3
+lights and sampled their zeroed maps. Legacy GL passes render all maps
+unconditionally, which is why only Vulkan was dark. Fixes: (1) shadow
+stage no longer gates on getActive (matches GL invariant: any light
+that can shade must have a valid map); (2) UseShader's shadow-map
+binding now uses the SAME active-filter + slot compaction as
+Setup_Lights (resolveLightList helper — light->slot mapping can never
+disagree again; this misalignment was also latent on GL). Remaining
+shadow-quality items (separate): sun map shows no silhouettes (DIRECT
+ortho precision or empty draw list), mid-floor dark band vs GL,
+VK swapchain subregion viewport mismatch.
+
 - D1.1 `VORTX_ONLY_LIGHT=i`: process only light i in the shader light
   loop (others skipped); `VORTX_LIGHTS_OFF=1`: ambient only.
   Per-light `VORTX_SHOT` runs on both backends -> exactly which light

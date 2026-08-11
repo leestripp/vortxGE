@@ -3300,6 +3300,32 @@ void lsVulkan::beginPassForTarget( uint32_t fboID )
 	rpi.pClearValues = clearValues;
 
 	VkCommandBuffer cmd = m_commandBuffers[m_currentFrame];
+
+#if defined(VORTX_DEBUG_TOOLS)
+	// VORTX_PASS_TRACE=1: log the first render-pass begins (target, fb,
+	// extent, depth-texture view) — catches passes that never begin,
+	// stale image views, and wrong clear values.
+	static const bool passTrace = getenv( "VORTX_PASS_TRACE" ) != nullptr;
+	static uint32_t passTraceCount = 0;
+	if( passTrace && passTraceCount < 40 )
+	{
+		passTraceCount++;
+		cout << "PASSBEGIN fbo=" << fboID << " rp=" << (void*)rp
+			 << " fb=" << (void*)fb << " " << extent.width << "x" << extent.height
+			 << " nclear=" << rpi.clearValueCount
+			 << " clear0.depth=" << rpi.pClearValues[0].depthStencil.depth;
+		if( fboID != 0 )
+		{
+			VkFbo& fbo = m_fbos[fboID];
+			auto dt = m_textures.find( fbo.depthTex );
+			cout << " depthTex=" << fbo.depthTex << " variant=" << fbo.variant
+				 << " texView="
+				 << ( dt != m_textures.end() ? (void*)dt->second.view : nullptr );
+		}
+		cout << endl;
+	}
+#endif
+
 	vkCmdBeginRenderPass( cmd, &rpi, VK_SUBPASS_CONTENTS_INLINE );
 
 	// viewport: explicit Viewport() call wins, else full target extent.
