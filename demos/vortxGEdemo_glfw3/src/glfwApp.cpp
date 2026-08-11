@@ -417,6 +417,27 @@ void glfwApp::Run()
 			// Update
 			demoscene->Update( delta );
 
+			// Self-healing size poll. The framebuffer's PHYSICAL size can
+			// change without a Resize_Callback: at startup the Wayland
+			// compositor applies the monitor scale factor only when the
+			// window is first mapped (Init queried too early and stored
+			// the logical size), and compositor-side scale changes do
+			// not always fire the callback either. The callback path
+			// delivers physical pixels, so the raw getter (no content-
+			// scale multiplication — that would double-apply once the
+			// getter returns physical values) is the source of truth.
+			// FBO recreation only happens when the size actually changed.
+			{
+				int fbw = 0, fbh = 0;
+				glfwGetFramebufferSize( m_window, &fbw, &fbh );
+				if( fbw > 0 && fbh > 0 &&
+					( fbw != m_win_width || fbh != m_win_height ) )
+				{
+					m_win_width = fbw;
+					m_win_height = fbh;
+				}
+			}
+
 			// Render
 			demoscene->Resize( 0, 0, m_win_width, m_win_height );
 			demoscene->Render();
