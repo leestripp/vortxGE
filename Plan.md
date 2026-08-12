@@ -177,6 +177,12 @@ Verify each step: VORTX_SHOT before/after on BOTH backends +
 frame-dump diff CLEAN (128 draws, deterministic capture recipe in
 AGENTS.md) + ctest 100%.
 
+**L1 COMPLETE 2026-08-12:** L1.1 lsShadowMap + L1.6 presets (253d3ff),
+L1.2 VK pipeline-state depth bias (db67ecc), L1.3 comparison samplers
+(708dfc4), L1.4 PCF+normal-offset (eb70c00/5638039), L1.5 texel
+snapping (7132407). Front-face-cull depth-pass option deferred
+(normal-offset bias covers acne). Presets: VORTX_SHADOW_QUALITY.
+
 **Progress 2026-08-12 (2):** L1.3 landed — comparison samplers on
 both backends (lsFBO_Depth: LINEAR + COMPARE_REF_TO_TEXTURE/LEQUAL;
 VK sampler compareEnable=LESS_OR_EQUAL; tex_shadowmaps now
