@@ -11,3 +11,6 @@ game/
 # AGENTS.md §5.8 documents the convention.
 .daedalus/
 
+
+# downloaded test assets (never commit — local validation only)
+demos/data/downloads/

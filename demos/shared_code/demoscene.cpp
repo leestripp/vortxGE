@@ -588,6 +588,56 @@ void DemoScene::setupTestScene()
 	
 	// Create object emitter.
 	setupObjectEmitter();
+	
+	// Debug-gated ad-hoc test model (VORTX_TEST_MODEL)
+	setupTestModel();
+}
+
+// -------------------------------------------------------------------
+// D-series diagnostic: load an ad-hoc glTF/.glb model into the scene
+// for validation beyond the demo assets (e.g. Khronos sample models).
+//   VORTX_TEST_MODEL=path.glb[:x,y,z[:scale]]
+// Compiled out entirely in Release (no env string, no code).
+// -------------------------------------------------------------------
+void DemoScene::setupTestModel()
+{
+#if defined(VORTX_DEBUG_TOOLS)
+	const char* e = getenv( "VORTX_TEST_MODEL" );
+	if(! e || ! *e || ! m_viewer_scene ) return;
+
+	// parse path[:x,y,z[:scale]]
+	std::string spec = e;
+	float px = 4.0f, py = 1.0f, pz = -6.0f, sc = 1.0f;
+	std::string path = spec;
+	const size_t c1 = spec.find( ':' );
+	if( c1 != std::string::npos )
+	{
+		path = spec.substr( 0, c1 );
+		sscanf( spec.c_str() + c1 + 1, "%f,%f,%f", &px, &py, &pz );
+		const size_t c2 = spec.find( ':', c1 + 1 );
+		if( c2 != std::string::npos )
+			sc = (float)atof( spec.c_str() + c2 + 1 );
+	}
+
+	lsAsset_Mesh* mesh = m_viewer_scene->getAssetManager()
+						 ->CreateAsset_Mesh( path.c_str() );
+	if(! mesh )
+	{
+		cout << "VORTX_TEST_MODEL: FAILED to load " << path << endl;
+		return;
+	}
+	mesh->AllocAsset();
+
+	lsObject* obj = new lsObject( m_viewer_scene );
+	obj->setName( "TestModel" );
+	obj->Set_Asset( mesh );
+	obj->Set_Scale( sc, sc, sc );
+	obj->Set_Pos( px, py, pz );
+	obj->Set_Rot( 0, 0, 0 );
+	m_viewer_scene->Add_Node( obj );
+	cout << "VORTX_TEST_MODEL: loaded " << path << " at ("
+		 << px << "," << py << "," << pz << ") scale " << sc << endl;
+#endif
 }
 
 void DemoScene::setupObjectEmitter()

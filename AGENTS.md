@@ -333,6 +333,7 @@ demo: F12. Headless / scripted captures use env vars:
 | `VORTX_FRAME_DUMP=N:path.json` | D2: dump every draw of frame `N` (default 30) as JSON — object/program/VAO identity, UBO contents, texture/unit bindings, pipeline state. GL records API-tracked state; VK snapshots internal staging (std140 offsets) so layout bugs show in the diff. Compare with `tools/diff_frames.py gl.json vk.json` |
 | `VORTX_FIXED_DT=ms` | glfw3 demo: fixed timestep — required with `VORTX_FRAME_DUMP` for deterministic cross-run captures (also disables the wall-clock emitter spawns in the demo scene) |
 | `VORTX_RAND_SEED=n` | deterministic `lsRandom` seeding for capture reproducibility |
+| `VORTX_TEST_MODEL=path.glb[:x,y,z[:scale]]` | ad-hoc glTF test model into the demo scene (Khronos samples etc. live in gitignored `demos/data/downloads/`) |
 | `VORTX_RDC=1` or `=template` | RenderDoc: trigger capture at frame 30 (launch under `renderdoccmd capture`; needs X11/XCB — RenderDoc has no Wayland support, use `DISPLAY=:99 GLFW_PLATFORM=x11`) |
 
 `diff_frames.py` notes: two GL↔VK differences are BY DESIGN, not bugs —

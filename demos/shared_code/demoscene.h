@@ -79,6 +79,7 @@ protected:
     void setupTestScene();
     void setupShadows();
     void setupObjectEmitter();
+    void setupTestModel();      // debug-gated (VORTX_TEST_MODEL)
     // Scene Events
     void processEvent( lsEvent* event );
 	
