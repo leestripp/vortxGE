@@ -336,6 +336,9 @@ private:
 	bool	m_blendEnabled = false;
 	lsEnum	m_blendSrc = 0x0302;			// LS_SRC_ALPHA
 	lsEnum	m_blendDst = 0x0303;			// LS_ONE_MINUS_SRC_ALPHA
+	bool	m_polyOffsetEnabled = false;	// L1.2: LS_POLYGON_OFFSET_FILL
+	float	m_polyOffsetFactor = 0.0f;	// glPolygonOffset(factor, units)
+	float	m_polyOffsetUnits = 0.0f;	// -> VK depthBias slope/constant
 
 	// per-frame uniform upload ring (dynamic UBO)
 	VkBuffer		m_uboBuffer = VK_NULL_HANDLE;

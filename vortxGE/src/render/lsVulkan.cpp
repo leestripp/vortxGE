@@ -2091,6 +2091,7 @@ void lsVulkan::Enable( lsEnum cap )
 	if( cap == LS_DEPTH_TEST ) m_depthTestEnabled = true;
 	else if( cap == LS_CULL_FACE ) m_cullEnabled = true;
 	else if( cap == LS_BLEND ) m_blendEnabled = true;
+	else if( cap == LS_POLYGON_OFFSET_FILL ) m_polyOffsetEnabled = true;
 }
 
 void lsVulkan::Disable( lsEnum cap )
@@ -2098,6 +2099,7 @@ void lsVulkan::Disable( lsEnum cap )
 	if( cap == LS_DEPTH_TEST ) m_depthTestEnabled = false;
 	else if( cap == LS_CULL_FACE ) m_cullEnabled = false;
 	else if( cap == LS_BLEND ) m_blendEnabled = false;
+	else if( cap == LS_POLYGON_OFFSET_FILL ) m_polyOffsetEnabled = false;
 }
 
 void lsVulkan::CullFace( lsEnum mode )	{ m_cullFace = mode; }
@@ -2116,12 +2118,17 @@ VkPipeline lsVulkan::getPipeline( VkProgramObj& prog, const VkVao& vao,
 								  lsEnum topologyMode )
 {
 	// cache key
-	char key[128];
-	snprintf( key, sizeof( key ), "%u:%u:%x:%d%d%x%d%x%x:%p",
+	char key[160];
+	uint32_t poFactorBits, poUnitsBits;
+	memcpy( &poFactorBits, &m_polyOffsetFactor, 4 );
+	memcpy( &poUnitsBits, &m_polyOffsetUnits, 4 );
+	snprintf( key, sizeof( key ), "%u:%u:%x:%p:%d%d%x%d%x%x%x:%d%x%x",
 			  m_currentProgram, m_currentVao, topologyMode, (void*)m_activeRenderPass,
 			  m_depthTestEnabled, m_depthWrite, m_depthFunc,
 			  m_cullEnabled, ( m_cullEnabled ? m_cullFace : 0 ),
-			  m_blendEnabled ? m_blendSrc : 0, m_blendEnabled ? m_blendDst : 0 );
+			  ( m_blendEnabled ? m_blendSrc : 0 ),
+			  ( m_blendEnabled ? m_blendDst : 0 ),
+			  (int)m_polyOffsetEnabled, poFactorBits, poUnitsBits );
 	auto cit = m_pipelineCache.find( key );
 	if( cit != m_pipelineCache.end() ) return cit->second;
 
@@ -2226,6 +2233,10 @@ VkPipeline lsVulkan::getPipeline( VkProgramObj& prog, const VkVao& vao,
 	rs.frontFace = forceCW ? VK_FRONT_FACE_CLOCKWISE
 						   : VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rs.lineWidth = 1.0f;
+	// L1.2: depth bias from glPolygonOffset state (shadow depth pass)
+	rs.depthBiasEnable = m_polyOffsetEnabled ? VK_TRUE : VK_FALSE;
+	rs.depthBiasSlopeFactor = m_polyOffsetFactor;
+	rs.depthBiasConstantFactor = m_polyOffsetUnits;
 
 	VkPipelineMultisampleStateCreateInfo ms{};
 	ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -3645,9 +3656,12 @@ void lsVulkan::ColorMask( lsBoolean, lsBoolean, lsBoolean, lsBoolean )
 	// V5+ stub
 }
 
-void lsVulkan::PolygonOffset( lsFloat, lsFloat )
+void lsVulkan::PolygonOffset( lsFloat factor, lsFloat units )
 {
-	// V5+ stub
+	// L1.2: GL polygon offset maps to Vulkan depth bias
+	// (slopeFactor = factor, constantFactor = units)
+	m_polyOffsetFactor = factor;
+	m_polyOffsetUnits = units;
 }
 
 void lsVulkan::ShadeModel( lsEnum )
