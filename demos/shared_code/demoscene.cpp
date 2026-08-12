@@ -871,13 +871,12 @@ void DemoScene::initPipeline()
 	// shaders sample them; without shadow stages every lit surface is
 	// black). Each stage owns its depth FBO and self-wires it to the
 	// light, replacing DemoScene::setupShadows in pipeline mode.
+	const lsShadowQuality shadowQ = lsShadowMap::getQuality();
 	for( lsLight* light : m_viewer_scene->getLightManager()->getLights() )
 	{
-		int size = ( light->getLight_type() == LSLT_DIRECT ) ? 4096 :
-				   ( light->getLight_type() == LSLT_SPOT ) ? 2048 : 0;
-		if( !size ) continue;
+		if( lsShadowMap::resolutionFor( light, shadowQ ) <= 0 ) continue;
 		auto* sh = m_pipeline->addStage<lsShadowStage>(
-			m_viewer_scene, light, size, r );
+			m_viewer_scene, light, shadowQ, r );
 		sh->setName( string( "shadow-" ) + light->getName() );
 	}
 
