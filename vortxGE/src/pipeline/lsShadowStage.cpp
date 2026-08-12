@@ -38,6 +38,8 @@ lsShadowStage::lsShadowStage( lsScene* scene, lsLight* light, int size,
 	{
 		light->setTex_shadowmap( m_fbo->getDepthTexture() );
 		light->setHas_shadowmap( true );
+		light->setPixel_x( size );	// L1.5: texel snapping needs the size
+		light->setPixel_y( size );
 	}
 }
 

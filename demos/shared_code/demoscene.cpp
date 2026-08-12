@@ -800,6 +800,8 @@ void DemoScene::setupShadows()
 		{
 			light->setTex_shadowmap(shadowPass->getFBO()->getDepthTexture());
 			light->setHas_shadowmap(true);
+			light->setPixel_x(shadowPass->getFBO()->getWidth());
+			light->setPixel_y(shadowPass->getFBO()->getHeight());
 		}
 		
 		// Add the pass to the viewer's pass manager.

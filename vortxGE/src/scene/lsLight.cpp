@@ -1,3 +1,4 @@
+#include <cmath>
 #include "../vortx_debug.h"
 
 // Properties
@@ -92,7 +93,30 @@ void lsLight::buildShadowmap_matrix( lsRender* render )
 	
     // The Light's Projection and View matrices combined
     lsMatrix4x4 lightProjectionViewMatrix = frustum.getProjectionMatrix() * ViewMatrix;
-	
+
+    // L1.5: texel snapping for directional (orthographic) lights.
+    // Round the light-space view origin to the shadow-map texel grid
+    // so sub-texel light/camera movement does not shift the map —
+    // kills shadow swimming/shimmering. Perspective lights (spots)
+    // are not snapped (no fixed texel grid).
+    if( getCamera_mode() == LSCM_ORTHOGRAPHIC &&
+        getPixel_x() > 0 && getPixel_y() > 0 )
+    {
+        const float texelX = ( orth_right - orth_left ) / getPixel_x();
+        const float texelY = ( orth_top - orth_bottom ) / getPixel_y();
+        // world origin in light view space
+        const lsVector3 origLS = ViewMatrix * lsVector3( 0.0f, 0.0f, 0.0f );
+        const float ox = floorf( origLS.x / texelX + 0.5f ) * texelX - origLS.x;
+        const float oy = floorf( origLS.y / texelY + 0.5f ) * texelY - origLS.y;
+        lsFloat snap[] = { 1.0f, 0.0f, 0.0f, 0.0f,
+                           0.0f, 1.0f, 0.0f, 0.0f,
+                           0.0f, 0.0f, 1.0f, 0.0f,
+                           ox,    oy,    0.0f, 1.0f };
+        lsMatrix4x4 snapMatrix;
+        snapMatrix = snap;
+        lightProjectionViewMatrix = snapMatrix * lightProjectionViewMatrix;
+    }
+
     // The final matrix to transform from world space to shadow map texture space
     ShadowmapMatrix = biasMatrix * lightProjectionViewMatrix;
 }
