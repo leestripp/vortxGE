@@ -169,6 +169,12 @@ public:
      * @brief Get camera mode
      * @return LSCM_PERSPECTIVE or LSCM_ORTHOGRAPHIC
      */
+	// Projection parameters (L2 CSM needs them for cascade fitting)
+	float getCam_fov() const { return cam_fov; }
+	float getCam_ratio() const { return cam_ratio; }
+	float getCam_near() const { return cam_near; }
+	float getCam_far() const { return cam_far; }
+
 	int getCamera_mode() const
 	{
 		return camera_mode;

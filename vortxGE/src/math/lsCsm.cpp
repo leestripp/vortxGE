@@ -125,6 +125,7 @@ std::vector<lsCsmCascade> lsCsmCompute( const lsCsmConfig& cfg,
 		cc.shadowMatrix = biasMatrix * cc.proj * cc.view;
 		cc.splitNear = d0;
 		cc.splitFar = d1;
+		cc.radius = r;
 		out.push_back( cc );
 	}
 	return out;

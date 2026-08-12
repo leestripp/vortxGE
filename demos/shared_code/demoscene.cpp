@@ -83,6 +83,7 @@
 #include <pipeline/lsSceneStage.h>
 #include <pipeline/lsBlitStage.h>
 #include <pipeline/lsShadowStage.h>
+#include <pipeline/lsCsmStage.h>
 
 // Passes
 #include <passes/lsPassManager.h>
@@ -872,9 +873,22 @@ void DemoScene::initPipeline()
 	// black). Each stage owns its depth FBO and self-wires it to the
 	// light, replacing DemoScene::setupShadows in pipeline mode.
 	const lsShadowQuality shadowQ = lsShadowMap::getQuality();
+	// L2.1b dev flag: VORTX_CSM=1 replaces the sun's single-map stage
+	// with a 4-cascade CSM stage (atlas). Shading still uses the legacy
+	// single-map path until L2.4 — sun shadows look wrong with the flag
+	// on; verify atlas content via VORTX_DEPTH_SHOT instead.
+	const bool useCsm = std::getenv( "VORTX_CSM" ) != nullptr;
 	for( lsLight* light : m_viewer_scene->getLightManager()->getLights() )
 	{
 		if( lsShadowMap::resolutionFor( light, shadowQ ) <= 0 ) continue;
+		if( useCsm && light->getLight_type() == LSLT_DIRECT )
+		{
+			const int ms = lsShadowMap::resolutionFor( light, shadowQ ) / 2;
+			auto* cs = m_pipeline->addStage<lsCsmStage>(
+				m_viewer_scene, light, m_playerRig->getCamera(), ms, r );
+			cs->setName( string( "csm-" ) + light->getName() );
+			continue;
+		}
 		auto* sh = m_pipeline->addStage<lsShadowStage>(
 			m_viewer_scene, light, shadowQ, r );
 		sh->setName( string( "shadow-" ) + light->getName() );

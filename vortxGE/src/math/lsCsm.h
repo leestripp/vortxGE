@@ -32,6 +32,8 @@ struct lsCsmCascade
 	lsMatrix4x4	shadowMatrix;	///< bias * proj * view (texture space)
 	float		splitNear = 0.0f;	///< view-space depth range covered
 	float		splitFar = 0.0f;
+	float		radius = 1.0f;		///< bounding-sphere fit radius
+									///< (ortho is ±r, depth -r..3r)
 };
 
 /// Practical split scheme: lambda blend of logarithmic and uniform.
