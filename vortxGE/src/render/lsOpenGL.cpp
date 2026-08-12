@@ -25,6 +25,7 @@
 #include "lsOpenGL.h"
 #include "lsScreenshot.h"
 #include "../debug/lsDebug.h"
+#include "../debug/lsFrameDump.h"
 
 #include <cstring>
 
@@ -35,6 +36,7 @@
 lsOpenGL::lsOpenGL() : lsRender()
 {
 	setType(RenderType::OpenGL);
+	VORTX_DEBUG_ONLY( lsFrameDump::setBackend( "opengl" ); )
 
 	// Initialize OpenGL-specific members
 	m_defaultFBO = 0;
@@ -101,7 +103,10 @@ bool lsOpenGL::Screenshot( const char* path )
 				px.data() + (size_t)( h - 1 - y ) * stride, stride );
 	return lsScreenshot::saveRGB( path, w, h, flipped.data() );
 }
-void lsOpenGL::Present() {}
+void lsOpenGL::Present()
+{
+	VORTX_DEBUG_ONLY( lsFrameDump::frameTick(); )
+}
 void lsOpenGL::Resize( int width, int height ) { (void)width; (void)height; }
 
 void lsOpenGL::CheckErrors( const string &name )
@@ -174,11 +179,11 @@ void lsOpenGL::RestoreDefaultFramebuffer()
 
 void lsOpenGL::GenTextures( lsSizei n, lsTextureID* textures )                              { glGenTextures( static_cast<GLsizei>(n), reinterpret_cast<GLuint*>(textures) ); }
 void lsOpenGL::DeleteTextures( lsSizei n, lsTextureID* textures )                           { glDeleteTextures( static_cast<GLsizei>(n), reinterpret_cast<GLuint*>(textures) ); }
-void lsOpenGL::BindTexture( lsEnum target, lsTextureID texture )                            { glBindTexture( static_cast<GLenum>(target), static_cast<GLuint>(texture) ); }
-void lsOpenGL::ActiveTexture( lsEnum texture )                                              { glActiveTexture( static_cast<GLenum>(texture) ); }
+void lsOpenGL::BindTexture( lsEnum target, lsTextureID texture )                            { glBindTexture( static_cast<GLenum>(target), static_cast<GLuint>(texture) ); VORTX_DEBUG_ONLY( lsFrameDump::trackBindTexture( (uint32_t)texture ); ) }
+void lsOpenGL::ActiveTexture( lsEnum texture )                                              { glActiveTexture( static_cast<GLenum>(texture) ); VORTX_DEBUG_ONLY( lsFrameDump::trackActiveTexture( (uint32_t)( texture - LS_TEXTURE0 ) ); ) }
 void lsOpenGL::TexImage2D( lsEnum target, lsInt level, lsInt internalformat,
                            lsSizei width, lsSizei height, lsInt border,
-                           lsEnum format, lsEnum type, const void* data )                  { glTexImage2D( static_cast<GLenum>(target), static_cast<GLint>(level), static_cast<GLint>(internalformat), static_cast<GLsizei>(width), static_cast<GLsizei>(height), static_cast<GLint>(border), static_cast<GLenum>(format), static_cast<GLenum>(type), data ); }
+                           lsEnum format, lsEnum type, const void* data )                  { glTexImage2D( static_cast<GLenum>(target), static_cast<GLint>(level), static_cast<GLint>(internalformat), static_cast<GLsizei>(width), static_cast<GLsizei>(height), static_cast<GLint>(border), static_cast<GLenum>(format), static_cast<GLenum>(type), data ); VORTX_DEBUG_ONLY( lsFrameDump::trackTexImageBound( (int)level, (int)internalformat, (int)width, (int)height, (int)format, (int)type, data ); ) }
 void lsOpenGL::TexParameteri( lsEnum target, lsEnum pname, lsInt param )                    { glTexParameteri( static_cast<GLenum>(target), static_cast<GLenum>(pname), static_cast<GLint>(param) ); }
 void lsOpenGL::TexParameterf( lsEnum target, lsEnum pname, lsFloat param )                  { glTexParameterf( static_cast<GLenum>(target), static_cast<GLenum>(pname), static_cast<GLfloat>(param) ); }
 void lsOpenGL::TexParameterfv( lsEnum target, lsEnum pname, const lsFloat* params )         { glTexParameterfv( static_cast<GLenum>(target), static_cast<GLenum>(pname), reinterpret_cast<const GLfloat*>(params) ); }
@@ -188,7 +193,7 @@ void lsOpenGL::PixelStorei( lsEnum pname, lsInt param )                         
 // ---- Framebuffer objects ----
 void lsOpenGL::GenFramebuffers( lsSizei n, lsFBOID* fbos )                                  { glGenFramebuffers( static_cast<GLsizei>(n), reinterpret_cast<GLuint*>(fbos) ); }
 void lsOpenGL::DeleteFramebuffers( lsSizei n, lsFBOID* fbos )                               { glDeleteFramebuffers( static_cast<GLsizei>(n), reinterpret_cast<GLuint*>(fbos) ); }
-void lsOpenGL::BindFramebuffer( lsEnum target, lsFBOID fbo )                                { glBindFramebuffer( static_cast<GLenum>(target), static_cast<GLuint>(fbo) ); }
+void lsOpenGL::BindFramebuffer( lsEnum target, lsFBOID fbo )                                { glBindFramebuffer( static_cast<GLenum>(target), static_cast<GLuint>(fbo) ); VORTX_DEBUG_ONLY( lsFrameDump::trackBindFBO( (uint32_t)fbo ); ) }
 void lsOpenGL::FramebufferTexture2D( lsEnum target, lsEnum attachment,
                                      lsEnum textarget, lsTextureID texture, lsInt level ) { glFramebufferTexture2D( static_cast<GLenum>(target), static_cast<GLenum>(attachment), static_cast<GLenum>(textarget), static_cast<GLuint>(texture), static_cast<GLint>(level) ); }
 lsEnum lsOpenGL::CheckFramebufferStatus( lsEnum target )                                   { return static_cast<lsEnum>(glCheckFramebufferStatus( static_cast<GLenum>(target) )); }
@@ -205,29 +210,29 @@ void lsOpenGL::BufferData( lsEnum target, lsSizeiptr size,
                            const void* data, lsEnum usage )                                { glBufferData( static_cast<GLenum>(target), static_cast<GLsizeiptr>(size), data, static_cast<GLenum>(usage) ); }
 void lsOpenGL::GenVertexArrays( lsSizei n, lsVAOID* arrays )                                { glGenVertexArrays( static_cast<GLsizei>(n), reinterpret_cast<GLuint*>(arrays) ); }
 void lsOpenGL::DeleteVertexArrays( lsSizei n, lsVAOID* arrays )                             { glDeleteVertexArrays( static_cast<GLsizei>(n), reinterpret_cast<GLuint*>(arrays) ); }
-void lsOpenGL::BindVertexArray( lsVAOID vao )                                               { glBindVertexArray( static_cast<GLuint>(vao) ); }
+void lsOpenGL::BindVertexArray( lsVAOID vao )                                               { glBindVertexArray( static_cast<GLuint>(vao) ); VORTX_DEBUG_ONLY( lsFrameDump::trackBindVAO( (uint32_t)vao ); ) }
 void lsOpenGL::EnableVertexAttribArray( lsUInt index )                                       { glEnableVertexAttribArray( static_cast<GLuint>(index) ); }
 void lsOpenGL::VertexAttribPointer( lsUInt index, lsInt size, lsEnum type,
                                     lsBoolean normalized, lsSizei stride,
                                     const void* pointer )                                  { glVertexAttribPointer( static_cast<GLuint>(index), static_cast<GLint>(size), static_cast<GLenum>(type), static_cast<GLboolean>(normalized), static_cast<GLsizei>(stride), pointer ); }
 
 // ---- Draw calls ----
-void lsOpenGL::DrawArrays( lsEnum mode, lsInt first, lsSizei count )                       { glDrawArrays( static_cast<GLenum>(mode), static_cast<GLint>(first), static_cast<GLsizei>(count) ); }
-void lsOpenGL::DrawElements( lsEnum mode, lsSizei count, lsEnum type, const void* indices ) { glDrawElements( static_cast<GLenum>(mode), static_cast<GLsizei>(count), static_cast<GLenum>(type), indices ); }
+void lsOpenGL::DrawArrays( lsEnum mode, lsInt first, lsSizei count )                       { glDrawArrays( static_cast<GLenum>(mode), static_cast<GLint>(first), static_cast<GLsizei>(count) ); VORTX_DEBUG_ONLY( lsFrameDump::glRecordDraw( (uint32_t)mode, (uint32_t)count, (uint32_t)first, false ); ) }
+void lsOpenGL::DrawElements( lsEnum mode, lsSizei count, lsEnum type, const void* indices ) { glDrawElements( static_cast<GLenum>(mode), static_cast<GLsizei>(count), static_cast<GLenum>(type), indices ); VORTX_DEBUG_ONLY( lsFrameDump::glRecordDraw( (uint32_t)mode, (uint32_t)count, (uint32_t)( (size_t)indices / ( type == LS_UNSIGNED_INT ? 4 : 2 ) ), true ); ) }
 
 // ---- Shader / program objects ----
 lsShaderID lsOpenGL::CreateShader( lsEnum type )                                            { return static_cast<lsShaderID>(glCreateShader( static_cast<GLenum>(type) )); }
 lsProgramID lsOpenGL::CreateProgram()                                                       { return static_cast<lsProgramID>(glCreateProgram()); }
 void lsOpenGL::ShaderSource( lsShaderID shader, lsSizei count,
-                             const lsChar** string, const lsInt* length )                 { glShaderSource( static_cast<GLuint>(shader), static_cast<GLsizei>(count), reinterpret_cast<const GLchar**>(string), reinterpret_cast<const GLint*>(length) ); }
+                             const lsChar** string, const lsInt* length )                 { glShaderSource( static_cast<GLuint>(shader), static_cast<GLsizei>(count), reinterpret_cast<const GLchar**>(string), reinterpret_cast<const GLint*>(length) ); VORTX_DEBUG_ONLY( if( string ) { std::string src; for( lsSizei i = 0; i < count; i++ ) if( string[i] ) src += length ? std::string( string[i], (size_t)length[i] ) : std::string( string[i] ); lsFrameDump::trackShaderSource( (uint32_t)shader, src ); } ) }
 void lsOpenGL::CompileShader( lsShaderID shader )                                           { glCompileShader( static_cast<GLuint>(shader) ); }
-void lsOpenGL::AttachShader( lsProgramID program, lsShaderID shader )                       { glAttachShader( static_cast<GLuint>(program), static_cast<GLuint>(shader) ); }
+void lsOpenGL::AttachShader( lsProgramID program, lsShaderID shader )                       { glAttachShader( static_cast<GLuint>(program), static_cast<GLuint>(shader) ); VORTX_DEBUG_ONLY( lsFrameDump::trackAttach( (uint32_t)program, (uint32_t)shader ); ) }
 void lsOpenGL::DetachShader( lsProgramID program, lsShaderID shader )                       { glDetachShader( static_cast<GLuint>(program), static_cast<GLuint>(shader) ); }
-void lsOpenGL::LinkProgram( lsProgramID program )                                           { glLinkProgram( static_cast<GLuint>(program) ); }
-void lsOpenGL::UseProgram( lsProgramID program )                                            { glUseProgram( static_cast<GLuint>(program) ); }
+void lsOpenGL::LinkProgram( lsProgramID program )                                           { glLinkProgram( static_cast<GLuint>(program) ); VORTX_DEBUG_ONLY( lsFrameDump::trackLink( (uint32_t)program ); ) }
+void lsOpenGL::UseProgram( lsProgramID program )                                            { glUseProgram( static_cast<GLuint>(program) ); VORTX_DEBUG_ONLY( lsFrameDump::trackUseProgram( (uint32_t)program ); ) }
 void lsOpenGL::DeleteShader( lsShaderID shader )                                            { glDeleteShader( static_cast<GLuint>(shader) ); }
 void lsOpenGL::DeleteProgram( lsProgramID program )                                         { glDeleteProgram( static_cast<GLuint>(program) ); }
-lsUniformID lsOpenGL::GetUniformLocation( lsProgramID program, const lsChar* name )        { return static_cast<lsUniformID>(glGetUniformLocation( static_cast<GLuint>(program), reinterpret_cast<const GLchar*>(name) )); }
+lsUniformID lsOpenGL::GetUniformLocation( lsProgramID program, const lsChar* name )        { const lsUniformID loc = static_cast<lsUniformID>(glGetUniformLocation( static_cast<GLuint>(program), reinterpret_cast<const GLchar*>(name) )); VORTX_DEBUG_ONLY( lsFrameDump::trackUniformName( (uint32_t)program, (int)loc, name ); ) return loc; }
 void lsOpenGL::GetShaderiv( lsShaderID shader, lsEnum pname, lsInt* params )                { glGetShaderiv( static_cast<GLuint>(shader), static_cast<GLenum>(pname), params ); }
 void lsOpenGL::GetShaderInfoLog( lsShaderID shader, lsSizei bufSize,
                                  lsSizei* length, lsChar* infoLog )                        { glGetShaderInfoLog( static_cast<GLuint>(shader), static_cast<GLsizei>(bufSize), reinterpret_cast<GLsizei*>(length), reinterpret_cast<GLchar*>(infoLog) ); }
@@ -236,27 +241,27 @@ void lsOpenGL::GetProgramInfoLog( lsProgramID program, lsSizei bufSize,
                                   lsSizei* length, lsChar* infoLog )                       { glGetProgramInfoLog( static_cast<GLuint>(program), static_cast<GLsizei>(bufSize), reinterpret_cast<GLsizei*>(length), reinterpret_cast<GLchar*>(infoLog) ); }
 
 // ---- Uniform setters ----
-void lsOpenGL::Uniform1i( lsUniformID location, lsInt v0 )                                  { glUniform1i( static_cast<GLint>(location), static_cast<GLint>(v0) ); }
-void lsOpenGL::Uniform1f( lsUniformID location, lsFloat v0 )                                { glUniform1f( static_cast<GLint>(location), static_cast<GLfloat>(v0) ); }
-void lsOpenGL::Uniform3f( lsUniformID location, lsFloat v0, lsFloat v1, lsFloat v2 )        { glUniform3f( static_cast<GLint>(location), static_cast<GLfloat>(v0), static_cast<GLfloat>(v1), static_cast<GLfloat>(v2) ); }
-void lsOpenGL::Uniform4f( lsUniformID location, lsFloat v0, lsFloat v1, lsFloat v2, lsFloat v3 ) { glUniform4f( static_cast<GLint>(location), static_cast<GLfloat>(v0), static_cast<GLfloat>(v1), static_cast<GLfloat>(v2), static_cast<GLfloat>(v3) ); }
+void lsOpenGL::Uniform1i( lsUniformID location, lsInt v0 )                                  { glUniform1i( static_cast<GLint>(location), static_cast<GLint>(v0) ); VORTX_DEBUG_ONLY( const int iv = (int)v0; lsFrameDump::trackUniformI( (int)location, &iv, 1 ); ) }
+void lsOpenGL::Uniform1f( lsUniformID location, lsFloat v0 )                                { glUniform1f( static_cast<GLint>(location), static_cast<GLfloat>(v0) ); VORTX_DEBUG_ONLY( const float fv = (float)v0; lsFrameDump::trackUniformF( (int)location, &fv, 1 ); ) }
+void lsOpenGL::Uniform3f( lsUniformID location, lsFloat v0, lsFloat v1, lsFloat v2 )        { glUniform3f( static_cast<GLint>(location), static_cast<GLfloat>(v0), static_cast<GLfloat>(v1), static_cast<GLfloat>(v2) ); VORTX_DEBUG_ONLY( const float fv[3] = { (float)v0, (float)v1, (float)v2 }; lsFrameDump::trackUniformF( (int)location, fv, 3 ); ) }
+void lsOpenGL::Uniform4f( lsUniformID location, lsFloat v0, lsFloat v1, lsFloat v2, lsFloat v3 ) { glUniform4f( static_cast<GLint>(location), static_cast<GLfloat>(v0), static_cast<GLfloat>(v1), static_cast<GLfloat>(v2), static_cast<GLfloat>(v3) ); VORTX_DEBUG_ONLY( const float fv[4] = { (float)v0, (float)v1, (float)v2, (float)v3 }; lsFrameDump::trackUniformF( (int)location, fv, 4 ); ) }
 void lsOpenGL::UniformMatrix3fv( lsUniformID location, lsSizei count,
-                                 lsBoolean transpose, const lsFloat* value )              { glUniformMatrix3fv( static_cast<GLint>(location), static_cast<GLsizei>(count), static_cast<GLboolean>(transpose), reinterpret_cast<const GLfloat*>(value) ); }
+                                 lsBoolean transpose, const lsFloat* value )              { glUniformMatrix3fv( static_cast<GLint>(location), static_cast<GLsizei>(count), static_cast<GLboolean>(transpose), reinterpret_cast<const GLfloat*>(value) ); VORTX_DEBUG_ONLY( lsFrameDump::trackUniformF( (int)location, (const float*)value, (int)count * 9 ); ) }
 void lsOpenGL::UniformMatrix4fv( lsUniformID location, lsSizei count,
-                                 lsBoolean transpose, const lsFloat* value )              { glUniformMatrix4fv( static_cast<GLint>(location), static_cast<GLsizei>(count), static_cast<GLboolean>(transpose), reinterpret_cast<const GLfloat*>(value) ); }
+                                 lsBoolean transpose, const lsFloat* value )              { glUniformMatrix4fv( static_cast<GLint>(location), static_cast<GLsizei>(count), static_cast<GLboolean>(transpose), reinterpret_cast<const GLfloat*>(value) ); VORTX_DEBUG_ONLY( lsFrameDump::trackUniformF( (int)location, (const float*)value, (int)count * 16 ); ) }
 
 // ---- Pipeline / rasterizer state ----
-void lsOpenGL::Enable( lsEnum cap )                                                         { glEnable( static_cast<GLenum>(cap) ); }
-void lsOpenGL::Disable( lsEnum cap )                                                        { glDisable( static_cast<GLenum>(cap) ); }
-void lsOpenGL::CullFace( lsEnum mode )                                                      { glCullFace( static_cast<GLenum>(mode) ); }
-void lsOpenGL::BlendFunc( lsEnum sfactor, lsEnum dfactor )                                  { glBlendFunc( static_cast<GLenum>(sfactor), static_cast<GLenum>(dfactor) ); }
-void lsOpenGL::DepthFunc( lsEnum func )                                                     { glDepthFunc( static_cast<GLenum>(func) ); }
-void lsOpenGL::DepthMask( lsBoolean flag )                                                  { glDepthMask( static_cast<GLboolean>(flag) ); }
+void lsOpenGL::Enable( lsEnum cap )                                                         { glEnable( static_cast<GLenum>(cap) ); VORTX_DEBUG_ONLY( lsFrameDump::trackEnable( (uint32_t)cap, true ); ) }
+void lsOpenGL::Disable( lsEnum cap )                                                        { glDisable( static_cast<GLenum>(cap) ); VORTX_DEBUG_ONLY( lsFrameDump::trackEnable( (uint32_t)cap, false ); ) }
+void lsOpenGL::CullFace( lsEnum mode )                                                      { glCullFace( static_cast<GLenum>(mode) ); VORTX_DEBUG_ONLY( lsFrameDump::trackCullFace( (uint32_t)mode ); ) }
+void lsOpenGL::BlendFunc( lsEnum sfactor, lsEnum dfactor )                                  { glBlendFunc( static_cast<GLenum>(sfactor), static_cast<GLenum>(dfactor) ); VORTX_DEBUG_ONLY( lsFrameDump::trackBlendFunc( (uint32_t)sfactor, (uint32_t)dfactor ); ) }
+void lsOpenGL::DepthFunc( lsEnum func )                                                     { glDepthFunc( static_cast<GLenum>(func) ); VORTX_DEBUG_ONLY( lsFrameDump::trackDepthFunc( (uint32_t)func ); ) }
+void lsOpenGL::DepthMask( lsBoolean flag )                                                  { glDepthMask( static_cast<GLboolean>(flag) ); VORTX_DEBUG_ONLY( lsFrameDump::trackDepthMask( flag != 0 ); ) }
 void lsOpenGL::DepthRangef( lsFloat near, lsFloat far )                                     { glDepthRangef( static_cast<GLfloat>(near), static_cast<GLfloat>(far) ); }
 void lsOpenGL::ColorMask( lsBoolean r, lsBoolean g, lsBoolean b, lsBoolean a )              { glColorMask( static_cast<GLboolean>(r), static_cast<GLboolean>(g), static_cast<GLboolean>(b), static_cast<GLboolean>(a) ); }
 void lsOpenGL::PolygonOffset( lsFloat factor, lsFloat units )                               { glPolygonOffset( static_cast<GLfloat>(factor), static_cast<GLfloat>(units) ); }
 void lsOpenGL::ShadeModel( lsEnum mode )                                                    { glShadeModel( static_cast<GLenum>(mode) ); }
-void lsOpenGL::Viewport( lsInt x, lsInt y, lsSizei w, lsSizei h )                           { glViewport( static_cast<GLint>(x), static_cast<GLint>(y), static_cast<GLsizei>(w), static_cast<GLsizei>(h) ); }
+void lsOpenGL::Viewport( lsInt x, lsInt y, lsSizei w, lsSizei h )                           { glViewport( static_cast<GLint>(x), static_cast<GLint>(y), static_cast<GLsizei>(w), static_cast<GLsizei>(h) ); VORTX_DEBUG_ONLY( lsFrameDump::trackViewport( (int)x, (int)y, (int)w, (int)h ); ) }
 
 // ---- Buffer clear ----
 void lsOpenGL::Clear( lsBitfield mask )                                                     { glClear( static_cast<GLbitfield>(mask) ); }

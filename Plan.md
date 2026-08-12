@@ -1,7 +1,8 @@
 # Plan.md — vortxGE Lighting & Shadow System Refactor
 
 > **Active plan:** full lighting/shadow rewrite (L-series).
-> **Status:** L0 planning done (2026-08-04). No code yet.
+> **Status:** D0–D2 debug tooling done (2026-08-12). Next: validate
+> fixes in real game scenes, then L1 — Shadow core rewrite.
 > Previous roadmap (renderer abstraction, Vulkan backend, pipeline
 > stages R1–R4) is complete — see `CHANGELOG.md` and git history.
 
@@ -32,9 +33,9 @@ zero Release footprint): `VORTX_SHOT`/`F12` screenshots, FBO colour +
 depth readback, per-light isolation, false-color debug views, pass/
 shadow tracing. Full table in AGENTS.md §debug env vars.
 
-**Tomorrow's priorities, in order:**
-1. **D2 — JSON frame dump + GL/VK diff script** (Plan.md §D2 below):
-   automate the A/B image forensics done by hand today.
+**Priorities, in order (updated 2026-08-12 after D2):**
+1. ~~D2 — JSON frame dump + GL/VK diff script~~ **DONE 2026-08-12**
+   (see §D2 below; GL/VK frame-120 dump pair diffs CLEAN).
 2. **Validate all fixes in real game scenes** (not just the demo).
 3. Then resume the L-series at **L1 — Shadow core rewrite** (§L1):
    the shadow path is now well-instrumented and the fixes above are
@@ -42,7 +43,13 @@ shadow tracing. Full table in AGENTS.md §debug env vars.
    shadows remain open by design).
 4. Backlog (non-blocking): VK z_ndc<0 clip gap
    (`VK_EXT_depth_clip_control`), sun-map depth compression
-   (deep ortho frusta → consider tighter fitting in L1/L2).
+   (deep ortho frusta → consider tighter fitting in L1/L2),
+   emitter/object lifetimes are wall-clock (`lsTimer`) not sim-time —
+   deterministic capture tooling works around it (`VORTX_FIXED_DT`
+   disables demo spawns), but a sim-time migration would make the
+   whole engine replay-deterministic; intermittent VK teardown
+   segfault observed once on SIGTERM shutdown (not reproducible,
+   not D2-related — no D2 code runs at exit).
 
 ---
 
@@ -314,17 +321,38 @@ by the deep light frusta.
 - **Done when:** per-light and debug-view PNGs exist for GL and VK,
   dark-floor cause identified or narrowed to a single light/uniform.
 
-### D2 — Frame state dump ("mini-RenderDoc")
+### D2 — Frame state dump ("mini-RenderDoc") — done 2026-08-12
 
-- D2.1 `VORTX_FRAME_DUMP=N:path.json`: at frame N, dump the full frame
-  state as JSON — every draw call in order with: object id, program,
-  UBO contents (matrices + light array), texture/unit bindings,
-  pipeline state. Extends the existing `VORTX_VK_DEBUG` dump code;
-  implement per-backend (Vulkan first).
-- D2.2 Comparison script `tools/diff_frames.py`: diff GL vs VK dumps,
-  flag state mismatches per draw.
-- **Done when:** a GL/VK dump pair diffs clean except for the actual
-  bug; script flags a deliberately-broken state in a test.
+**RESULT — both done-when criteria met.** GL/VK frame-120 dump pair
+(128 draws, pipeline mode, `VORTX_FIXED_DT` + `VORTX_RAND_SEED` for
+determinism) diffs CLEAN apart from two BY-DESIGN differences:
+`sMatrices[5]` (VK y-flipped shadow bias, commit 2c5d033) and
+`vxMatAlbedo` (dead-code-eliminated by the GL driver, present only in
+the VK dump). The script flags a deliberately-broken dump (uniform
+value, depth-state bit, draw count) with exact draw/field locations,
+exit code 1. Release build contains zero D2 strings (strings check on
+binary + libvortxGE.a).
+
+- D2.1 ✅ `VORTX_FRAME_DUMP=N:path.json` (`debug/lsFrameDump.{h,cpp}`,
+  gated by `VORTX_DEBUG_TOOLS`, empty TU in Release). Every draw of
+  frame N: target FBO, program, VAO, mode/count/first, viewport,
+  depth/cull/blend state, texture-unit bindings, float + int uniforms.
+  Deliberately asymmetric data sources: GL records state tracked at
+  the lsRender API boundary; Vulkan snapshots INTERNAL state at draw
+  time (uboStaging at std140 member offsets, sampler-unit maps) so
+  staging/layout bugs are visible in the diff. Cross-backend identity
+  via signatures (programs = FNV-1a of shader sources, textures =
+  w/h/fmt/content-hash); FBO/VAO ids canonicalised by the script.
+  New hooks: `VORTX_FIXED_DT` (glfw3 demo fixed timestep + demo
+  emitter-spawn disable), `VORTX_RAND_SEED` (deterministic lsRandom).
+- D2.2 ✅ `tools/diff_frames.py`: aligns draws by sequence, normalises
+  `name[i]` uniform keys vs VK base-name arrays, matches programs/
+  textures by signature, per-field compare with float tolerance,
+  `--skip-uniform`, `--tol`, `--max`; exit 0 clean / 1 mismatches.
+- Lesson recorded: the demo scene is NOT cross-run deterministic by
+  default (emitter spawns + object lifetimes are wall-clock, RNG is
+  time-seeded) — frame-N dumps of animated scenes only align under
+  `VORTX_FIXED_DT` + `VORTX_RAND_SEED`.
 
 ### D3 — CPU/GPU profiler
 

@@ -20,6 +20,7 @@
 // vortxGE engine header — PreferredRendererType() for backend selection
 #include "vortxGE.h"
 #include "render/lsRender.h" // lsRender::Screenshot (builtin screenshot, F12)
+#include "debug/lsDebug.h" // VORTX_DEBUG_TOOLS gate
 #include "demoscene.h"
 
 #include <timers/lsTimer.h>
@@ -469,6 +470,19 @@ void glfwApp::Run()
 		// Delta
 		delta = timer.get_ElapsedTime();
 		timer.start_Timer();
+#if defined(VORTX_DEBUG_TOOLS)
+		// D2 diagnostic: VORTX_FIXED_DT=ms forces a fixed timestep so
+		// frame-N state dumps (VORTX_FRAME_DUMP) are deterministic
+		// across runs — required for GL/VK diffing of an animated,
+		// physics-driven scene.
+		static double s_fixedDt = -1.0;
+		if( s_fixedDt < 0.0 )
+		{
+			const char* e = getenv( "VORTX_FIXED_DT" );
+			s_fixedDt = ( e && *e ) ? atof( e ) : 0.0;
+		}
+		if( s_fixedDt > 0.0 ) delta = s_fixedDt;
+#endif
 
 	} // while running LOOP
 

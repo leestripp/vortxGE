@@ -4,12 +4,21 @@
 #include <cassert>
 
 #include "lsRandom.h"
+#include "../debug/lsDebug.h"
 
 
 using namespace std;
 
 lsRandom::lsRandom()
 {
+#if defined(VORTX_DEBUG_TOOLS)
+	// D2 diagnostic: deterministic RNG for cross-run frame dumps
+	if( const char* e = getenv( "VORTX_RAND_SEED" ) )
+	{
+		srand( (unsigned)atoi( e ) );
+		return;
+	}
+#endif
 	// TODO: is this good enough?
 	srand( (unsigned)time(0) );
 	srand( rand() );

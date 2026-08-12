@@ -294,6 +294,11 @@ private:
 						uint32_t h, bool isBGR, const char* path );	// DIAGNOSTIC
 	void beginPassForTarget( uint32_t fboID );	// 0 = swapchain
 	void endActivePass();
+#if defined(VORTX_DEBUG_TOOLS)
+	/// D2 diagnostic: snapshot this draw into lsFrameDump from the
+	/// backend's INTERNAL state (uboStaging, sampler maps, tex units).
+	void dumpDraw( lsEnum mode, lsSizei count, uint32_t first, bool indexed );
+#endif
 
 	std::unordered_map<uint32_t, VkBuf>		m_buffers;
 	std::unordered_map<uint32_t, VkVao>		m_vaos;

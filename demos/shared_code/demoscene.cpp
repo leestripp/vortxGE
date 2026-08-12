@@ -626,6 +626,18 @@ void DemoScene::setupObjectEmitter()
 	emitter->setName("WoodCubeEmitter");
 	emitter->Set_Pos(0, 20, -10); // Position above the ground
 	emitter->setEmittime(500.0); // Emit every 500ms
+#if defined(VORTX_DEBUG_TOOLS)
+	// D2 diagnostic: deterministic captures (VORTX_FRAME_DUMP) need a
+	// deterministic scene. The emitter schedules spawns by WALL CLOCK
+	// (lsTimer) and lsObject lifetimes are wall-clock too, so spawning
+	// is disabled for fixed-dt runs; the static scene is identical
+	// frame-for-frame across runs and backends.
+	if( getenv( "VORTX_FIXED_DT" ) )
+	{
+		emitter->setEmittime(1e12);
+		cout << "DemoScene: VORTX_FIXED_DT set — emitter spawning disabled" << endl;
+	}
+#endif
 	emitter->setEmit_life(20.0 * 1000.0); // Life of 20 seconds
 	emitter->setMass(50.0); // 50kg
 	

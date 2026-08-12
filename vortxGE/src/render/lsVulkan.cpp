@@ -18,6 +18,7 @@
 #include "lsScreenshot.h"
 #include "lsVulkanTypes.h"
 #include "../debug/lsDebug.h"
+#include "../debug/lsFrameDump.h"
 
 #define GLFW_INCLUDE_NONE		// keep glfw3.h from pulling in GL headers
 #include <GLFW/glfw3.h>
@@ -105,6 +106,7 @@ bool lsVulkan::Probe()
 lsVulkan::lsVulkan()
 {
 	setType( RenderType::Vulkan );
+	VORTX_DEBUG_ONLY( lsFrameDump::setBackend( "vulkan" ); )
 }
 
 lsVulkan::~lsVulkan()
@@ -898,6 +900,7 @@ void lsVulkan::Present()
 
 	m_inFrame = false;
 	m_currentFrame = ( m_currentFrame + 1 ) % FRAMES_IN_FLIGHT;
+	VORTX_DEBUG_ONLY( lsFrameDump::frameTick(); )
 
 	// growth probe: VORTX_VK_STATS=1 -> one line every 300 frames
 	static int s_statFrame = 0;
@@ -1655,6 +1658,7 @@ void lsVulkan::ShaderSource( lsShaderID shader, lsSizei count,
 			src.append( string[i] );
 	}
 	it->second.source = src;
+	VORTX_DEBUG_ONLY( lsFrameDump::trackShaderSource( (uint32_t)shader, src ); )
 }
 
 void lsVulkan::CompileShader( lsShaderID shader )
@@ -1705,6 +1709,7 @@ void lsVulkan::AttachShader( lsProgramID program, lsShaderID shader )
 	if( pit == m_programs.end() || sit == m_shaders.end() ) return;
 	if( sit->second.stage == 0 ) pit->second.vs = shader;
 	else						 pit->second.fs = shader;
+	VORTX_DEBUG_ONLY( lsFrameDump::trackAttach( (uint32_t)program, (uint32_t)shader ); )
 }
 
 void lsVulkan::DetachShader( lsProgramID program, lsShaderID shader )
@@ -1881,6 +1886,7 @@ void lsVulkan::LinkProgram( lsProgramID program )
 	auto it = m_programs.find( program );
 	if( it == m_programs.end() ) return;
 	it->second.linked = linkProgramResources( it->second );
+	VORTX_DEBUG_ONLY( lsFrameDump::trackLink( (uint32_t)program ); )
 	if(! it->second.linked )
 		cout << "ERROR: lsVulkan::LinkProgram(" << program << "): "
 			 << it->second.log << endl;
@@ -2377,6 +2383,7 @@ void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
 	s_issuedDA++;
 	if( m_activeTarget == 0 ) s_issuedSwapchain++; else s_issuedFBO++;
 	vkCmdDraw( cmd, (uint32_t)count, 1, (uint32_t)first, 0 );
+	VORTX_DEBUG_ONLY( dumpDraw( mode, count, (uint32_t)first, false ); )
 }
 
 void lsVulkan::DrawElements( lsEnum mode, lsSizei count, lsEnum type,
@@ -2439,7 +2446,144 @@ void lsVulkan::DrawElements( lsEnum mode, lsSizei count, lsEnum type,
 
 	const uint32_t firstIndex = (uint32_t)( (size_t)indices / indexSize );
 	vkCmdDrawIndexed( cmd, (uint32_t)count, 1, firstIndex, 0, 0 );
+	VORTX_DEBUG_ONLY( dumpDraw( mode, count, firstIndex, true ); )
 }
+
+// =====================================================================
+// D2 diagnostic: per-draw frame dump (VORTX_FRAME_DUMP) — Vulkan side.
+// Snapshots the backend's INTERNAL state at draw time (uboStaging at
+// std140 offsets, sampler-unit maps, texture units) so the GL/VK diff
+// exposes staging/layout bugs that API-level tracking would hide.
+// =====================================================================
+#if defined(VORTX_DEBUG_TOOLS)
+void lsVulkan::dumpDraw( lsEnum mode, lsSizei count, uint32_t first,
+						 bool indexed )
+{
+	lsFrameDump::DrawRec* r = lsFrameDump::openDraw();
+	if(! r ) return;
+	r->fbo = m_activeTarget;
+	r->prog = m_currentProgram;
+	r->vao = m_currentVao;
+	r->mode = mode;
+	r->count = (uint32_t)count;
+	r->first = first;
+	r->indexed = indexed;
+	for( int i = 0; i < 4; i++ ) r->vp[i] = m_viewport[i];
+	r->depthTest = m_depthTestEnabled;
+	r->depthWrite = m_depthWrite;
+	r->depthFunc = m_depthFunc;
+	r->cull = m_cullEnabled;
+	r->cullFace = m_cullFace;
+	r->blend = m_blendEnabled;
+	r->blendSrc = m_blendSrc;
+	r->blendDst = m_blendDst;
+	for( uint32_t u = 0; u < 32; u++ )
+		if( m_textureUnits[u] ) r->tex[u] = m_textureUnits[u];
+
+	auto pit = m_programs.find( m_currentProgram );
+	if( pit == m_programs.end() || ! pit->second.linked )
+	{ lsFrameDump::commitDraw(); return; }
+	const VkProgramObj& prog = pit->second;
+
+	// sampler bindings -> GL texture units (as int uniforms)
+	for( size_t k = 0; k < prog.layout.samplers.size(); k++ )
+	{
+		const uint32_t binding = 1 + (uint32_t)k;
+		const uint32_t arr = ( k < prog.layout.samplerArrays.size() )
+							 ? prog.layout.samplerArrays[k] : 0;
+		if( arr > 0 )
+		{
+			// mirror allocDrawSet: element units fall back to the
+			// binding-level (scalar) unit, then to the default unit k
+			int baseUnit = (int)k;
+			auto bit = prog.samplerUnits.find( binding );
+			if( bit != prog.samplerUnits.end() ) baseUnit = (int)bit->second;
+			auto ae = prog.samplerUnitsElem.find( binding );
+			for( uint32_t e = 0; e < arr; e++ )
+			{
+				int unit = baseUnit;
+				if( ae != prog.samplerUnitsElem.end() )
+				{
+					auto ue = ae->second.find( e );
+					if( ue != ae->second.end() ) unit = (int)ue->second;
+				}
+				r->iu[prog.layout.samplers[k] + "[" + std::to_string( e ) + "]"]
+					= { unit };
+			}
+		}
+		else
+		{
+			int unit = -1;
+			auto uit = prog.samplerUnits.find( binding );
+			if( uit != prog.samplerUnits.end() ) unit = (int)uit->second;
+			r->iu[prog.layout.samplers[k]] = { unit };
+		}
+	}
+
+	// UBO staging snapshot at std140 member offsets
+	static const std::set<std::string> intTypes =
+		{ "int", "uint", "bool", "ivec2", "ivec3", "ivec4",
+		  "uvec2", "uvec3", "uvec4", "bvec2", "bvec3", "bvec4" };
+	for( const auto& mem : prog.layout.members )
+	{
+		const uint32_t elems = mem.arraySize ? mem.arraySize : 1;
+		const bool isInt = intTypes.count( mem.glslType ) != 0;
+		const bool isMat3 = ( mem.glslType == "mat3" );
+		if( isMat3 )
+		{
+			// std140 mat3: 3 column vec3s at 16B stride — un-pack to 9
+			std::vector<float> vals;
+			for( uint32_t e = 0; e < elems; e++ )
+			{
+				const uint8_t* base = prog.uboStaging.data() + mem.offset
+									  + e * mem.elemStride;
+				for( int col = 0; col < 3; col++ )
+				{
+					float c3[3];
+					memcpy( c3, base + col * 16, 12 );
+					vals.insert( vals.end(), c3, c3 + 3 );
+				}
+			}
+			r->u[mem.name] = std::move( vals );
+			continue;
+		}
+		const uint32_t perElem = mem.size / elems;	// packed bytes per element
+		if( isInt )
+		{
+			std::vector<int> vals;
+			for( uint32_t e = 0; e < elems; e++ )
+			{
+				const uint8_t* base = prog.uboStaging.data() + mem.offset
+									  + e * mem.elemStride;
+				for( uint32_t b = 0; b + 4 <= perElem; b += 4 )
+				{
+					int iv;
+					memcpy( &iv, base + b, 4 );
+					vals.push_back( iv );
+				}
+			}
+			r->iu[mem.name] = std::move( vals );
+		}
+		else
+		{
+			std::vector<float> vals;
+			for( uint32_t e = 0; e < elems; e++ )
+			{
+				const uint8_t* base = prog.uboStaging.data() + mem.offset
+									  + e * mem.elemStride;
+				for( uint32_t b = 0; b + 4 <= perElem; b += 4 )
+				{
+					float fv;
+					memcpy( &fv, base + b, 4 );
+					vals.push_back( fv );
+				}
+			}
+			r->u[mem.name] = std::move( vals );
+		}
+	}
+	lsFrameDump::commitDraw();
+}
+#endif // VORTX_DEBUG_TOOLS
 
 
 // =====================================================================
@@ -2759,6 +2903,9 @@ void lsVulkan::TexImage2D( lsEnum target, lsInt level, lsInt internalFormat,
 	auto it = m_textures.find( id );
 	if( it == m_textures.end() ) return;
 
+	VORTX_DEBUG_ONLY( lsFrameDump::trackTexImage( id, (int)level,
+						(int)internalFormat, (int)width, (int)height,
+						(int)format, (int)type, data ); )
 	if(! uploadTexture( it->second, (lsEnum)internalFormat, format, type,
 						(uint32_t)width, (uint32_t)height, data ) )
 		cout << "ERROR: lsVulkan::TexImage2D failed (VkResult " << m_lastError << ")" << endl;

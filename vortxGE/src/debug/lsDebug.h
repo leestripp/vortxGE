@@ -15,7 +15,7 @@
 
 #if defined(VORTX_DEBUG_TOOLS)
 	/// Execute @p x only in debug-tools builds.
-#	define VORTX_DEBUG_ONLY( x ) x
+#	define VORTX_DEBUG_ONLY( ... ) __VA_ARGS__
 #else
-#	define VORTX_DEBUG_ONLY( x )
+#	define VORTX_DEBUG_ONLY( ... )
 #endif
