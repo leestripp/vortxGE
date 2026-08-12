@@ -145,6 +145,38 @@ or better on both backends.
 
 ## L1 — Shadow core rewrite
 
+**Execution order (agreed 2026-08-12, next session starts here):**
+1. **L1.3 comparison samplers** — highest value, self-contained.
+   Engine: add `LS_TEXTURE_COMPARE_MODE` / `LS_TEXTURE_COMPARE_FUNC` /
+   `LS_COMPARE_REF_TO_TEXTURE` constants to `lsRenderConstants.h`;
+   GL: no-op beyond constants (glTexParameteri already reachable via
+   `TexParameteri`); VK: `createTextureViewAndSampler` in lsVulkan.cpp
+   must set `VkSamplerCreateInfo.compareEnable/compareOp` when the
+   texture is a shadow map (mark via TexImage2D with LS_DEPTH_COMPONENT
+   internalformat). Shaders (all 4 light_tex_*): `sampler2D
+   tex_shadowmaps[3]` -> `sampler2DShadow`, PCF taps become
+   `texture(shadowMap, vec3(offset.xy, projCoords.z))` single fetches
+   (HW bilinear comparison = free 4-tap PCF per fetch).
+2. **L1.4b normal-offset bias** — needs world-space normal in the frag
+   shader (vert already has nMatrix*vxNormal view-space; add a world
+   normal varying), offset shadowCoord along world normal by
+   ~1-2 texels before projecting. Kills acne + peter-panning; lets
+   L1.2 shrink the polygon offset.
+3. **L1.5 texel snapping** — in `lsLight` ortho projection for the
+   sun: round the light-space origin to the shadow-map texel grid
+   (texel = orthoWidth/mapSize) to stop swimming.
+4. **L1.1/L1.6 lsShadowMap + presets** — refactor lsShadowStage's
+   lsFBO_Depth ownership into a per-light subsystem class; quality
+   presets low/med/high select map size (1024/2048/4096) + PCF tap
+   count via a `vxShadowQuality` uniform; stage becomes a thin driver.
+5. **L1.2** front-face culling option on the depth pass + depth-bias
+   via pipeline state on VK (VkPipelineRasterizationStateCreateInfo
+   depthBias fields — needs pipeline-key extension) replacing
+   glPolygonOffset semantics; retire the shader bias to ~0.
+Verify each step: VORTX_SHOT before/after on BOTH backends +
+frame-dump diff CLEAN (128 draws, deterministic capture recipe in
+AGENTS.md) + ctest 100%.
+
 **Progress 2026-08-12:** L1.4 core landed — `calculateShadow` in all
 four `light_tex_*` fragment shaders replaced the pseudo-9x9 grid
 (it sampled a ±0.4-texel sub-area — supersampling, not real PCF)
