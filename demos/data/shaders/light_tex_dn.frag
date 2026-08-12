@@ -72,49 +72,41 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-// Function now accepts a specific shadow map sampler
+// L1.4: 16-tap rotated Poisson-disk PCF (replaces the pseudo-9x9 grid
+// that sampled a sub-texel area). Comparison bias stays small; the
+// polygon-offset depth bias in the shadow stage does the heavy lifting.
 float calculateShadow(vec4 shadowCoord, sampler2D shadowMap) {
-    vec3 projCoords = shadowCoord.xyz / shadowCoord.w;
-    
-    // 1. Perspective Divide and Bounds Check
-    // If the fragment is outside the light's view, treat it as fully lit (unshadowed).
-    if (any(lessThan(projCoords.xyz, vec3(0.0))) || any(greaterThan(projCoords.xyz, vec3(1.0)))) {
-        return 1.0; 
-    }
-    
-    // 2. Setup Parameters
-    float bias = 0.00001; // Add small bias to reduce shadow acne
-    float shadow = 0.0;
-    
-    // Calculate the size of one texel
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0); 
-    
-    // Use a single, slightly expanded offset for a fixed soft shadow. 
-    // This factor (1.5) determines the width of the penumbra.
-    float softFactor = 0.25;
-    vec2 offsetStep = texelSize * softFactor; 
-    
-    // PCF Kernel Size
-    int Ks = 4;
-    for (int x = -Ks; x <= Ks; ++x) {
-        for (int y = -Ks; y <= Ks; ++y) {
-            
-            // Calculate the offset for this sample point using the softened offset step
-            vec2 pcfOffset = vec2(x, y) * offsetStep;
-            
-            // Get the depth value from the shadow map
-            float pcfDepth = texture(shadowMap, projCoords.xy + pcfOffset).r;
-            
-            // Compare the current fragment's depth (projCoords.z) to the recorded depth (pcfDepth)
-            // If the fragment is farther (projCoords.z - bias > pcfDepth), it's in shadow (0.0).
-            // Otherwise, it's lit (1.0).
-            shadow += projCoords.z - bias > pcfDepth ? 0.0 : 1.0;
-        }
-    }
-    
-    // Average the samples and return the final shadow amount (0.0 to 1.0)
-    float kernelArea = (2.0 * Ks + 1.0) * (2.0 * Ks + 1.0);
-    return shadow / kernelArea;
+	vec3 projCoords = shadowCoord.xyz / shadowCoord.w;
+
+	if (any(lessThan(projCoords.xyz, vec3(0.0))) || any(greaterThan(projCoords.xyz, vec3(1.0)))) {
+		return 1.0;
+	}
+
+	const vec2 poissonDisk[16] = vec2[](
+		vec2(-0.94201624, -0.39906216), vec2( 0.94558609, -0.76890725),
+		vec2(-0.09418410, -0.92938870), vec2( 0.34495938,  0.29387760),
+		vec2(-0.91588581,  0.45771432), vec2(-0.81544232, -0.87912464),
+		vec2(-0.38277543,  0.27676845), vec2( 0.97484398,  0.75648379),
+		vec2( 0.44323325, -0.97511554), vec2( 0.53742981, -0.47373420),
+		vec2(-0.26496911, -0.41893023), vec2( 0.79197514,  0.19090188),
+		vec2(-0.24188840,  0.99706507), vec2(-0.81409955,  0.91437590),
+		vec2( 0.19984126,  0.78641367), vec2( 0.14383161, -0.14100790));
+
+	float bias = 0.0001;
+	vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+
+	// per-pixel random rotation: banding -> (temporal-friendly) noise
+	float rnd = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+	float cs = cos(rnd * 6.2831853), sn = sin(rnd * 6.2831853);
+	mat2 rot = mat2(cs, -sn, sn, cs);
+
+	float shadow = 0.0;
+	for (int i = 0; i < 16; ++i) {
+		vec2 offset = rot * poissonDisk[i] * texelSize * 2.5;
+		float pcfDepth = texture(shadowMap, projCoords.xy + offset).r;
+		shadow += projCoords.z - bias > pcfDepth ? 0.0 : 1.0;
+	}
+	return shadow / 16.0;
 }
 
 

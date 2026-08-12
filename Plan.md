@@ -145,6 +145,14 @@ or better on both backends.
 
 ## L1 — Shadow core rewrite
 
+**Progress 2026-08-12:** L1.4 core landed — `calculateShadow` in all
+four `light_tex_*` fragment shaders replaced the pseudo-9x9 grid
+(it sampled a ±0.4-texel sub-area — supersampling, not real PCF)
+with a 16-tap rotated Poisson-disk PCF (2.5-texel spread, per-pixel
+random rotation). Verified: GL/VK `VORTX_SHOT` parity, no acne,
+softer edges, frame-dump diff CLEAN (128 draws), ctest 100%.
+Remaining L1 items unchanged below.
+
 Single shadow subsystem owning all shadow rendering/sampling:
 
 - L1.1 `lsShadowMap` (new, engine-level): per-light depth target,
