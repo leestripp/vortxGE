@@ -37,8 +37,15 @@ void main(void)
     osColour = vec4( 1.0 );
 
     // Shadow coordinate calculation for up to 3 lights
+
     vec4 worldPos = mMatrix * vxVertex;
+    // L1.4b: normal-offset bias — push the lookup position ~2 texels
+    // along the world normal; kills acne + peter-panning without a
+    // large depth bias. Per-vertex is exact on flat surfaces and
+    // negligible on dense meshes.
+    vec3 worldNormal = normalize(mat3(mMatrix) * vxNormal);
+    vec3 offsetWorldPos = worldPos.xyz + worldNormal * 0.02;
     for (int i = 0; i < 3; ++i) {
-        osShadowCoords[i] = sMatrices[i] * worldPos;
+        osShadowCoords[i] = sMatrices[i] * vec4(offsetWorldPos, 1.0);
     }
 }
