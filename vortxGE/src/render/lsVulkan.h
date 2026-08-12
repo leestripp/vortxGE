@@ -246,6 +246,7 @@ private:
 		lsEnum	wrapT = 0x2901;
 		lsEnum	minFilter = 0x2601;	// LS_LINEAR
 		lsEnum	magFilter = 0x2601;
+		bool	compareEnable = false;	// L1.3: shadow-map depth compare
 	};
 
 	bool createBufferStorage( VkBuf& buf, VkDeviceSize size, const void* data );

@@ -177,6 +177,13 @@ Verify each step: VORTX_SHOT before/after on BOTH backends +
 frame-dump diff CLEAN (128 draws, deterministic capture recipe in
 AGENTS.md) + ctest 100%.
 
+**Progress 2026-08-12 (2):** L1.3 landed — comparison samplers on
+both backends (lsFBO_Depth: LINEAR + COMPARE_REF_TO_TEXTURE/LEQUAL;
+VK sampler compareEnable=LESS_OR_EQUAL; tex_shadowmaps now
+sampler2DShadow; every Poisson tap is a HW bilinear comparison =
+16x4 effective taps). Verified: GL/VK VORTX_SHOT parity, dump diff
+CLEAN (172 draws), ctest 100%.
+
 **Progress 2026-08-12:** L1.4 core landed — `calculateShadow` in all
 four `light_tex_*` fragment shaders replaced the pseudo-9x9 grid
 (it sampled a ±0.4-texel sub-area — supersampling, not real PCF)

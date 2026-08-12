@@ -2700,6 +2700,10 @@ bool lsVulkan::createTextureViewAndSampler( VkTex& tex )
 	si.addressModeV = wrapOf( tex.wrapT );
 	si.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	si.maxLod = tex.mipsGenerated ? (float)( tex.mipLevels - 1 ) : 0.0f;
+	// L1.3: shadow maps sample through a comparison sampler
+	// (GL_LEQUAL semantics — lit when ref <= stored depth)
+	si.compareEnable = tex.compareEnable ? VK_TRUE : VK_FALSE;
+	si.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 
 	m_lastError = vkCreateSampler( m_device, &si, nullptr, &tex.sampler );
 	return m_lastError == VK_SUCCESS;
@@ -2923,6 +2927,9 @@ void lsVulkan::TexParameteri( lsEnum target, lsEnum pname, lsInt param )
 	else if( pname == LS_TEXTURE_WRAP_T ) t.wrapT = (lsEnum)param;
 	else if( pname == LS_TEXTURE_MIN_FILTER ) t.minFilter = (lsEnum)param;
 	else if( pname == LS_TEXTURE_MAG_FILTER ) t.magFilter = (lsEnum)param;
+	else if( pname == LS_TEXTURE_COMPARE_MODE )
+		t.compareEnable = ( param == (lsInt)LS_COMPARE_REF_TO_TEXTURE );
+	else if( pname == LS_TEXTURE_COMPARE_FUNC ) {} // LEQUAL only (below)
 	else return;
 
 	// recreate the sampler when the image already exists

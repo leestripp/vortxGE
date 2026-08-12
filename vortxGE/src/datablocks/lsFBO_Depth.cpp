@@ -22,8 +22,13 @@ void lsFBO_Depth::CreateGL()
 	render->GenTextures( 1, &depth_texture );
 	render->BindTexture( LS_TEXTURE_2D, depth_texture );
 	render->TexImage2D( LS_TEXTURE_2D, 0, LS_DEPTH_COMPONENT, width, height, 0, LS_DEPTH_COMPONENT, LS_FLOAT, NULL );
-	render->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_MIN_FILTER, LS_NEAREST );
-	render->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_MAG_FILTER, LS_NEAREST );
+	// L1.3: LINEAR + compare mode = hardware depth comparison with
+	// bilinear PCF (4 taps per fetch) on both backends. Shaders sample
+	// these maps as sampler2DShadow.
+	render->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_MIN_FILTER, LS_LINEAR );
+	render->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_MAG_FILTER, LS_LINEAR );
+	render->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_COMPARE_MODE, LS_COMPARE_REF_TO_TEXTURE );
+	render->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_COMPARE_FUNC, LS_LEQUAL );
 	render->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_WRAP_S, LS_CLAMP_TO_BORDER );
 	render->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_WRAP_T, LS_CLAMP_TO_BORDER );
 	lsFloat borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };

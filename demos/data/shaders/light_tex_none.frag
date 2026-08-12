@@ -1,7 +1,7 @@
 #version 430
 
 // textures
-uniform sampler2D tex_shadowmaps[3]; // Changed to array
+uniform sampler2DShadow tex_shadowmaps[3]; // Changed to array
 uniform int use_shadowmap[3];        // Changed to array
 
 // Material
@@ -67,10 +67,11 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-// L1.4: 16-tap rotated Poisson-disk PCF (replaces the pseudo-9x9 grid
-// that sampled a sub-texel area). Comparison bias stays small; the
-// polygon-offset depth bias in the shadow stage does the heavy lifting.
-float calculateShadow(vec4 shadowCoord, sampler2D shadowMap) {
+// L1.4: 16-tap rotated Poisson-disk PCF. L1.3: the map is now a
+// comparison sampler (sampler2DShadow, LINEAR + COMPARE_REF_TO_TEXTURE)
+// so each tap returns a hardware bilinear depth comparison — the
+// effective kernel is 16 x 4 taps.
+float calculateShadow(vec4 shadowCoord, sampler2DShadow shadowMap) {
 	vec3 projCoords = shadowCoord.xyz / shadowCoord.w;
 
 	if (any(lessThan(projCoords.xyz, vec3(0.0))) || any(greaterThan(projCoords.xyz, vec3(1.0)))) {
@@ -98,8 +99,8 @@ float calculateShadow(vec4 shadowCoord, sampler2D shadowMap) {
 	float shadow = 0.0;
 	for (int i = 0; i < 16; ++i) {
 		vec2 offset = rot * poissonDisk[i] * texelSize * 2.5;
-		float pcfDepth = texture(shadowMap, projCoords.xy + offset).r;
-		shadow += projCoords.z - bias > pcfDepth ? 0.0 : 1.0;
+		// comparison tap: returns fraction lit (bilinear = 4-tap PCF)
+		shadow += texture(shadowMap, vec3(projCoords.xy + offset, projCoords.z - bias));
 	}
 	return shadow / 16.0;
 }
