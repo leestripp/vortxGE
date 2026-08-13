@@ -575,7 +575,7 @@ void DemoScene::setupTestScene()
 		m_viewer_scene->MoveThread(m_viewer_scene, m_vortxge->getRender(), 0.0); // Update all children recursively
 		
 		// After loading and updating transforms, link lights to objects
-		m_viewer->getSceneManager()->LinkLightsInScene(m_viewer_scene);
+		m_viewer->getSceneManager()->LinkLightsInScene(m_viewer_scene, 64); // L5.2
 	}
 
 	// M4: register mesh objects for distance-driven streaming.

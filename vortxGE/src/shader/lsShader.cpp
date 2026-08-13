@@ -65,11 +65,14 @@ lsShader::lsShader( lsRender *render )
 		iUse_shadowmap[i] = -1;
 		iTex_shadowdepth[i] = -1;
 		iShadowSoftness[i] = -1;
-		iLightPos[i] = -1;      // was uninitialized — garbage 0 hit pMatrix@0
-		iLightType[i] = -1;     // on non-light programs (skybox) via Set_Light
 		iPointWorldPos[i] = -1;
 		iPointNear[i] = -1;
 		iPointFar[i] = -1;
+	}
+	for(int i = 0; i < 64; ++i) // L5.2: light property arrays
+	{
+		iLightPos[i] = -1;
+		iLightType[i] = -1;
 		iLightDir[i] = -1;
 		iLightCutoff[i] = -1;
 		iLightOuterCutoff[i] = -1;
@@ -166,7 +169,7 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 			// Lights uniforms (arrays)
 			iLightCount = getRender()->GetUniformLocation( shader, "vxLightCount" );
 			iDebugView = getRender()->GetUniformLocation( shader, "vxDebugView" );
-			for(int i = 0; i < 3; ++i) {
+			for(int i = 0; i < 64; ++i) { // L5.2
 				iLightType[i] = getRender()->GetUniformLocation( shader, ("vxLightType[" + to_string(i) + "]").c_str() );
 				iLightPos[i] = getRender()->GetUniformLocation( shader, ("vxLightPos[" + to_string(i) + "]").c_str() );
 				iLightDir[i] = getRender()->GetUniformLocation( shader, ("vxLightDir[" + to_string(i) + "]").c_str() );
@@ -809,7 +812,7 @@ void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 	const vector<lsLight*> filtered = filterDebugLights( *lights );
 	lights = &filtered;
 #endif
-	int num_lights = min((int)lights->size(), 3); // Shader supports max 3 lights
+	int num_lights = min((int)lights->size(), 64); // L5.2: 64 lights (shadows only slots 0-2)
 	int i = 0;
 
 	for( auto light : *lights )
@@ -829,7 +832,7 @@ void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 
 void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__((unused)) lsObject *object )
 {
-	if (i < 0 || i >= 3) return; // Only support up to 3 lights for now
+	if (i < 0 || i >= 64) return; // L5.2: 64 light property slots (shadows stay slots 0-2)
 
 	lsMatrix4x4 light_in_view_space_matrix;
 	

@@ -323,26 +323,26 @@ private:
 	lsUniformID iDebugView;		///< D1.2: vxDebugView selector (light_tex_* shaders)
     
     /** @brief Light types (up to 3) */
-	lsUniformID iLightType[3];
+	lsUniformID iLightType[64]; // L5.2: raised from 3
     
     /** @brief Light positions (up to 3) */
-	lsUniformID iLightPos[3];
+	lsUniformID iLightPos[64]; // L5.2: raised from 3
     
     /** @brief Light directions (up to 3) */
-	lsUniformID iLightDir[3];
+	lsUniformID iLightDir[64]; // L5.2: raised from 3
     
     /** @brief Light inner cutoffs (spotlights) */
-	lsUniformID iLightCutoff[3];
+	lsUniformID iLightCutoff[64]; // L5.2: raised from 3
     
     /** @brief Light outer cutoffs (spotlights) */
-	lsUniformID iLightOuterCutoff[3];
+	lsUniformID iLightOuterCutoff[64]; // L5.2: raised from 3
     
     /** @brief Light diffuse colors (up to 3) */
-	lsUniformID iLightDiffuse[3];
+	lsUniformID iLightDiffuse[64]; // L5.2: raised from 3
     
     /** @brief Light specular colors (up to 3) */
-	lsUniformID iLightSpecular[3];
+	lsUniformID iLightSpecular[64]; // L5.2: raised from 3
     
     /** @brief Light intensities (up to 3) */
-	lsUniformID iLightIntensity[3];
+	lsUniformID iLightIntensity[64]; // L5.2: raised from 3
 };

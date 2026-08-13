@@ -36,13 +36,13 @@ uniform int prepassFlipY;
 uniform mat4 pMatrix;
 
 // Lighting
-uniform vec3 vxLightPos[3];
-uniform vec4 vxLightDiffuse[3];
-uniform float vxLightIntensity[3];
-uniform int vxLightType[3];
-uniform vec3 vxLightDir[3];
-uniform float vxLightCutoff[3];
-uniform float vxLightOuterCutoff[3];
+uniform vec3 vxLightPos[64];
+uniform vec4 vxLightDiffuse[64];
+uniform float vxLightIntensity[64];
+uniform int vxLightType[64];
+uniform vec3 vxLightDir[64];
+uniform float vxLightCutoff[64];
+uniform float vxLightOuterCutoff[64];
 uniform int vxLightCount;
 uniform int vxDebugView; // D1.2: 0=off 1=lightcount 2=shadow 3=normals 4=depth
 
@@ -349,14 +349,14 @@ void main(void) {
 		// Shadow
         // Calculate the shadow factor *only* for the current light (i).
 		float light_shadow = 1.0;
-		if (use_shadowmap[i] == 1) {
+		if (i < 3 && use_shadowmap[i] == 1) {
             // Pass the correct shadow coordinate and shadow map sampler for this light
 			light_shadow = calculateShadow(osShadowCoords[i], tex_shadowmaps[i], i);
 		}
-		else if (use_shadowmap[i] == 2) {
+		else if (i < 3 && use_shadowmap[i] == 2) {
 			light_shadow = calculateShadowCsm();
 		}
-		else if (use_shadowmap[i] == 3) {
+		else if (i < 3 && use_shadowmap[i] == 3) {
 			light_shadow = calculatePointShadow(i);
 		}
         // Apply the shadow factor *only* to the current light's radiance contribution.
