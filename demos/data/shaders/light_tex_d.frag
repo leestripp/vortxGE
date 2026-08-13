@@ -11,6 +11,13 @@ uniform mat4 csmMatrices[4];
 uniform float csmSplits[4];
 uniform int csmCount;
 
+// L3.2 point shadows (bound when a light slot has use_shadowmap == 3)
+// NOTE: one point shadow caster at a time (shared cube unit 7)
+uniform samplerCubeShadow tex_pointshadow;
+uniform vec3 pointWorldPos[3];
+uniform float pointNear[3];
+uniform float pointFar[3];
+
 // Lighting
 uniform vec3 vxLightPos[3];
 uniform vec4 vxLightDiffuse[3];
@@ -178,6 +185,27 @@ float calculateShadowCsm() {
 	return shadow;
 }
 
+// L3.2: point shadow via cube map. The cube stores GL-convention
+// perspective depth (90 deg faces, pointNear/pointFar); the reference
+// depth for a fragment is reconstructed from its major-axis distance
+// through the same projection, so HW comparison works unchanged.
+// Normal-offset (L1.4b convention) + slope-scaled bias: overhead point
+// lights see vertical faces at grazing incidence — without the offset
+// they self-shadow across their whole area.
+float calculatePointShadow(int slot) {
+	vec3 N = normalize(osWorldNormal);
+	vec3 toLight = pointWorldPos[slot] - osWorldPos;
+	float NdotL = max(dot(N, normalize(toLight)), 0.0);
+	vec3 d = (osWorldPos + N * 0.02) - pointWorldPos[slot];
+	float za = max(abs(d.x), max(abs(d.y), abs(d.z))); // major-axis dist
+	float n = pointNear[slot], f = pointFar[slot];
+	// GL perspective: z_ndc = (f+n)/(f-n) - 2fn/((f-n)*za); [0,1] via bias
+	float zndc = (f + n) / (f - n) - (2.0 * f * n) / ((f - n) * za);
+	float ref = 0.5 * zndc + 0.5;
+	float bias = mix(0.004, 0.0005, NdotL); // grazing -> more bias
+	return texture(tex_pointshadow, vec4(d, ref - bias));
+}
+
 void main(void) {
 	// PBR properties
 	vec3 albedo = texture(tex_albedo, osTexCoord).rgb;
@@ -251,6 +279,9 @@ void main(void) {
 		}
 		else if (use_shadowmap[i] == 2) {
 			light_shadow = calculateShadowCsm();
+		}
+		else if (use_shadowmap[i] == 3) {
+			light_shadow = calculatePointShadow(i);
 		}
 		
 		dbgShadow *= light_shadow; // D1.2

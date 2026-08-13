@@ -107,6 +107,7 @@
 #include <scene/lsLight_Point.h>
 #include <scene/lsLight_Direct.h>
 #include <scene/lsLightManager.h>
+#include <pipeline/lsPointShadowStage.h>
 #include <scene/lsSpeaker.h>
 
 // Animation
@@ -440,6 +441,31 @@ void DemoScene::setupControls()
 				m_viewer_scene->Add_Node(m_sun_light);
 		        m_viewer_scene->getLightManager()->Add_Light(m_sun_light);
 			}
+		// L3.2 dev light: VORTX_POINTLIGHT=1 adds a shadow-casting
+		// point light near the objects (and frees a shader slot by
+		// deactivating the second spot — the shaders take 3 lights).
+		if( std::getenv( "VORTX_POINTLIGHT" ) )
+		{
+			lsLight_Point* pl = new lsLight_Point( m_viewer_scene );
+			pl->setName( "Point Light" );
+			pl->Set_Pos( 0.0, 4.0, 0.0 );
+			pl->diffuse = lsVector4( 1.0, 0.8, 0.6, 1.0 );
+			pl->intensity = 30.0f;
+			pl->point_shadow_near = 0.1f;
+			pl->point_shadow_far = 30.0f;
+			m_viewer_scene->Add_Node( pl );
+			m_viewer_scene->getLightManager()->Add_Light( pl );
+			// Del (not setActive): setActiveLights re-activates
+			// everything in range each frame, which would push the
+			// point light past the 3 shader slots again.
+			for( lsLight* l : m_viewer_scene->getLightManager()->getLights() )
+				if( l->getLight_type() == LSLT_SPOT &&
+					l->getName() == "Spot Light" )
+				{
+					m_viewer_scene->getLightManager()->Del_Light( l );
+					break;
+				}
+		}
 		}// if viewer_scene
 	}// if viewer
 }
@@ -880,6 +906,18 @@ void DemoScene::initPipeline()
 	const bool useCsm = std::getenv( "VORTX_CSM" ) != nullptr;
 	for( lsLight* light : m_viewer_scene->getLightManager()->getLights() )
 	{
+		if( light->getLight_type() == LSLT_POINT )
+		{
+			// L3.2: omnidirectional shadows — cube depth target, 6-face
+			// pass. 1024/face at High (6x1024^2 ~ one 2048 2D map).
+			// (before the resolutionFor guard: it returns 0 for points)
+			const int ms = shadowQ == lsShadowQuality::High ? 1024 :
+						   shadowQ == lsShadowQuality::Medium ? 512 : 256;
+			auto* ps = m_pipeline->addStage<lsPointShadowStage>(
+				m_viewer_scene, light, ms, r );
+			ps->setName( string( "pointshadow-" ) + light->getName() );
+			continue;
+		}
 		if( lsShadowMap::resolutionFor( light, shadowQ ) <= 0 ) continue;
 		if( useCsm && light->getLight_type() == LSLT_DIRECT )
 		{

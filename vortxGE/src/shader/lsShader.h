@@ -274,6 +274,20 @@ private:
 
     /** @brief Active cascade count (0 = CSM off) */
 	lsUniformID iCsmCount;
+
+	//=========================================================================
+	// Point shadow uniforms (L3.2 — used when a light slot is use_shadowmap=3)
+	//=========================================================================
+
+    /** @brief Point shadow cube texture (shared unit, one point caster at a time) */
+	lsUniformID iTex_pointshadow;
+
+    /** @brief Point light world positions (cube sampling needs world dir) */
+	lsUniformID iPointWorldPos[3];
+
+    /** @brief Per-slot point shadow near/far (reference depth reconstruction) */
+	lsUniformID iPointNear[3];
+	lsUniformID iPointFar[3];
 	
 	//=========================================================================
 	// Material Uniforms

@@ -312,6 +312,12 @@ public:
     /** @brief L3.3: false = light does not cast shadows at runtime
      * (stages skip rendering, shading ignores its map) */
     bool cast_shadows = true;
+
+    /** @brief L3.2: point shadow cube face projection range.
+     * The stage renders faces with these planes; shading reconstructs
+     * the reference depth through the same 90-degree projection. */
+    float point_shadow_near = 0.1f;
+    float point_shadow_far = 50.0f;
 	
 private:
     //=========================================================================

@@ -29,6 +29,8 @@
 
 // Texture binding targets
 #define LS_TEXTURE_2D  0x0DE1  /* GL_TEXTURE_2D */
+#define LS_TEXTURE_CUBE_MAP  0x8513  /* GL_TEXTURE_CUBE_MAP */
+#define LS_TEXTURE_CUBE_MAP_POSITIVE_X  0x8515  /* GL face +X; faces are consecutive +X,-X,+Y,-Y,+Z,-Z */
 
 // Texture parameters
 #define LS_TEXTURE_WRAP_S  0x2802  /* GL_TEXTURE_WRAP_S */
@@ -49,6 +51,7 @@
 // Texture wrap modes
 #define LS_REPEAT  0x2901  /* GL_REPEAT */
 #define LS_CLAMP_TO_EDGE  0x812F  /* GL_CLAMP_TO_EDGE */
+#define LS_TEXTURE_WRAP_R  0x8072  /* GL_TEXTURE_WRAP_R (cube maps) */
 #define LS_CLAMP_TO_BORDER  0x812D  /* GL_CLAMP_TO_BORDER */
 
 // Texture pixel formats

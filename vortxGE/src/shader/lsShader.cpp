@@ -125,6 +125,13 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 			}
 			iTex_csm = getRender()->GetUniformLocation( shader, "tex_csm" );
 			iCsmCount = getRender()->GetUniformLocation( shader, "csmCount" );
+			// Point shadows (L3.2)
+			iTex_pointshadow = getRender()->GetUniformLocation( shader, "tex_pointshadow" );
+			for(int i = 0; i < 3; ++i) {
+				iPointWorldPos[i] = getRender()->GetUniformLocation( shader, ("pointWorldPos[" + to_string(i) + "]").c_str() );
+				iPointNear[i] = getRender()->GetUniformLocation( shader, ("pointNear[" + to_string(i) + "]").c_str() );
+				iPointFar[i] = getRender()->GetUniformLocation( shader, ("pointFar[" + to_string(i) + "]").c_str() );
+			}
 			
 			// Lights uniforms (arrays)
 			iLightCount = getRender()->GetUniformLocation( shader, "vxLightCount" );
@@ -193,6 +200,28 @@ static const std::vector<lsLight*>& resolveLightList( lsObject* object )
 		if( auto* scn = dynamic_cast<lsScene*>( p ) )
 			return scn->getLightManager()->getLights();
 	return own; // empty
+}
+
+// L3.2: 1x1 dummy cube depth texture. samplerCubeShadow defaults to
+// texture unit 0 (a 2D texture) — GL draw-time validation rejects the
+// type mismatch even when the cube path is never executed, so unit 7
+// must always carry a CUBE texture while a light program is active.
+static lsTextureID getDummyCubeDepth( lsRender* render )
+{
+	static lsTextureID id = 0;
+	if( id ) return id;
+	render->GenTextures( 1, &id );
+	render->BindTexture( LS_TEXTURE_CUBE_MAP, id );
+	for( int face = 0; face < 6; ++face )
+		render->TexImage2D( LS_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0,
+							LS_DEPTH_COMPONENT, 1, 1, 0,
+							LS_DEPTH_COMPONENT, LS_FLOAT, NULL );
+	render->TexParameteri( LS_TEXTURE_CUBE_MAP, LS_TEXTURE_MIN_FILTER, LS_LINEAR );
+	render->TexParameteri( LS_TEXTURE_CUBE_MAP, LS_TEXTURE_MAG_FILTER, LS_LINEAR );
+	render->TexParameteri( LS_TEXTURE_CUBE_MAP, LS_TEXTURE_COMPARE_MODE, LS_COMPARE_REF_TO_TEXTURE );
+	render->TexParameteri( LS_TEXTURE_CUBE_MAP, LS_TEXTURE_COMPARE_FUNC, LS_LEQUAL );
+	render->BindTexture( LS_TEXTURE_CUBE_MAP, 0 );
+	return id;
 }
 
 #if defined(VORTX_DEBUG_TOOLS)
@@ -292,6 +321,7 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 				// tex_shadowmaps[j]/sMatrices[j] for the light whose
 				// properties Set_Light(j, ...) uploaded.
 				int slot = 0;
+				bool pointCubeBound = false; // L3.2: unit 7 bookkeeping
 				for (int i = 0; i < (int)lights.size() && slot < 3; ++i)
 				{
 					lsLight* light = lights[i];
@@ -328,6 +358,28 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 						getRender()->Uniform1i( iUse_shadowmap[slot], 2 );
 					}
 					else if (light->getHas_shadowmap() && !s_disableShadows &&
+							 light->cast_shadows &&
+							 light->getLight_type() == LSLT_POINT)
+						{
+							// L3.2: point light — bind the shadow cube on
+							// unit 7, upload world pos + face projection
+							// range. use_shadowmap=3 selects the cube path.
+							getRender()->ActiveTexture( LS_TEXTURE7 );
+							getRender()->BindTexture( LS_TEXTURE_CUBE_MAP,
+													  light->getTex_shadowmap() );
+							getRender()->Uniform1i( iTex_pointshadow, 7 );
+							getRender()->Uniform3f( iPointWorldPos[slot],
+									light->ModelMatrix.matrix[12],
+									light->ModelMatrix.matrix[13],
+									light->ModelMatrix.matrix[14] );
+							getRender()->Uniform1f( iPointNear[slot],
+									light->point_shadow_near );
+							getRender()->Uniform1f( iPointFar[slot],
+									light->point_shadow_far );
+							getRender()->Uniform1i( iUse_shadowmap[slot], 3 );
+							pointCubeBound = true;
+						}
+					else if (light->getHas_shadowmap() && !s_disableShadows &&
 							 light->cast_shadows)
 						{
 							getRender()->ActiveTexture(LS_TEXTURE3 + slot); // texture units 3, 4, 5 for shadow maps
@@ -343,6 +395,15 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 						}
 						slot++;
 					}
+				}
+				// L3.2: samplerCubeShadow must always see a CUBE texture
+				// on unit 7 (GL validates sampler/texture types at draw)
+				if( !pointCubeBound )
+				{
+					getRender()->ActiveTexture( LS_TEXTURE7 );
+					getRender()->BindTexture( LS_TEXTURE_CUBE_MAP,
+											  getDummyCubeDepth( getRender() ) );
+					getRender()->Uniform1i( iTex_pointshadow, 7 );
 				}
 				// Pass the count of active lights to the shader
 				getRender()->Uniform1i(iLightCount, slot);
