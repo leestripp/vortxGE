@@ -7,6 +7,12 @@ uniform sampler2D tex_normal;
 uniform sampler2DShadow tex_shadowmaps[3];
 uniform int use_shadowmap[3];
 
+// L2.4 CSM (bound when a light slot has use_shadowmap == 2)
+uniform sampler2DShadow tex_csm;
+uniform mat4 csmMatrices[4];
+uniform float csmSplits[4];
+uniform int csmCount;
+
 // Lighting
 uniform vec3 vxLightPos[3];
 uniform vec4 vxLightDiffuse[3];
@@ -30,6 +36,8 @@ in vec3 osTangent;
 in vec2 osTexCoord;
 // CHANGE: Array of shadow coordinates
 in vec4 osShadowCoords[3];
+in vec3 osWorldPos;    // L2.4: CSM computes shadow coords in the frag
+in vec3 osWorldNormal; // L2.4/L1.4b: world-space normal offset
 
 // output to frame buffer
 out vec4 fragColour;
@@ -110,6 +118,70 @@ float calculateShadow(vec4 shadowCoord, sampler2DShadow shadowMap) {
 	return shadow / 16.0;
 }
 
+// L2.4: CSM sampling. The atlas holds up to 4 cascades in 2x2 quadrants;
+// cascade i occupies texture-space offset ((i&1)*0.5, (i>>1)*0.5).
+// csmMatrices[i] uses the same backend V-mirror convention as sMatrices.
+float sampleCsmCascade(int ci, vec3 offsetWorldPos, vec2 texelSize) {
+	vec4 sc = csmMatrices[ci] * vec4(offsetWorldPos, 1.0);
+	vec3 projCoords = sc.xyz / sc.w;
+
+	if (any(lessThan(projCoords.xyz, vec3(0.0))) || any(greaterThan(projCoords.xyz, vec3(1.0)))) {
+		return 1.0;
+	}
+
+	// remap cascade-local [0,1] uv into its atlas quadrant
+	vec2 atlasUv = projCoords.xy * 0.5 + vec2(float(ci & 1), float(ci >> 1)) * 0.5;
+
+	const vec2 poissonDisk[16] = vec2[](
+		vec2(-0.94201624, -0.39906216), vec2( 0.94558609, -0.76890725),
+		vec2(-0.09418410, -0.92938870), vec2( 0.34495938,  0.29387760),
+		vec2(-0.91588581,  0.45771432), vec2(-0.81544232, -0.87912464),
+		vec2(-0.38277543,  0.27676845), vec2( 0.97484398,  0.75648379),
+		vec2( 0.44323325, -0.97511554), vec2( 0.53742981, -0.47373420),
+		vec2(-0.26496911, -0.41893023), vec2( 0.79197514,  0.19090188),
+		vec2(-0.24188840,  0.99706507), vec2(-0.81409955,  0.91437590),
+		vec2( 0.19984126,  0.78641367), vec2( 0.14383161, -0.14100790));
+
+	float bias = 0.0001;
+	float rnd = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+	float cs = cos(rnd * 6.2831853), sn = sin(rnd * 6.2831853);
+	mat2 rot = mat2(cs, -sn, sn, cs);
+
+	float shadow = 0.0;
+	for (int i = 0; i < 16; ++i) {
+		vec2 offset = rot * poissonDisk[i] * texelSize * 2.5;
+		shadow += texture(tex_csm, vec3(atlasUv + offset, projCoords.z - bias));
+	}
+	return shadow / 16.0;
+}
+
+// Cascade select by view-space depth + 10% blend band into the next
+// cascade to hide the split seam.
+float calculateShadowCsm() {
+	float viewDepth = -osVertex.z;
+	int ci = csmCount - 1;
+	for (int k = 0; k < csmCount; ++k) {
+		if (viewDepth <= csmSplits[k]) { ci = k; break; }
+	}
+
+	vec3 offsetWorldPos = osWorldPos + normalize(osWorldNormal) * 0.02;
+	// atlas texel is half a cascade texel; x2 keeps the kernel width in
+	// cascade texels (same footprint as the single-map PCF)
+	vec2 texelSize = 2.0 / vec2(textureSize(tex_csm, 0));
+
+	float shadow = sampleCsmCascade(ci, offsetWorldPos, texelSize);
+
+	if (ci < csmCount - 1) {
+		float splitNear = (ci == 0) ? 0.0 : csmSplits[ci - 1];
+		float band = 0.1 * max(csmSplits[ci] - splitNear, 0.0001);
+		float t = clamp((viewDepth - (csmSplits[ci] - band)) / band, 0.0, 1.0);
+		if (t > 0.0) {
+			shadow = mix(shadow, sampleCsmCascade(ci + 1, offsetWorldPos, texelSize), t);
+		}
+	}
+	return shadow;
+}
+
 
 void main(void) {
 	// PBR properties
@@ -184,6 +256,9 @@ void main(void) {
 		if (use_shadowmap[i] == 1) {
             // Pass the correct shadow coordinate and shadow map sampler for this light
 			light_shadow = calculateShadow(osShadowCoords[i], tex_shadowmaps[i]);
+		}
+		else if (use_shadowmap[i] == 2) {
+			light_shadow = calculateShadowCsm();
 		}
         // Apply the shadow factor *only* to the current light's radiance contribution.
 		dbgShadow *= light_shadow; // D1.2

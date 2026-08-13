@@ -75,6 +75,8 @@ const int LSLT_DIRECT   = 3;
  * - diffuse: Color when hitting diffuse surfaces
  * - specular: Color of highlights (shininess)
  */
+class lsCascadedShadowMap;
+
 class lsLight : public lsCamera
 {
 public:
@@ -184,6 +186,12 @@ public:
     {
         tex_shadowmap = val;
     }
+
+    // L2.4: when this light is rendered by an lsCsmStage, it points at
+    // the cascade subsystem (not owned). lsShader uses it to bind the
+    // CSM atlas + per-cascade matrices instead of the single map.
+    void setCsm( lsCascadedShadowMap* csm ) { m_csm = csm; }
+    lsCascadedShadowMap* getCsm() const { return m_csm; }
 
     /**
      * @brief Check if light has shadow map
@@ -303,6 +311,7 @@ private:
 
     /** @brief Shadow map texture ID */
     lsTextureID tex_shadowmap;
+    lsCascadedShadowMap* m_csm = nullptr;
     
     /** @brief Shadow bias value */
     float shadow_bias;

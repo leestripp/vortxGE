@@ -21,7 +21,9 @@ out vec4 osColour;
 out vec3 osNormal;
 out vec3 osTangent;
 out vec2 osTexCoord;
-out vec4 osShadowCoords[3]; // Changed to array
+out vec4 osShadowCoords[3];
+out vec3 osWorldPos;    // L2.4: CSM computes shadow coords in the frag
+out vec3 osWorldNormal; // L2.4/L1.4b: world-space normal offset
 
 
 void main(void)
@@ -44,6 +46,8 @@ void main(void)
     // large depth bias. Per-vertex is exact on flat surfaces and
     // negligible on dense meshes.
     vec3 worldNormal = normalize(mat3(mMatrix) * vxNormal);
+    osWorldNormal = worldNormal;
+    osWorldPos = worldPos.xyz;
     vec3 offsetWorldPos = worldPos.xyz + worldNormal * 0.02;
     for (int i = 0; i < 3; ++i) {
         osShadowCoords[i] = sMatrices[i] * vec4(offsetWorldPos, 1.0);

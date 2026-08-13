@@ -21,6 +21,7 @@ lsCsmStage::lsCsmStage( lsScene* scene, lsLight* light, lsCamera* camera,
 	: m_scene( scene ), m_light( light ), m_camera( camera )
 {
 	m_csm = new lsCascadedShadowMap( light, mapSize, render );
+	if( light ) light->setCsm( m_csm );	// L2.4: shading finds it here
 #if defined(VORTX_DEBUG_TOOLS)
 	if( csmTrace() )
 		std::cout << "CSMSTAGE ctor light=" << ( light ? light->getName() : "(null)" )

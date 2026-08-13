@@ -19,6 +19,8 @@
 #include "../scene/lsScene.h"
 #include "../scene/lsCamera.h"
 #include "../scene/lsLight.h"
+#include "../pipeline/lsCascadedShadowMap.h"
+#include "../datablocks/lsFBO_Depth.h"
 #include "../scene/lsLight_Spot.h"
 #include "../scene/lsLight_Direct.h"
 #include "../scene/lsLightManager.h"
@@ -116,6 +118,13 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 				iTex_shadowmaps[i] = getRender()->GetUniformLocation( shader, ("tex_shadowmaps[" + to_string(i) + "]").c_str() );
 				iUse_shadowmap[i] = getRender()->GetUniformLocation( shader, ("use_shadowmap[" + to_string(i) + "]").c_str() );
 			}
+			// CSM (L2.4) — resolved once per program
+			for(int i = 0; i < 4; ++i) {
+				iCsmMatrices[i] = getRender()->GetUniformLocation( shader, ("csmMatrices[" + to_string(i) + "]").c_str() );
+				iCsmSplits[i] = getRender()->GetUniformLocation( shader, ("csmSplits[" + to_string(i) + "]").c_str() );
+			}
+			iTex_csm = getRender()->GetUniformLocation( shader, "tex_csm" );
+			iCsmCount = getRender()->GetUniformLocation( shader, "csmCount" );
 			
 			// Lights uniforms (arrays)
 			iLightCount = getRender()->GetUniformLocation( shader, "vxLightCount" );
@@ -296,7 +305,28 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 #else
 						constexpr bool s_disableShadows = false;
 #endif
-						if (light->getHas_shadowmap() && !s_disableShadows)
+						if (light->getHas_shadowmap() && !s_disableShadows &&
+						light->getCsm() && !light->getCsm()->cascades().empty())
+					{
+						// L2.4: CSM sun — bind the atlas on unit 6 and
+						// upload per-cascade matrices + split depths.
+						// use_shadowmap=2 selects the CSM shader path.
+						const lsCascadedShadowMap* csm = light->getCsm();
+						const auto& ccs = csm->cascades();
+						getRender()->ActiveTexture( LS_TEXTURE6 );
+						getRender()->BindTexture( LS_TEXTURE_2D, csm->atlas()->getDepthTexture() );
+						getRender()->Uniform1i( iTex_csm, 6 );
+						const int n = (int)ccs.size() < 4 ? (int)ccs.size() : 4;
+						for( int ci = 0; ci < n; ++ci )
+						{
+							getRender()->UniformMatrix4fv( iCsmMatrices[ci], 1, LS_FALSE,
+														   ccs[ci].shadowMatrix.matrix );
+							getRender()->Uniform1f( iCsmSplits[ci], ccs[ci].splitFar );
+						}
+						getRender()->Uniform1i( iCsmCount, n );
+						getRender()->Uniform1i( iUse_shadowmap[slot], 2 );
+					}
+					else if (light->getHas_shadowmap() && !s_disableShadows)
 						{
 							getRender()->ActiveTexture(LS_TEXTURE3 + slot); // texture units 3, 4, 5 for shadow maps
 							getRender()->BindTexture(LS_TEXTURE_2D, light->getTex_shadowmap());

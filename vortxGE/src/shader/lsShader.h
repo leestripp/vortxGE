@@ -256,8 +256,24 @@ private:
     /** @brief Shadow map textures (up to 3) */
 	lsUniformID iTex_shadowmaps[3];
     
-    /** @brief Shadow map usage flags (up to 3) */
+    /** @brief Shadow map usage flags (up to 3): 0=off 1=single map 2=CSM */
 	lsUniformID iUse_shadowmap[3];
+
+	//=========================================================================
+	// CSM Uniforms (L2.4 — used when a light slot is use_shadowmap=2)
+	//=========================================================================
+
+    /** @brief CSM depth atlas texture */
+	lsUniformID iTex_csm;
+
+    /** @brief Per-cascade shadow matrices (up to 4) */
+	lsUniformID iCsmMatrices[4];
+
+    /** @brief Per-cascade far split depths (view space) */
+	lsUniformID iCsmSplits[4];
+
+    /** @brief Active cascade count (0 = CSM off) */
+	lsUniformID iCsmCount;
 	
 	//=========================================================================
 	// Material Uniforms
