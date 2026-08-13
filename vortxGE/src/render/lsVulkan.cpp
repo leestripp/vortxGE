@@ -1142,11 +1142,18 @@ void lsVulkan::Viewport( lsInt x, lsInt y, lsSizei w, lsSizei h )
 	// V4: passes apply this at open; if one is already active, re-apply now
 	if( m_passActive && w > 0 && h > 0 )
 	{
+		// L3.2: cube-face targets render unflipped (cube face
+		// orientation must match GL sampling conventions exactly)
+		bool noFlip = false;
+		{
+			auto fit = m_fbos.find( m_activeTarget );
+			noFlip = ( fit != m_fbos.end() && fit->second.depthLayer >= 0 );
+		}
 		VkViewport vp{};
 		vp.x = (float)x;
-		vp.y = (float)( y + h );		// Y-flip for GL conventions
+		vp.y = noFlip ? (float)y : (float)( y + h );	// Y-flip for GL conventions
 		vp.width = (float)w;
-		vp.height = -(float)h;
+		vp.height = noFlip ? (float)h : -(float)h;
 		vp.minDepth = (float)( ( m_depthRangeN + m_depthRangeF ) * 0.5 );
 		vp.maxDepth = (float)( vp.minDepth + ( m_depthRangeF - m_depthRangeN ) * 0.5 );
 		vkCmdSetViewport( m_commandBuffers[m_currentFrame], 0, 1, &vp );
@@ -2664,8 +2671,14 @@ void lsVulkan::ActiveTexture( lsEnum texture )
 
 void lsVulkan::BindTexture( lsEnum target, lsTextureID texture )
 {
-	(void)target;	// LS_TEXTURE_2D only for now
 	m_textureUnits[m_activeUnit] = texture;
+	// L3.2: cube bindings mark the texture so TexImage2D/view creation
+	// use a 6-layer cube-compatible image + cube view
+	if( texture != 0 && target == LS_TEXTURE_CUBE_MAP )
+	{
+		auto it = m_textures.find( texture );
+		if( it != m_textures.end() ) it->second.isCube = true;
+	}
 }
 
 bool lsVulkan::createTextureViewAndSampler( VkTex& tex )
@@ -2680,11 +2693,12 @@ bool lsVulkan::createTextureViewAndSampler( VkTex& tex )
 	VkImageViewCreateInfo vi{};
 	vi.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	vi.image = tex.image;
-	vi.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	vi.viewType = tex.isCube ? VK_IMAGE_VIEW_TYPE_CUBE
+							 : VK_IMAGE_VIEW_TYPE_2D;
 	vi.format = tex.format;
 	vi.subresourceRange = { isDepth ? (VkImageAspectFlags)VK_IMAGE_ASPECT_DEPTH_BIT
 									: (VkImageAspectFlags)VK_IMAGE_ASPECT_COLOR_BIT,
-							0, tex.mipLevels, 0, 1 };
+							0, tex.mipLevels, 0, tex.isCube ? 6u : 1u };
 	m_lastError = vkCreateImageView( m_device, &vi, nullptr, &tex.view );
 	if( m_lastError != VK_SUCCESS ) return false;
 
@@ -2709,7 +2723,7 @@ bool lsVulkan::createTextureViewAndSampler( VkTex& tex )
 		? VK_SAMPLER_MIPMAP_MODE_LINEAR : VK_SAMPLER_MIPMAP_MODE_NEAREST;
 	si.addressModeU = wrapOf( tex.wrapS );
 	si.addressModeV = wrapOf( tex.wrapT );
-	si.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	si.addressModeW = wrapOf( tex.wrapR );
 	si.maxLod = tex.mipsGenerated ? (float)( tex.mipLevels - 1 ) : 0.0f;
 	// L1.3: shadow maps sample through a comparison sampler
 	// (GL_LEQUAL semantics — lit when ref <= stored depth)
@@ -2779,7 +2793,8 @@ bool lsVulkan::uploadTexture( VkTex& tex, lsEnum internalFormat, lsEnum format,
 	ii.format = vkFormat;
 	ii.extent = { w, h, 1 };
 	ii.mipLevels = tex.mipLevels;
-	ii.arrayLayers = 1;
+	ii.arrayLayers = tex.isCube ? 6 : 1;
+	if( tex.isCube ) ii.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 	ii.samples = VK_SAMPLE_COUNT_1_BIT;
 	ii.tiling = VK_IMAGE_TILING_OPTIMAL;
 	ii.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
@@ -2813,7 +2828,7 @@ bool lsVulkan::uploadTexture( VkTex& tex, lsEnum internalFormat, lsEnum format,
 	barrier.image = tex.image;
 	barrier.subresourceRange = { depth ? (VkImageAspectFlags)VK_IMAGE_ASPECT_DEPTH_BIT
 									   : (VkImageAspectFlags)VK_IMAGE_ASPECT_COLOR_BIT,
-								 0, tex.mipLevels, 0, 1 };
+								 0, tex.mipLevels, 0, tex.isCube ? 6u : 1u };
 	barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	barrier.newLayout = pixels ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
 							   : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -2914,6 +2929,17 @@ void lsVulkan::TexImage2D( lsEnum target, lsInt level, lsInt internalFormat,
 	(void)target; (void)border;
 	if( level != 0 || width <= 0 || height <= 0 ) return;
 
+	// L3.2 cube: GL calls TexImage2D once per face with identical
+	// params — the 6-layer image is created on the first call only
+	{
+		const uint32_t cid = m_textureUnits[m_activeUnit];
+		auto cit = m_textures.find( cid );
+		if( cit != m_textures.end() && cit->second.isCube &&
+			cit->second.image && cit->second.width == (uint32_t)width &&
+			cit->second.height == (uint32_t)height )
+			return;
+	}
+
 	const uint32_t id = m_textureUnits[m_activeUnit];
 	auto it = m_textures.find( id );
 	if( it == m_textures.end() ) return;
@@ -2940,6 +2966,7 @@ void lsVulkan::TexParameteri( lsEnum target, lsEnum pname, lsInt param )
 	else if( pname == LS_TEXTURE_MAG_FILTER ) t.magFilter = (lsEnum)param;
 	else if( pname == LS_TEXTURE_COMPARE_MODE )
 		t.compareEnable = ( param == (lsInt)LS_COMPARE_REF_TO_TEXTURE );
+	else if( pname == LS_TEXTURE_WRAP_R ) t.wrapR = (lsEnum)param;
 	else if( pname == LS_TEXTURE_COMPARE_FUNC ) {} // LEQUAL only (below)
 	else return;
 
@@ -3365,6 +3392,11 @@ bool lsVulkan::buildFbo( VkFbo& fbo )
 {
 	if( fbo.fb ) vkDestroyFramebuffer( m_device, fbo.fb, nullptr );
 	fbo.fb = VK_NULL_HANDLE;
+	if( fbo.depthLayerView )
+	{
+		vkDestroyImageView( m_device, fbo.depthLayerView, nullptr );
+		fbo.depthLayerView = VK_NULL_HANDLE;
+	}
 	fbo.built = false;
 
 	if( fbo.colorTex && fbo.depthTex ) fbo.variant = 0;
@@ -3396,7 +3428,22 @@ bool lsVulkan::buildFbo( VkFbo& fbo )
 	} else
 	{
 		if( dt == m_textures.end() || ! dt->second.view ) return false;
-		atts[0] = dt->second.view;
+		if( fbo.depthLayer >= 0 )
+		{
+			// L3.2 cube face: attach a 2D view of that single layer
+			VkImageViewCreateInfo lvi{};
+			lvi.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			lvi.image = dt->second.image;
+			lvi.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			lvi.format = dt->second.format;
+			lvi.subresourceRange = { VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1,
+									 (uint32_t)fbo.depthLayer, 1 };
+			m_lastError = vkCreateImageView( m_device, &lvi, nullptr,
+											 &fbo.depthLayerView );
+			if( m_lastError != VK_SUCCESS ) return false;
+			atts[0] = fbo.depthLayerView;
+		} else
+			atts[0] = dt->second.view;
 		fbo.w = dt->second.width;
 		fbo.h = dt->second.height;
 		rp = m_rpDepthOnly;
@@ -3503,11 +3550,14 @@ void lsVulkan::beginPassForTarget( uint32_t fboID )
 		vw = (float)m_viewport[2];
 		vh = (float)m_viewport[3];
 	}
+	// L3.2: cube-face targets render unflipped (see Viewport())
+	const bool noFlip = ( fboID != 0 &&
+						  m_fbos[fboID].depthLayer >= 0 );
 	VkViewport vp{};
 	vp.x = vx;
-	vp.y = vy + vh;
+	vp.y = noFlip ? vy : vy + vh;
 	vp.width = vw;
-	vp.height = -vh;
+	vp.height = noFlip ? vh : -vh;
 	vp.minDepth = (float)( ( m_depthRangeN + m_depthRangeF ) * 0.5 );
 	vp.maxDepth = (float)( vp.minDepth + ( m_depthRangeF - m_depthRangeN ) * 0.5 );
 	vkCmdSetViewport( cmd, 0, 1, &vp );
@@ -3595,7 +3645,7 @@ void lsVulkan::FramebufferTexture2D( lsEnum target, lsEnum attachment,
 									 lsEnum texTarget, lsTextureID texture,
 									 lsInt level )
 {
-	(void)target; (void)texTarget; (void)level;
+	(void)target; (void)level;
 	auto it = m_fbos.find( m_boundFBO );
 	if( it == m_fbos.end() ) return;
 
@@ -3605,6 +3655,12 @@ void lsVulkan::FramebufferTexture2D( lsEnum target, lsEnum attachment,
 		it->second.depthTex = texture;
 	else
 		return;
+	// L3.2: cube face target -> attach that layer (per-face 2D view)
+	if( texTarget >= LS_TEXTURE_CUBE_MAP_POSITIVE_X &&
+		texTarget <= LS_TEXTURE_CUBE_MAP_POSITIVE_X + 5 )
+		it->second.depthLayer = (int)( texTarget - LS_TEXTURE_CUBE_MAP_POSITIVE_X );
+	else
+		it->second.depthLayer = -1;
 	it->second.built = false;	// attachments changed: rebuild on next use
 }
 

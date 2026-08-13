@@ -247,6 +247,8 @@ private:
 		lsEnum	minFilter = 0x2601;	// LS_LINEAR
 		lsEnum	magFilter = 0x2601;
 		bool	compareEnable = false;	// L1.3: shadow-map depth compare
+		bool	isCube = false;			// L3.2: cube map (6-layer image, cube view)
+		lsEnum	wrapR = 0x2901;		// LS_REPEAT (cube maps clamp to edge)
 	};
 
 	bool createBufferStorage( VkBuf& buf, VkDeviceSize size, const void* data );
@@ -269,6 +271,8 @@ private:
 		int			variant = -1;			// 0=color+depth, 1=depth-only
 		uint32_t	w = 0, h = 0;
 		bool		built = false;
+		int			depthLayer = -1;			// L3.2: >=0 = cube face layer (no V-flip)
+		VkImageView	depthLayerView = VK_NULL_HANDLE;	// per-face 2D view
 	};
 
 	// V3 helpers
