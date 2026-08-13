@@ -53,7 +53,7 @@ for ix in range(8):
         ld = bpy.data.lights.new(f"Stress_{n:02d}", type='POINT')
         hue = (ix + iy * 8) / 64.0
         ld.color = colorsys.hsv_to_rgb(hue, 0.85, 1.0)
-        ld.energy = 4.0
+        ld.energy = 8.0
         lo = bpy.data.objects.new(f"Stress_{n:02d}", ld)
         bpy.context.scene.collection.objects.link(lo)
         lo.location = (x, y, 2.5)
