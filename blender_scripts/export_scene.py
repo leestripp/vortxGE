@@ -128,7 +128,8 @@ def write_vortxge_scene(context, filepath):
                     f.write(f"add_light {light_type_str} {name} {parent} ")
                     f.write(f"({loc.x:.6f}, {loc.y:.6f}, {loc.z:.6f}) ")
                     f.write(f"({rot.x:.6f}, {rot.y:.6f}, {rot.z:.6f}) ")
-                    f.write(f"({color.r:.6f}, {color.g:.6f}, {color.b:.6f}) {intensity:.6f}\n")
+                    cast_shadows = 1 if obj.get("cast_shadows", True) else 0
+                    f.write(f"({color.r:.6f}, {color.g:.6f}, {color.b:.6f}) {intensity:.6f} {cast_shadows}\n")
                 f.write("\n")
 
             # --- Export Objects (Meshes) and Physics-Only Meshes ---

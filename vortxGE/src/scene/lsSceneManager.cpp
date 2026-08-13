@@ -359,6 +359,11 @@ bool lsSceneManager::LoadSceneFromFile(const string& filename, lsScene* targetSc
 			light->Set_Rot(rot.x, rot.y, rot.z);
 			light->diffuse = lsVector4(color.x, color.y, color.z, 1.0f);
 			light->setIntensity(intensity);
+
+			// L5: optional trailing cast_shadows flag (0/1, default 1).
+			// Old files without it behave as before.
+			if( tokens.size() >= 9 )
+				light->cast_shadows = converter.toFloat(tokens[8]) != 0.0f;
 			
 			parent->Add_Node(light);
 			nodeMap[name] = light;

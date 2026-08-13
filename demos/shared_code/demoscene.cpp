@@ -932,6 +932,9 @@ void DemoScene::initPipeline()
 	const bool useCsm = std::getenv( "VORTX_CSM" ) != nullptr;
 	for( lsLight* light : m_viewer_scene->getLightManager()->getLights() )
 	{
+		// L5.3: non-casting lights get no shadow stage at all (the
+		// stress scene's 64 point lights must not spawn 64 stages)
+		if( !light->cast_shadows ) continue;
 		if( light->getLight_type() == LSLT_POINT )
 		{
 			// L3.2: omnidirectional shadows — cube depth target, 6-face
