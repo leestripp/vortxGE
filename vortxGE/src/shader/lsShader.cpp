@@ -16,6 +16,7 @@
 
 // scene
 #include "../pipeline/lsShadowMap.h"
+#include "../pipeline/lsPrepassStage.h"
 #include "../scene/lsObject.h"
 #include "../scene/lsScene.h"
 #include "../scene/lsCamera.h"
@@ -64,8 +65,11 @@ lsShader::lsShader( lsRender *render )
 		iUse_shadowmap[i] = -1;
 		iTex_shadowdepth[i] = -1;
 		iShadowSoftness[i] = -1;
-		iLightType[i] = -1;
-		iLightPos[i] = -1;
+		iLightPos[i] = -1;      // was uninitialized — garbage 0 hit pMatrix@0
+		iLightType[i] = -1;     // on non-light programs (skybox) via Set_Light
+		iPointWorldPos[i] = -1;
+		iPointNear[i] = -1;
+		iPointFar[i] = -1;
 		iLightDir[i] = -1;
 		iLightCutoff[i] = -1;
 		iLightOuterCutoff[i] = -1;
@@ -73,6 +77,16 @@ lsShader::lsShader( lsRender *render )
 		iLightSpecular[i] = -1;
 		iLightIntensity[i] = -1;
 	}
+	iPcssEnabled = -1;
+	iTex_pointshadow = -1;
+	iTex_csm = -1;
+	iCsmCount = -1;
+	for(int i = 0; i < 4; ++i) { iCsmMatrices[i] = -1; iCsmSplits[i] = -1; }
+	iTex_prepassDepth = -1;
+	iContactEnabled = -1;
+	iContactNear = -1;
+	iContactFar = -1;
+	iPrepassFlipY = -1;
 
 	iLightCount = -1;
 	iDebugView = -1;
@@ -142,6 +156,12 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 				iShadowSoftness[i] = getRender()->GetUniformLocation( shader, ("shadowSoftness[" + to_string(i) + "]").c_str() );
 			}
 			iPcssEnabled = getRender()->GetUniformLocation( shader, "pcssEnabled" );
+			// L4.2 contact shadows
+			iTex_prepassDepth = getRender()->GetUniformLocation( shader, "tex_prepassDepth" );
+			iContactEnabled = getRender()->GetUniformLocation( shader, "contactEnabled" );
+			iContactNear = getRender()->GetUniformLocation( shader, "contactNear" );
+			iContactFar = getRender()->GetUniformLocation( shader, "contactFar" );
+			iPrepassFlipY = getRender()->GetUniformLocation( shader, "prepassFlipY" );
 
 			// Lights uniforms (arrays)
 			iLightCount = getRender()->GetUniformLocation( shader, "vxLightCount" );
@@ -181,6 +201,11 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 
 		case ShaderKind::ShadowMap:
 			imvpMatrix = getRender()->GetUniformLocation( shader, "mvpMatrix" );
+			break;
+
+		case ShaderKind::Prepass: // L4.1b: depth+normal prepass
+			imvpMatrix = getRender()->GetUniformLocation( shader, "mvpMatrix" );
+			inMatrix = getRender()->GetUniformLocation( shader, "nMatrix" );
 			break;
 
 		case ShaderKind::Skybox: // Initialize uniforms for skybox shader
@@ -426,6 +451,17 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 				// L4.3: PCSS only on the High quality preset
 				getRender()->Uniform1i( iPcssEnabled,
 					lsShadowMap::getQuality() == lsShadowQuality::High ? 1 : 0 );
+					// L4.2: prepass depth for contact shadows (unit 11)
+					const lsTextureID ppDepth = lsPrepassStage::depthTexture();
+					getRender()->ActiveTexture(LS_TEXTURE0 + 11);
+					getRender()->BindTexture(LS_TEXTURE_2D, ppDepth);
+					getRender()->Uniform1i(iTex_prepassDepth, 11);
+					getRender()->Uniform1i(iContactEnabled,
+						(ppDepth && lsShadowMap::getQuality() == lsShadowQuality::High) ? 1 : 0);
+					getRender()->Uniform1f(iContactNear, cam->frustum.getNearplane());
+					getRender()->Uniform1f(iContactFar, cam->frustum.getFarplane());
+					getRender()->Uniform1i(iPrepassFlipY,
+						getRender()->getType() == RenderType::Vulkan ? 1 : 0);
 #if defined(VORTX_DEBUG_TOOLS)
 				getRender()->Uniform1i( iDebugView, debugViewMode() );
 #else
@@ -503,6 +539,17 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 			mvMatrix = cam->ViewMatrix * object->ModelMatrix;
 			mvpMatrix = pMatrix * mvMatrix;
 			getRender()->UniformMatrix4fv(imvpMatrix, 1, LS_FALSE, mvpMatrix.matrix);
+			break;
+
+		case ShaderKind::Prepass: // L4.1b: mvp + normal matrix (view-space normals)
+			pMatrix = cam->frustum.getProjectionMatrix();
+			mvMatrix = cam->ViewMatrix * object->ModelMatrix;
+			mvpMatrix = pMatrix * mvMatrix;
+			m_eMatrix.ExtractRotationMatrix4x4( mvMatrix );
+			m_iMatrix.Inverse( m_eMatrix );
+			nMatrix.Transpose( m_iMatrix );
+			getRender()->UniformMatrix4fv(imvpMatrix, 1, LS_FALSE, mvpMatrix.matrix);
+			getRender()->UniformMatrix3fv(inMatrix, 1, LS_FALSE, nMatrix.matrix);
 			break;
 
 		case ShaderKind::Skybox:
@@ -690,6 +737,9 @@ void lsShader::Load_Shader( const string& name )
 	} else  if( name == "shadowmap" )
 	{
 		setKind( ShaderKind::ShadowMap );
+	} else  if( name == "prepass" )
+	{
+		setKind( ShaderKind::Prepass );
 	} else  if( name == "skybox" ) // Add this
 	{
 		setKind( ShaderKind::Skybox );

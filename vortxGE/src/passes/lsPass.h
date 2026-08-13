@@ -65,6 +65,8 @@ const int LSPT_FBO              = 2;
 const int LSPT_SHADOWMAP        = 3;
 /** @brief Occlusion query rendering */
 const int LSPT_OCCLUSION        = 4;
+/** @brief L4.1b depth+normal prepass (pre-main-pass, for screen-space effects) */
+const int LSPT_PREPASS          = 5;
 
 /**
  * @class lsPass

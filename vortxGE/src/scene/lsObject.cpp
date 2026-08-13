@@ -170,6 +170,7 @@ void lsObject::Draw( lsCamera *cam, lsPass *pass, lsScene *scn, lsRender *render
         {
         case LSPT_DIRECTRENDER:
         case LSPT_FBO:
+        case LSPT_PREPASS: // L4.1b: same visibility as the main pass
             if(( asset )&&( ! getOccluded() ))
             {
                 if( asset->getData() )

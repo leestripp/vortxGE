@@ -103,6 +103,8 @@ void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
 	lsShader* shaderToUse = getShader();
 	if (pass->getPass_type() == LSPT_SHADOWMAP) {
 		shaderToUse = getRender()->getShaderManager()->Find_Shader("shadowmap");
+	} else if (pass->getPass_type() == LSPT_PREPASS) {
+		shaderToUse = getRender()->getShaderManager()->Find_Shader("prepass"); // L4.1b
 	}
 
 	if( shaderToUse )
@@ -110,7 +112,8 @@ void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
 		shaderToUse->UseShader( cam, object, pass, this );
 
 		// Lights only for non-shadow passes
-		if (pass->getPass_type() != LSPT_SHADOWMAP)
+		if (pass->getPass_type() != LSPT_SHADOWMAP &&
+			pass->getPass_type() != LSPT_PREPASS)
 		{
 			shaderToUse->Setup_Lights( cam, object );
 		}

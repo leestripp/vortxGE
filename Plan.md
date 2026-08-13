@@ -282,6 +282,21 @@ now doctested.
 **Done when:** penumbra grows with occluder distance; contact
 hardening visible near occluders.
 
+**L4 PROGRESS 2026-08-13:** L4.1 PCSS DONE (4f93549): blocker search
+over a raw-depth ALIAS view (new TexStorage2D + CreateDepthRawView
+virtuals; GL texture view / VK sampler-only alias), variable penumbra
+from receiver-blocker separation, per-light shadow_softness (uv
+units), High-preset gated (= L4.3 for PCSS). CSM + point-cube paths
+keep fixed PCF (follow-up). L4.1b prepass DONE: lsPrepassStage renders
+depth+view-normals into the "prepass" pool target before the main
+pass (LSPT_PREPASS=5, prepass.vert/frag, ShaderKind::Prepass; High
+preset only). L4.2 contact shadows DONE: 12-step view-space ray march
+against prepass depth per light (0.5 m ray, 70% max darkening),
+prepassFlipY compensates the VK offscreen V-mirror. LATENT BUG FIXED:
+lsShader ctor never initialized iLightPos/iLightType (and newer
+iPcssEnabled/point/CSM ids) — garbage 0 hit pMatrix@0 via Set_Light
+on the skybox program (12k GL errors); all ids now init -1.
+
 ## L5 — Clustered forward lighting (kill the 3-light limit)
 
 - L5.1 Screen-tile/cluster light grid (16 px tiles × depth slices);

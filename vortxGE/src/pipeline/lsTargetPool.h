@@ -29,6 +29,9 @@ public:
 	lsFBOID find( const std::string& name ) const;	// 0 when absent
 	lsTextureID colorTexture( const std::string& name ) const;
 
+	/// Depth texture of a named target (0 if missing / no depth)
+	lsTextureID depthTexture( const std::string& name ) const;
+
 	/// Single resize owner: app reports the framebuffer pixel size
 	/// once; every named target is (re)created to match (× scale).
 	void setFramebufferSize( uint32_t w, uint32_t h );

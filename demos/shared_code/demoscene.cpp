@@ -84,6 +84,7 @@
 #include <pipeline/lsBlitStage.h>
 #include <pipeline/lsShadowStage.h>
 #include <pipeline/lsCsmStage.h>
+#include <pipeline/lsPrepassStage.h>
 
 // Passes
 #include <passes/lsPassManager.h>
@@ -938,6 +939,17 @@ void DemoScene::initPipeline()
 		auto* sh = m_pipeline->addStage<lsShadowStage>(
 			m_viewer_scene, light, shadowQ, r );
 		sh->setName( string( "shadow-" ) + light->getName() );
+	}
+
+	// L4.1b: depth+normal prepass before the main pass (High preset
+	// only — it feeds L4.2 contact shadows, which are High-gated).
+	// Doubles geometry load; skip entirely on lower presets.
+	if( shadowQ == lsShadowQuality::High )
+	{
+		m_pipeline->targets().acquire( "prepass", true );
+		auto* pp = m_pipeline->addStage<lsPrepassStage>(
+			m_viewer_scene, m_playerRig->getCamera(), "prepass" );
+		pp->setName( "prepass" );
 	}
 
 	// stage 1: main scene -> "scene" target

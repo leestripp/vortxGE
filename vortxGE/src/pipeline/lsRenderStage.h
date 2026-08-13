@@ -20,7 +20,7 @@ class lsTargetPool;
 class lsRenderStage
 {
 public:
-	enum class Type { Scene, Shadow, Blit, Effect };
+	enum class Type { Scene, Shadow, Blit, Effect, Prepass };
 
 	virtual ~lsRenderStage() = default;
 

@@ -264,6 +264,13 @@ private:
 	lsUniformID iShadowSoftness[3];
 	lsUniformID iPcssEnabled;
 
+	// L4.2: screen-space contact shadows (prepass depth ray march)
+	lsUniformID iTex_prepassDepth;
+	lsUniformID iContactEnabled;
+	lsUniformID iContactNear;
+	lsUniformID iContactFar;
+	lsUniformID iPrepassFlipY;
+
 	//=========================================================================
 	// CSM Uniforms (L2.4 — used when a light slot is use_shadowmap=2)
 	//=========================================================================

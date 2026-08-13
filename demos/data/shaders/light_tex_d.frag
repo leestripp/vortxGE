@@ -24,6 +24,15 @@ uniform sampler2D tex_shadowdepth[3];
 uniform float shadowSoftness[3];
 uniform int pcssEnabled;
 
+// L4.2 contact shadows: L4.1b prepass depth + main-camera projection
+// (pMatrix is shared with the vertex stage — same program uniform)
+uniform sampler2D tex_prepassDepth;
+uniform int contactEnabled;
+uniform float contactNear;
+uniform float contactFar;
+uniform int prepassFlipY;
+uniform mat4 pMatrix;
+
 // Lighting
 uniform vec3 vxLightPos[3];
 uniform vec4 vxLightDiffuse[3];
@@ -236,6 +245,35 @@ float calculatePointShadow(int slot) {
 	return texture(tex_pointshadow, vec4(d, ref - bias));
 }
 
+
+// L4.2: screen-space contact shadows — short view-space ray march
+// from the fragment toward the light against the L4.1b prepass depth.
+// Catches fine contact detail the shadow maps miss. High preset only.
+float contactShadow(vec3 Lview) {
+	if (contactEnabled != 1) return 1.0;
+	const int STEPS = 12;
+	const float rayLen = 0.5;   // metres
+	const float thickness = 0.02;
+	float hit = 0.0;
+	for (int i = 1; i <= STEPS; ++i) {
+		float t = float(i) / float(STEPS);
+		vec3 sp = osVertex + Lview * (rayLen * t);
+		vec4 clip = pMatrix * vec4(sp, 1.0);
+		if (clip.w <= 0.0) continue;
+		vec2 uv = clip.xy / clip.w * 0.5 + 0.5;
+		if (prepassFlipY == 1) uv.y = 1.0 - uv.y; // VK offscreen V-mirror
+		if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) continue;
+		float z = texture(tex_prepassDepth, uv).r;
+		float sceneDist = contactNear * contactFar / (contactFar - z * (contactFar - contactNear));
+		float rayDist = -sp.z;
+		// prepass surface closer to the camera than the ray point = occluder
+		if (sceneDist < rayDist - thickness) {
+			hit = max(hit, 1.0 - t); // earlier hits along the ray darken more
+		}
+	}
+	return 1.0 - hit * 0.7; // contact shadows soften, never fully blacken
+}
+
 void main(void) {
 	// PBR properties
 	vec3 albedo = texture(tex_albedo, osTexCoord).rgb;
@@ -314,6 +352,7 @@ void main(void) {
 			light_shadow = calculatePointShadow(i);
 		}
 		
+		light_shadow *= contactShadow(L); // L4.2: fine contact detail
 		dbgShadow *= light_shadow; // D1.2
 		Lo += (kD * albedo / PI + specular) * radiance * NdotL * light_shadow;
 	}

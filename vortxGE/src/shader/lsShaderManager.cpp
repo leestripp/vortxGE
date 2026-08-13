@@ -53,6 +53,13 @@ void lsShaderManager::Init()
         shd->Load_Shader("shadowmap");
         Add_Shader( shd );
     }
+
+    shd = new lsShader( m_render );
+    if (shd)
+    {
+        shd->Load_Shader("prepass"); // L4.1b
+        Add_Shader( shd );
+    }
 }
 
 void lsShaderManager::Add_Shader( lsShader* shader )

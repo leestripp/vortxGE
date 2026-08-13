@@ -78,5 +78,6 @@ enum class ShaderKind {
 	Bloom,				///< Bloom post-process
 	DebugNormals,		///< Normal visualization
 	ShadowMap,			///< Shadow map generation
-	Skybox				///< Skybox rendering
+	Skybox,				///< Skybox rendering
+	Prepass				///< L4.1b depth+normal prepass
 };

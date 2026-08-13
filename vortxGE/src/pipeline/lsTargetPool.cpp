@@ -27,6 +27,12 @@ lsTextureID lsTargetPool::colorTexture( const std::string& name ) const
 	return ( it == m_entries.end() ) ? 0 : it->second.color;
 }
 
+lsTextureID lsTargetPool::depthTexture( const std::string& name ) const
+{
+	auto it = m_entries.find( name );
+	return ( it == m_entries.end() ) ? 0 : it->second.depthTex;
+}
+
 void lsTargetPool::setFramebufferSize( uint32_t w, uint32_t h )
 {
 	if( w == m_w && h == m_h ) return;
