@@ -255,6 +255,19 @@ VORTX_SHOT captures, ctest 100%.
 **Done when:** a point light in the demo scene casts correct
 shadows from all directions on both backends.
 
+**L3 COMPLETE 2026-08-13:** L3.1 spot frustum tightening —
+cone-synced FOV + content-fitted near/far (5a297d4, doctested).
+L3.2 point-light omnidirectional shadows: lsFBO_DepthCube +
+lsPointShadowStage (6-face 90-deg pass) + samplerCubeShadow path
+with major-axis reference-depth reconstruction (GL 76cfe74, VK
+26ce816; VK renders cube faces unflipped). Demo: VORTX_POINTLIGHT=1
+dev light. Known limits: one point shadow caster at a time (shared
+cube unit 7), point stage always renders all 6 faces (no per-face
+culling refresh skip), L3.1 fit is position+radius based (no mesh
+bounds yet). L3.3 caster flags (1cc00f4): per-light cast_shadows
+gates stages + shading; per-object casts_shadows pre-existing,
+now doctested.
+
 ## L4 — Soft shadows
 
 - L4.1 PCSS: blocker search + variable penumbra from light size
