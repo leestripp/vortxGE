@@ -308,6 +308,10 @@ public:
     
     /** @brief Spot light outer cone angle (degrees) */
     float spot_outer_cutoff;
+
+    /** @brief L3.3: false = light does not cast shadows at runtime
+     * (stages skip rendering, shading ignores its map) */
+    bool cast_shadows = true;
 	
 private:
     //=========================================================================

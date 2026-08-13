@@ -38,6 +38,7 @@ lsCsmStage::~lsCsmStage()
 
 void lsCsmStage::execute( lsRender* render, lsTargetPool& targets )
 {
+	if( m_light && !m_light->cast_shadows ) return; // L3.3
 	(void)targets;
 	lsFBO_Depth* atlas = m_csm ? m_csm->atlas() : nullptr;
 	if( !m_scene || !m_light || !m_camera || !atlas ) return;

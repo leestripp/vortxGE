@@ -2,6 +2,7 @@
 // a spot shadow frustum to scene content in light view space.
 #include "doctest/doctest.h"
 #include "scene/lsLight_Spot.h"
+#include "scene/lsObject.h"
 using doctest::Approx;
 
 TEST_CASE( "lsFitSpotDepthRange: empty input keeps caller defaults" )
@@ -35,4 +36,13 @@ TEST_CASE( "lsFitSpotDepthRange: clamps near and keeps far > near" )
 	REQUIRE( lsFitSpotDepthRange( view, pos, rad, n, f ) );
 	CHECK( n == Approx( 0.05 ) );        // clamped positive
 	CHECK( f >= Approx( n + 0.1 ) );     // strictly beyond near
+}
+
+TEST_CASE( "L3.3: caster flags default to true (light + object)" )
+{
+	lsLight_Spot spot( nullptr );
+	CHECK( spot.cast_shadows == true );
+
+	lsObject obj( nullptr );
+	CHECK( obj.getCasts_shadows() == true );
 }

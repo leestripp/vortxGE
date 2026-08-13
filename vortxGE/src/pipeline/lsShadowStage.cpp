@@ -60,6 +60,7 @@ void lsShadowStage::execute( lsRender* render, lsTargetPool& targets )
 	}
 #endif
 	if( !m_scene || !m_light || !fbo ) return;
+	if( !m_light->cast_shadows ) return; // L3.3: per-light caster flag
 	// FIX 2026-08-11 (Vulkan dark floor, 1/4 — see Plan.md "D1").
 	// NOTE: deliberately NOT gated on m_light->getActive(). The active
 	// flags are refreshed by the scene stage's Optimize (render camera)

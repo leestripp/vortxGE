@@ -306,6 +306,7 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 						constexpr bool s_disableShadows = false;
 #endif
 						if (light->getHas_shadowmap() && !s_disableShadows &&
+						light->cast_shadows &&
 						light->getCsm() && !light->getCsm()->cascades().empty())
 					{
 						// L2.4: CSM sun — bind the atlas on unit 6 and
@@ -326,7 +327,8 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 						getRender()->Uniform1i( iCsmCount, n );
 						getRender()->Uniform1i( iUse_shadowmap[slot], 2 );
 					}
-					else if (light->getHas_shadowmap() && !s_disableShadows)
+					else if (light->getHas_shadowmap() && !s_disableShadows &&
+							 light->cast_shadows)
 						{
 							getRender()->ActiveTexture(LS_TEXTURE3 + slot); // texture units 3, 4, 5 for shadow maps
 							getRender()->BindTexture(LS_TEXTURE_2D, light->getTex_shadowmap());
