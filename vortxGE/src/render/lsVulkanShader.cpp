@@ -20,7 +20,8 @@ namespace
 	bool isOpaqueType( const string& t )
 	{
 		return t.rfind( "sampler", 0 ) == 0 || t.rfind( "image", 0 ) == 0 ||
-			   t.rfind( "texture", 0 ) == 0;
+			   t.rfind( "texture", 0 ) == 0 || t.rfind( "usampler", 0 ) == 0 ||
+			   t.rfind( "isampler", 0 ) == 0; // L5: integer samplers (cluster grid)
 	}
 
 	uint32_t alignOf( const string& t )

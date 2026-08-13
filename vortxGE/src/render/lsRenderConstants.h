@@ -69,6 +69,11 @@
 #define LS_RGBA16  0x805B  /* GL_RGBA16 */
 #define LS_RGB32F  0x8815  /* GL_RGB32F */
 #define LS_RGBA32F  0x8814  /* GL_RGBA32F */
+/* L5: integer textures for the cluster light grid */
+#define LS_R32UI  0x8235  /* GL_R32UI */
+#define LS_RG32UI  0x823C /* GL_RG32UI */
+#define LS_RED_INTEGER  0x8D94 /* GL_RED_INTEGER */
+#define LS_RG_INTEGER  0x8228  /* GL_RG_INTEGER */
 #define LS_SRGB  0x8C40  /* GL_SRGB */
 #define LS_SRGB_ALPHA  0x8C42  /* GL_SRGB_ALPHA */
 #define LS_SRGB8  0x8C41  /* GL_SRGB8 */

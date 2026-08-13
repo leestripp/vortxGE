@@ -2814,6 +2814,16 @@ bool lsVulkan::uploadTexture( VkTex& tex, lsEnum internalFormat, lsEnum format,
 		depth = true;
 		vkFormat = VK_FORMAT_D32_SFLOAT;
 		srcBpp = dstBpp = 4;
+	} else if( internalFormat == LS_R32UI )
+	{
+		// L5: cluster index list (integer data, no filtering)
+		vkFormat = VK_FORMAT_R32_UINT;
+		srcBpp = dstBpp = 4;
+	} else if( internalFormat == LS_RG32UI )
+	{
+		// L5: cluster grid (offset,count) pairs
+		vkFormat = VK_FORMAT_R32G32_UINT;
+		srcBpp = dstBpp = 8;
 	} else if( format == LS_ALPHA )
 	{
 		vkFormat = VK_FORMAT_R8_UNORM;
