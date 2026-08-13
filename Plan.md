@@ -282,7 +282,7 @@ now doctested.
 **Done when:** penumbra grows with occluder distance; contact
 hardening visible near occluders.
 
-**L4 PROGRESS 2026-08-13:** L4.1 PCSS DONE (4f93549): blocker search
+**L4 COMPLETE 2026-08-13:** L4.1 PCSS DONE (4f93549): blocker search
 over a raw-depth ALIAS view (new TexStorage2D + CreateDepthRawView
 virtuals; GL texture view / VK sampler-only alias), variable penumbra
 from receiver-blocker separation, per-light shadow_softness (uv
