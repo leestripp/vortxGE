@@ -1,8 +1,8 @@
 bl_info = {
     "name": "vortxGE Scene Exporter",
     "author": "Lee A. Stripp",
-    "version": (1, 4),
-    "blender": (4, 5, 0),
+    "version": (1, 5),
+    "blender": (5, 2, 0),
     "location": "File > Export > vortxGE Scene (.vgs)",
     "description": "Exports the scene to a vortxGE .vgs file and all meshes to .glb files",
     "warning": "",

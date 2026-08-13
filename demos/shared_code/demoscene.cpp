@@ -486,6 +486,17 @@ void DemoScene::setupControls()
 
 void DemoScene::setupTestScene()
 {
+	// Tech-demo scene selection: VORTX_SCENE=<name> loads data/<name>.vgs
+	// (exported from demos/scenes_src/<name>.blend via tools/export_scenes.py).
+	// Default "demoscene" = the base demo. The base scene keeps its
+	// procedural extras (object emitter, Khronos sample models); tech
+	// scenes are pure .vgs content plus the shared environment shell
+	// (skybox, physics ground, speaker).
+	const char* sceneEnv = std::getenv( "VORTX_SCENE" );
+	m_sceneName = ( sceneEnv && *sceneEnv ) ? sceneEnv : "demoscene";
+	const bool baseScene = ( m_sceneName == "demoscene" );
+	cout << "DemoScene: scene '" << m_sceneName << "'" << endl;
+
 	// Skybox Setup
 	// Load custom shaders not part of vortxGE's default set
 	lsShader* skyboxShader = m_vortxge->getShaderManager()->Find_Shader("skybox");
@@ -551,10 +562,12 @@ void DemoScene::setupTestScene()
 	ground->setBulletObject(bulletObject);
 	m_viewer_scene->Add_Node(ground);
 	
-	// Load the demoscene.vgs file
+	// Load the selected scene file
 	if (m_viewer)
 	{
-		m_viewer->getSceneManager()->LoadSceneFromFile("data/demoscene.vgs", m_viewer_scene);
+		const std::string sceneFile = "data/" + m_sceneName + ".vgs";
+		if( !m_viewer->getSceneManager()->LoadSceneFromFile( sceneFile, m_viewer_scene ) )
+			cerr << "ERROR: failed to load scene file " << sceneFile << endl;
 		
 		// Manually trigger a single Move pass to update ModelMatrix for all nodes
 		// This is necessary so that nodes have their correct world positions for light linking.
@@ -622,14 +635,18 @@ void DemoScene::setupTestScene()
 	// Setup shadowmaps.
 	setupShadows();
 	
-	// Create object emitter.
-	setupObjectEmitter();
-	
-	// Debug-gated ad-hoc test model (VORTX_TEST_MODEL)
+	// Base-demo content only (tech scenes are pure .vgs)
+	if( baseScene )
+	{
+		// Create object emitter.
+		setupObjectEmitter();
+
+		// Khronos sample models (data/testmodels/)
+		setupSampleModels();
+	}
+
+	// Debug-gated ad-hoc test model (VORTX_TEST_MODEL) — any scene
 	setupTestModel();
-	
-	// Khronos sample models (data/testmodels/ — redistributable licenses)
-	setupSampleModels();
 }
 
 // -------------------------------------------------------------------

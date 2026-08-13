@@ -76,6 +76,9 @@ public:
 
 protected:
     void setupControls();
+
+    /// Selected scene name (VORTX_SCENE, default "demoscene")
+    std::string m_sceneName = "demoscene";
     void setupTestScene();
     void setupShadows();
     void setupObjectEmitter();

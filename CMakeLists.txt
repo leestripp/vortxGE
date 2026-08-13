@@ -122,3 +122,6 @@ endif()
 # Add links for data.
 ADD_CUSTOM_TARGET(symlink_gtkmm ALL COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_BINARY_DIR}/../demos/data" "${CMAKE_BINARY_DIR}/demos/vortxGEdemo_gtkmm/data")
 ADD_CUSTOM_TARGET(symlink_glfw3 ALL COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_BINARY_DIR}/../demos/data" "${CMAKE_BINARY_DIR}/demos/vortxGEdemo_glfw3/data")
+
+# Re-export stale tech-demo scenes from .blend sources (opt-in; needs Blender)
+ADD_CUSTOM_TARGET(export_scenes COMMAND ${CMAKE_COMMAND} -E env python3 "${CMAKE_SOURCE_DIR}/tools/export_scenes.py" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
