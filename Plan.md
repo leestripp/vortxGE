@@ -234,6 +234,14 @@ GL+VK at 60 fps; quality preset visibly scales.
 **Done when:** shadows usable from 0.5 m to 300+ m from camera with
 no visible seams while moving/rotating.
 
+**L2 COMPLETE 2026-08-13:** L2.1a lsCsm split/fit math + doctests
+(414cb19), L2.1b+2.3 lsCascadedShadowMap atlas + lsCsmStage (e68b39c),
+L2.2 world-anchored per-cascade texel snapping (in 414cb19, tested),
+L2.4 shader cascade select + 10% blend band (33c2d4a). Sun renders
+via CSM when VORTX_CSM=1 (dev flag in demoscene); single-map sun
+remains the default until soak testing. Verified GL+VK parity via
+VORTX_SHOT captures, ctest 100%.
+
 ## L3 — Full light-type coverage
 
 - L3.1 Spot: tighten frustum fit to cone, perspective-correct
