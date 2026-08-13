@@ -259,6 +259,11 @@ private:
     /** @brief Shadow map usage flags (up to 3): 0=off 1=single map 2=CSM */
 	lsUniformID iUse_shadowmap[3];
 
+	// L4.1 PCSS: raw-depth views + per-slot light size + preset gate
+	lsUniformID iTex_shadowdepth[3];
+	lsUniformID iShadowSoftness[3];
+	lsUniformID iPcssEnabled;
+
 	//=========================================================================
 	// CSM Uniforms (L2.4 — used when a light slot is use_shadowmap=2)
 	//=========================================================================

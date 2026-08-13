@@ -200,6 +200,27 @@ public:
     virtual void TexImage2D( lsEnum target, lsInt level, lsInt internalformat,
                              lsSizei width, lsSizei height, lsInt border,
                              lsEnum format, lsEnum type, const void* data ) = 0;
+
+    /**
+     * @brief Allocate immutable 2D texture storage (no pixel data)
+     *
+     * L4.1: PCSS needs texture views (aliases), which GL restricts to
+     * immutable-storage textures. VK treats this like a data-less
+     * TexImage2D (its images are already storage-style).
+     */
+    virtual void TexStorage2D( lsEnum target, lsSizei levels, lsEnum internalformat,
+                               lsSizei width, lsSizei height ) = 0;
+
+    /**
+     * @brief Create a raw-depth alias view of a comparison depth texture
+     *
+     * L4.1 PCSS blocker search needs raw depth values; comparison
+     * samplers only return the lit fraction. Returns a new texture id
+     * sharing the source's storage with compare mode OFF (GL: texture
+     * view; VK: VkTex alias with a non-comparison sampler).
+     * Delete BEFORE the source texture. 0 on failure.
+     */
+    virtual lsTextureID CreateDepthRawView( lsTextureID src ) = 0;
     virtual void TexParameteri( lsEnum target, lsEnum pname, lsInt param ) = 0;
     virtual void TexParameterf( lsEnum target, lsEnum pname, lsFloat param ) = 0;
     virtual void TexParameterfv( lsEnum target, lsEnum pname, const lsFloat* params ) = 0;

@@ -55,6 +55,9 @@ public:
 	void BindTexture( lsEnum target, lsTextureID texture ) override;
 	void ActiveTexture( lsEnum texture ) override;
 	void TexImage2D( lsEnum target, lsInt level, lsInt internalformat, lsSizei width, lsSizei height, lsInt border, lsEnum format, lsEnum type, const void* data ) override;
+	void TexStorage2D( lsEnum target, lsSizei levels, lsEnum internalformat,
+					   lsSizei width, lsSizei height ) override;
+	lsTextureID CreateDepthRawView( lsTextureID src ) override;
 	void TexParameteri( lsEnum target, lsEnum pname, lsInt param ) override;
 	void TexParameterf( lsEnum target, lsEnum pname, lsFloat param ) override;
 	void TexParameterfv( lsEnum target, lsEnum pname, const lsFloat* params ) override;
@@ -249,6 +252,7 @@ private:
 		bool	compareEnable = false;	// L1.3: shadow-map depth compare
 		bool	isCube = false;			// L3.2: cube map (6-layer image, cube view)
 		lsEnum	wrapR = 0x2901;		// LS_REPEAT (cube maps clamp to edge)
+		bool	sharedView = false;		// L4.1: raw-depth alias — owns only the sampler
 	};
 
 	bool createBufferStorage( VkBuf& buf, VkDeviceSize size, const void* data );

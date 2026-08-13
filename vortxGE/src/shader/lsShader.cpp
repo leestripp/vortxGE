@@ -15,6 +15,7 @@
 #include "../math/lsMatrix3x3.h"
 
 // scene
+#include "../pipeline/lsShadowMap.h"
 #include "../scene/lsObject.h"
 #include "../scene/lsScene.h"
 #include "../scene/lsCamera.h"
@@ -61,6 +62,8 @@ lsShader::lsShader( lsRender *render )
 		isMatrices[i] = -1;
 		iTex_shadowmaps[i] = -1;
 		iUse_shadowmap[i] = -1;
+		iTex_shadowdepth[i] = -1;
+		iShadowSoftness[i] = -1;
 		iLightType[i] = -1;
 		iLightPos[i] = -1;
 		iLightDir[i] = -1;
@@ -133,6 +136,13 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 				iPointFar[i] = getRender()->GetUniformLocation( shader, ("pointFar[" + to_string(i) + "]").c_str() );
 			}
 			
+			// L4.1 PCSS
+			for(int i = 0; i < 3; ++i) {
+				iTex_shadowdepth[i] = getRender()->GetUniformLocation( shader, ("tex_shadowdepth[" + to_string(i) + "]").c_str() );
+				iShadowSoftness[i] = getRender()->GetUniformLocation( shader, ("shadowSoftness[" + to_string(i) + "]").c_str() );
+			}
+			iPcssEnabled = getRender()->GetUniformLocation( shader, "pcssEnabled" );
+
 			// Lights uniforms (arrays)
 			iLightCount = getRender()->GetUniformLocation( shader, "vxLightCount" );
 			iDebugView = getRender()->GetUniformLocation( shader, "vxDebugView" );
@@ -387,6 +397,12 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 							getRender()->Uniform1i(iTex_shadowmaps[slot], 3 + slot);
 							getRender()->Uniform1i(iUse_shadowmap[slot], 1);
 							getRender()->UniformMatrix4fv(isMatrices[slot], 1, LS_FALSE, light->ShadowmapMatrix.matrix);
+							// L4.1: raw-depth view for the PCSS blocker search (units 8-10)
+							// + per-light penumbra size
+							getRender()->ActiveTexture(LS_TEXTURE0 + 8 + slot);
+							getRender()->BindTexture(LS_TEXTURE_2D, light->getTex_shadowmap_raw());
+							getRender()->Uniform1i(iTex_shadowdepth[slot], 8 + slot);
+							getRender()->Uniform1f(iShadowSoftness[slot], light->shadow_softness);
 						} else {
 							// DIAGNOSTIC: VORTX_DISABLE_SHADOWS=1 forces use_shadowmap=0
 							// for shadow-casting lights too, to verify whether the
@@ -407,6 +423,9 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 				}
 				// Pass the count of active lights to the shader
 				getRender()->Uniform1i(iLightCount, slot);
+				// L4.3: PCSS only on the High quality preset
+				getRender()->Uniform1i( iPcssEnabled,
+					lsShadowMap::getQuality() == lsShadowQuality::High ? 1 : 0 );
 #if defined(VORTX_DEBUG_TOOLS)
 				getRender()->Uniform1i( iDebugView, debugViewMode() );
 #else

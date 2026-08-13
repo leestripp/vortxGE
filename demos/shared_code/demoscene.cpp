@@ -441,6 +441,14 @@ void DemoScene::setupControls()
 				m_viewer_scene->Add_Node(m_sun_light);
 		        m_viewer_scene->getLightManager()->Add_Light(m_sun_light);
 			}
+		// L4.1 PCSS: per-light penumbra sizes (uv units of the shadow
+		// map). Sun: small (distant light, huge 400m ortho); spots:
+		// larger so the soft-edge effect is clearly visible in the demo.
+		for( lsLight* l : m_viewer_scene->getLightManager()->getLights() )
+		{			if( l->getLight_type() == LSLT_DIRECT ) l->shadow_softness = 0.004f;
+			else if( l->getLight_type() == LSLT_SPOT ) l->shadow_softness = 0.03f;
+		}
+
 		// L3.2 dev light: VORTX_POINTLIGHT=1 adds a shadow-casting
 		// point light near the objects (and frees a shader slot by
 		// deactivating the second spot — the shaders take 3 lights).

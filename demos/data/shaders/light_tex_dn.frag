@@ -20,6 +20,12 @@ uniform vec3 pointWorldPos[3];
 uniform float pointNear[3];
 uniform float pointFar[3];
 
+// L4.1 PCSS: raw (non-comparison) views of tex_shadowmaps for the
+// blocker search + per-slot max penumbra (uv units); High preset only
+uniform sampler2D tex_shadowdepth[3];
+uniform float shadowSoftness[3];
+uniform int pcssEnabled;
+
 // Lighting
 uniform vec3 vxLightPos[3];
 uniform vec4 vxLightDiffuse[3];
@@ -91,7 +97,7 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 // comparison sampler (sampler2DShadow, LINEAR + COMPARE_REF_TO_TEXTURE)
 // so each tap returns a hardware bilinear depth comparison — the
 // effective kernel is 16 x 4 taps.
-float calculateShadow(vec4 shadowCoord, sampler2DShadow shadowMap) {
+float calculateShadow(vec4 shadowCoord, sampler2DShadow shadowMap, int slot) {
 	vec3 projCoords = shadowCoord.xyz / shadowCoord.w;
 
 	if (any(lessThan(projCoords.xyz, vec3(0.0))) || any(greaterThan(projCoords.xyz, vec3(1.0)))) {
@@ -115,6 +121,30 @@ float calculateShadow(vec4 shadowCoord, sampler2DShadow shadowMap) {
 	float rnd = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
 	float cs = cos(rnd * 6.2831853), sn = sin(rnd * 6.2831853);
 	mat2 rot = mat2(cs, -sn, sn, cs);
+
+	// L4.1 PCSS (L4.3: High preset only): blocker search over the raw
+	// depth view, then penumbra width from the receiver-blocker depth
+	// separation — shadows sharpen near occluder contact, soften with
+	// distance. shadowSoftness = max penumbra half-width (uv units).
+	if (pcssEnabled == 1) {
+		float zr = projCoords.z - bias;
+		float maxRadius = max(shadowSoftness[slot] / texelSize.x, 1.0); // texels
+		float blockerSum = 0.0, blockerCount = 0.0;
+		for (int i = 0; i < 16; ++i) {
+			vec2 offset = rot * poissonDisk[i] * texelSize * maxRadius;
+			float d = texture(tex_shadowdepth[slot], projCoords.xy + offset).r;
+			if (d < zr) { blockerSum += d; blockerCount += 1.0; }
+		}
+		if (blockerCount < 0.5) return 1.0; // no occluder in range
+		float zb = blockerSum / blockerCount;
+		float radius = clamp(maxRadius * (zr - zb) / max(zb, 0.02), 1.0, maxRadius);
+		float shadow = 0.0;
+		for (int i = 0; i < 16; ++i) {
+			vec2 offset = rot * poissonDisk[i] * texelSize * radius;
+			shadow += texture(shadowMap, vec3(projCoords.xy + offset, zr));
+		}
+		return shadow / 16.0;
+	}
 
 	float shadow = 0.0;
 	for (int i = 0; i < 16; ++i) {
@@ -283,7 +313,7 @@ void main(void) {
 		float light_shadow = 1.0;
 		if (use_shadowmap[i] == 1) {
             // Pass the correct shadow coordinate and shadow map sampler for this light
-			light_shadow = calculateShadow(osShadowCoords[i], tex_shadowmaps[i]);
+			light_shadow = calculateShadow(osShadowCoords[i], tex_shadowmaps[i], i);
 		}
 		else if (use_shadowmap[i] == 2) {
 			light_shadow = calculateShadowCsm();

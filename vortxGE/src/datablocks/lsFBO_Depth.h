@@ -108,9 +108,18 @@ public:
         return depth_texture;
     }
 
+    /**
+     * @brief Raw (non-comparison) alias of the depth texture, or 0
+     *
+     * L4.1: the PCSS blocker search reads raw depth values; the main
+     * texture is a comparison sampler. Same storage, compare mode off.
+     */
+    lsTextureID getDepthTextureRaw() const { return depth_texture_raw; }
+
 private:
     /// Depth texture ID
     lsTextureID depth_texture;
+    lsTextureID depth_texture_raw = 0; ///< L4.1: non-comparison alias (PCSS blocker search)
 };
 
 #endif // LSFBO_DEPTH_H

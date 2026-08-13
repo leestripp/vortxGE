@@ -184,6 +184,38 @@ void lsOpenGL::ActiveTexture( lsEnum texture )                                  
 void lsOpenGL::TexImage2D( lsEnum target, lsInt level, lsInt internalformat,
                            lsSizei width, lsSizei height, lsInt border,
                            lsEnum format, lsEnum type, const void* data )                  { glTexImage2D( static_cast<GLenum>(target), static_cast<GLint>(level), static_cast<GLint>(internalformat), static_cast<GLsizei>(width), static_cast<GLsizei>(height), static_cast<GLint>(border), static_cast<GLenum>(format), static_cast<GLenum>(type), data ); VORTX_DEBUG_ONLY( lsFrameDump::trackTexImageBound( (int)level, (int)internalformat, (int)width, (int)height, (int)format, (int)type, data ); ) }
+void lsOpenGL::TexStorage2D( lsEnum target, lsSizei levels, lsEnum internalformat,
+                             lsSizei width, lsSizei height )
+{
+    // glTexStorage2D needs a SIZED internal format; LS_DEPTH_COMPONENT
+    // keeps GL's legacy unsized value, so map it to 24-bit depth.
+    GLenum sized = static_cast<GLenum>( internalformat );
+    if( internalformat == LS_DEPTH_COMPONENT ) sized = GL_DEPTH_COMPONENT24;
+    glTexStorage2D( static_cast<GLenum>(target), static_cast<GLsizei>(levels),
+                    sized, static_cast<GLsizei>(width), static_cast<GLsizei>(height) );
+}
+
+lsTextureID lsOpenGL::CreateDepthRawView( lsTextureID src )
+{
+    if( !src ) return 0;
+    GLuint view = 0;
+    glGenTextures( 1, &view );
+    // Source must have immutable storage (TexStorage2D); D24 matches
+    // lsOpenGL::TexStorage2D's depth mapping.
+    glTextureView( view, GL_TEXTURE_2D, static_cast<GLuint>(src),
+                   GL_DEPTH_COMPONENT24, 0, 1, 0, 1 );
+    glBindTexture( GL_TEXTURE_2D, view );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+    GLfloat border[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border );
+    glBindTexture( GL_TEXTURE_2D, 0 );
+    return static_cast<lsTextureID>( view );
+}
+
 void lsOpenGL::TexParameteri( lsEnum target, lsEnum pname, lsInt param )                    { glTexParameteri( static_cast<GLenum>(target), static_cast<GLenum>(pname), static_cast<GLint>(param) ); }
 void lsOpenGL::TexParameterf( lsEnum target, lsEnum pname, lsFloat param )                  { glTexParameterf( static_cast<GLenum>(target), static_cast<GLenum>(pname), static_cast<GLfloat>(param) ); }
 void lsOpenGL::TexParameterfv( lsEnum target, lsEnum pname, const lsFloat* params )         { glTexParameterfv( static_cast<GLenum>(target), static_cast<GLenum>(pname), reinterpret_cast<const GLfloat*>(params) ); }

@@ -51,6 +51,7 @@ lsShadowMap::lsShadowMap( lsLight* light, lsShadowQuality quality,
 
 	// self-wire: hand the depth texture to the light for PBR sampling
 	light->setTex_shadowmap( m_fbo->getDepthTexture() );
+	light->setTex_shadowmap_raw( m_fbo->getDepthTextureRaw() ); // L4.1
 	light->setHas_shadowmap( true );
 	light->setPixel_x( m_size );	// L1.5: texel snapping needs the size
 	light->setPixel_y( m_size );

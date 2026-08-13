@@ -2657,10 +2657,72 @@ void lsVulkan::DeleteTextures( lsSizei n, lsTextureID* textures )
 		if( it == m_textures.end() ) continue;
 		VkTex& t = it->second;
 		if( t.sampler ) retireSampler( t.sampler );
-		if( t.view ) retireView( t.view );
-		if( t.image || t.memory ) retireImage( t.image, t.memory );
+		// L4.1: raw-depth aliases share the source's image/view — own only
+		// their sampler. The source must outlive the alias (lsFBO_Depth
+		// deletes the alias first).
+		if( t.view && !t.sharedView ) retireView( t.view );
+		if( !t.sharedView && ( t.image || t.memory ) ) retireImage( t.image, t.memory );
 		m_textures.erase( it );
 	}
+}
+
+void lsVulkan::TexStorage2D( lsEnum target, lsSizei levels, lsEnum internalformat,
+							 lsSizei width, lsSizei height )
+{
+	(void)levels;
+	// Storage-only allocation == data-less TexImage2D on this backend.
+	TexImage2D( target, 0, internalformat, width, height, 0,
+				internalformat, LS_FLOAT, NULL );
+}
+
+lsTextureID lsVulkan::CreateDepthRawView( lsTextureID src )
+{
+	auto it = m_textures.find( src );
+	if( it == m_textures.end() || !it->second.view ) return 0;
+	const VkTex& s = it->second;
+
+	// Alias: share image + view, own a non-comparison sampler. VK keeps
+	// compare state on the sampler, so no new image view is needed.
+	VkTex t{};
+	t.image = s.image;
+	t.memory = VK_NULL_HANDLE;		// non-owning
+	t.view = s.view;					// shared (sharedView)
+	t.format = s.format;
+	t.width = s.width; t.height = s.height;
+	t.mipLevels = s.mipLevels;
+	t.minFilter = s.minFilter; t.magFilter = s.magFilter;
+	t.wrapS = s.wrapS; t.wrapT = s.wrapT; t.wrapR = s.wrapR;
+	t.compareEnable = false;		// raw depth read
+	t.sharedView = true;
+
+	auto filterOf = []( lsEnum f ) {
+		return ( f == LS_NEAREST ) ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
+	};
+	auto wrapOf = []( lsEnum w ) {
+		switch( w )
+		{
+		case LS_CLAMP_TO_EDGE:	return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case LS_CLAMP_TO_BORDER: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		case LS_MIRRORED_REPEAT: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		default:				return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		}
+	};
+	VkSamplerCreateInfo si{};
+	si.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	si.magFilter = filterOf( t.magFilter );
+	si.minFilter = filterOf( t.minFilter );
+	si.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+	si.addressModeU = wrapOf( t.wrapS );
+	si.addressModeV = wrapOf( t.wrapT );
+	si.addressModeW = wrapOf( t.wrapR );
+	si.maxLod = 0.0f;
+	si.compareEnable = VK_FALSE;
+	if( vkCreateSampler( m_device, &si, nullptr, &t.sampler ) != VK_SUCCESS )
+		return 0;
+
+	const uint32_t id = m_nextTexID++;
+	m_textures[id] = t;
+	return id;
 }
 
 void lsVulkan::ActiveTexture( lsEnum texture )

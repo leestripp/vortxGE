@@ -195,6 +195,10 @@ public:
         tex_shadowmap = val;
     }
 
+    /** @brief L4.1: raw-depth alias of the shadow map (PCSS blocker search) */
+    lsTextureID getTex_shadowmap_raw() const { return tex_shadowmap_raw; }
+    void setTex_shadowmap_raw( lsTextureID val ) { tex_shadowmap_raw = val; }
+
     // L2.4: when this light is rendered by an lsCsmStage, it points at
     // the cascade subsystem (not owned). lsShader uses it to bind the
     // CSM atlas + per-cascade matrices instead of the single map.
@@ -313,6 +317,11 @@ public:
      * (stages skip rendering, shading ignores its map) */
     bool cast_shadows = true;
 
+    /** @brief L4.1 PCSS: max penumbra half-width in shadow-map uv
+     * units (0.01 = 1% of the map, ~20 texels at 2048). Larger light
+     * sources => larger values. Only used on the High preset (L4.3). */
+    float shadow_softness = 0.008f;
+
     /** @brief L3.2: point shadow cube face projection range.
      * The stage renders faces with these planes; shading reconstructs
      * the reference depth through the same 90-degree projection. */
@@ -329,6 +338,7 @@ private:
 
     /** @brief Shadow map texture ID */
     lsTextureID tex_shadowmap;
+    lsTextureID tex_shadowmap_raw = 0;
     lsCascadedShadowMap* m_csm = nullptr;
     
     /** @brief Shadow bias value */

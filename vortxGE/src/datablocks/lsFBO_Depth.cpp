@@ -21,7 +21,10 @@ void lsFBO_Depth::CreateGL()
 	// Depth texture
 	render->GenTextures( 1, &depth_texture );
 	render->BindTexture( LS_TEXTURE_2D, depth_texture );
-	render->TexImage2D( LS_TEXTURE_2D, 0, LS_DEPTH_COMPONENT, width, height, 0, LS_DEPTH_COMPONENT, LS_FLOAT, NULL );
+	// L4.1: immutable storage (TexStorage2D) so the backend can alias a
+	// raw-depth view for the PCSS blocker search (GL texture views
+	// require it; VK treats it like a data-less TexImage2D).
+	render->TexStorage2D( LS_TEXTURE_2D, 1, LS_DEPTH_COMPONENT, width, height );
 	// L1.3: LINEAR + compare mode = hardware depth comparison with
 	// bilinear PCF (4 taps per fetch) on both backends. Shaders sample
 	// these maps as sampler2DShadow.
@@ -35,6 +38,9 @@ void lsFBO_Depth::CreateGL()
 	render->TexParameterfv( LS_TEXTURE_2D, LS_TEXTURE_BORDER_COLOR, borderColor );
 
 	render->BindTexture( LS_TEXTURE_2D, 0 );
+
+	// L4.1: raw (non-comparison) alias for the PCSS blocker search
+	depth_texture_raw = render->CreateDepthRawView( depth_texture );
 
 	render->StoreDefaultFramebuffer();
 
@@ -73,8 +79,10 @@ void lsFBO_Depth::Resize( double width, double height )
 	if( !render ) return;
 
 	render->DeleteFramebuffers( 1, &m_fbo );
+	if( depth_texture_raw ) render->DeleteTextures( 1, &depth_texture_raw ); // alias first
 	render->DeleteTextures( 1, &depth_texture );
 
+	depth_texture_raw = 0;
 	depth_texture = 0;
 	m_fbo = 0;
 
@@ -86,7 +94,11 @@ void lsFBO_Depth::Resize( double width, double height )
 
 lsFBO_Depth::~lsFBO_Depth()
 {
-	if( getRender() ) getRender()->DeleteTextures( 1, &depth_texture );
+	if( getRender() )
+	{
+		if( depth_texture_raw ) getRender()->DeleteTextures( 1, &depth_texture_raw );
+		getRender()->DeleteTextures( 1, &depth_texture );
+	}
 }
 
 void lsFBO_Depth::Enable()

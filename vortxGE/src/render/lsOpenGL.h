@@ -106,6 +106,9 @@ public:
     virtual void TexImage2D( lsEnum target, lsInt level, lsInt internalformat,
                              lsSizei width, lsSizei height, lsInt border,
                              lsEnum format, lsEnum type, const void* data ) override;
+    void TexStorage2D( lsEnum target, lsSizei levels, lsEnum internalformat,
+                       lsSizei width, lsSizei height ) override;
+    lsTextureID CreateDepthRawView( lsTextureID src ) override;
     virtual void TexParameteri( lsEnum target, lsEnum pname, lsInt param ) override;
     virtual void TexParameterf( lsEnum target, lsEnum pname, lsFloat param ) override;
     virtual void TexParameterfv( lsEnum target, lsEnum pname, const lsFloat* params ) override;
