@@ -591,6 +591,9 @@ void DemoScene::setupTestScene()
 	
 	// Debug-gated ad-hoc test model (VORTX_TEST_MODEL)
 	setupTestModel();
+	
+	// Khronos sample models (data/testmodels/ — redistributable licenses)
+	setupSampleModels();
 }
 
 // -------------------------------------------------------------------
@@ -638,6 +641,50 @@ void DemoScene::setupTestModel()
 	cout << "VORTX_TEST_MODEL: loaded " << path << " at ("
 		 << px << "," << py << "," << pz << ") scale " << sc << endl;
 #endif
+}
+
+// -------------------------------------------------------------------
+// Khronos glTF sample models (demos/data/testmodels/ — CC0 / CC-BY,
+// see ATTRIBUTION.md there). Permanent scene content: real-world PBR
+// meshes exercising the light_tex_* shaders beyond the demo assets.
+// NOTE: non-Blender-export glTF materials currently render dark on
+// both backends (known material/shader variant gap, see commit
+// 9243f36 message) — the models are still useful for geometry,
+// shadow and loader validation.
+// -------------------------------------------------------------------
+void DemoScene::setupSampleModels()
+{
+	if (!m_viewer_scene) return;
+
+	struct SampleDef { const char* file; const char* name;
+					   float x, y, z, s; };
+	const SampleDef defs[] = {
+		{ "data/testmodels/WaterBottle.glb", "SampleWaterBottle",
+		  -1.1f, 1.15f, -3.2f, 6.0f },	// on the crate's left corner
+		{ "data/testmodels/Corset.glb", "SampleCorset",
+		   2.6f, 0.85f, -5.0f, 1.2f },	// mannequin, right of crate
+		{ "data/testmodels/AlphaBlendModeTest.glb", "SampleAlphaBlend",
+		   6.0f, -1.0f, -10.0f, 0.6f },	// alpha-test grid, back right
+	};
+	for (const auto& d : defs)
+	{
+		lsAsset_Mesh* mesh = m_viewer_scene->getAssetManager()
+							 ->CreateAsset_Mesh( d.file );
+		if (!mesh)
+		{
+			cout << "WARNING: sample model missing: " << d.file << endl;
+			continue;
+		}
+		mesh->AllocAsset();
+
+		lsObject* obj = new lsObject( m_viewer_scene );
+		obj->setName( d.name );
+		obj->Set_Asset( mesh );
+		obj->Set_Scale( d.s, d.s, d.s );
+		obj->Set_Pos( d.x, d.y, d.z );
+		obj->Set_Rot( 0, 0, 0 );
+		m_viewer_scene->Add_Node( obj );
+	}
 }
 
 void DemoScene::setupObjectEmitter()

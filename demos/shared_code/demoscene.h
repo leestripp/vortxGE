@@ -80,6 +80,7 @@ protected:
     void setupShadows();
     void setupObjectEmitter();
     void setupTestModel();      // debug-gated (VORTX_TEST_MODEL)
+    void setupSampleModels();   // Khronos sample models (data/testmodels/)
     // Scene Events
     void processEvent( lsEvent* event );
 	
