@@ -69,6 +69,7 @@ void lsLight::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((un
     // This should happen after its transform has been updated in the Move pass,
     // and before any pass that might need to sample its shadow map.
     if (has_shadowmap) {
+        syncShadowFrustum(); // L3.1: spots sync FOV to the outer cone
         buildShadowmap_matrix(render);
     }
 }

@@ -2,8 +2,12 @@
 
 #include "../datablocks/lsFBO_Depth.h"
 #include "../scene/lsLight.h"
+#include "../scene/lsLight_Spot.h"
+#include "../scene/lsObject.h"
 #include "../scene/lsScene.h"
 #include "lsStagePassToken.h"
+
+#include <vector>
 
 #if defined(VORTX_DEBUG_TOOLS)
 #include <cstdlib>
@@ -76,6 +80,39 @@ void lsShadowStage::execute( lsRender* render, lsTargetPool& targets )
 	m_scene->InitDrawlist();
 	m_scene->Optimize( m_light, m_passToken, m_scene, render );
 	m_scene->OptimizeThread( m_light, m_passToken, m_scene, render );
+
+	// L3.1 (spot): fit near/far to the culled drawlist content, then
+	// rebuild the shadow matrix with the tight frustum. Culling above
+	// ran with the previous (conservative) range — a superset — so
+	// nothing the tight frustum needs was dropped. Per-object radius is
+	// the scale magnitude capped at 2 m: huge flat meshes (the floor)
+	// must not blow up the range.
+	if( m_light->getLight_type() == LSLT_SPOT )
+	{
+		std::vector<lsVector3> positions;
+		std::vector<float> radii;
+		for( lsObject* o = m_scene->getDraw_list(); o;
+			 o = o->getNext_drawobject() )
+		{
+			positions.push_back( o->ModelMatrix * lsVector3( 0.0f, 0.0f, 0.0f ) );
+			const float s = o->scale.length();
+			radii.push_back( s > 2.0f ? 2.0f : s );
+		}
+		float nearZ, farZ;
+		if( lsFitSpotDepthRange( m_light->ViewMatrix, positions, radii,
+								 nearZ, farZ ) )
+		{
+			m_light->Set_Perspective( m_light->spot_outer_cutoff * 2.0, 1.0,
+									  nearZ, farZ );
+			m_light->buildShadowmap_matrix( render );
+#if defined(VORTX_DEBUG_TOOLS)
+			if( shadowTrace() )
+				std::cout << "SHADOWSTAGE L3.1 fit light=" << m_light->getName()
+						  << " near=" << nearZ << " far=" << farZ
+						  << " casters=" << positions.size() << std::endl;
+#endif
+		}
+	}
 
 	// --- Render phase (mirrors lsPass_ShadowMap::Render)
 	fbo->Enable();

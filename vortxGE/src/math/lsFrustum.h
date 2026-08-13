@@ -185,6 +185,11 @@ public:
 		return ProjectionMatrix;
 	}
 
+	/// Distance to the near clipping plane (L3.1 spot frustum sync)
+	float getNearplane() const { return nearplane; }
+	/// Distance to the far clipping plane
+	float getFarplane() const { return farplane; }
+
 	
 private:
 	/// The 6 planes defining the frustum boundaries

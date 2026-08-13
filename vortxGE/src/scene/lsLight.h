@@ -114,6 +114,14 @@ public:
      * to shadow map texture coordinates.
      */
     void buildShadowmap_matrix( lsRender* render );
+
+    /**
+     * @brief Hook called before the shadow matrix is (re)built
+     *
+     * Light types can tighten/sync their shadow frustum here.
+     * Base class: no-op. L3.1: lsLight_Spot syncs FOV to the cone.
+     */
+    virtual void syncShadowFrustum() {}
 	
     //=========================================================================
 	// Serialization
