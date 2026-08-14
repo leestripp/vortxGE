@@ -14,8 +14,31 @@ void lsClusterGrid::setup( int viewportW, int viewportH, float tilePixels,
     m_slices = std::max( 1, slices );
     m_nearZ = std::max( nearZ, 0.001f );
     m_farZ = std::max( farZ, m_nearZ + 0.01f );
+    // E5.1: precompute the exponential slice depth planes (clamped values)
+    m_sliceDepths.resize( (size_t)m_slices + 1 );
+    for( int i = 0; i <= m_slices; ++i )
+        m_sliceDepths[(size_t)i] = m_nearZ * std::pow( m_farZ / m_nearZ,
+            (float)i / (float)m_slices );
     m_tanX = tanHalfFovX;
     m_tanY = tanHalfFovY;
+
+    // E5.1b: per-cluster bounding spheres (needs tanX/tanY + slices set)
+    const int cc = m_tilesX * m_tilesY * m_slices;
+    m_centers.resize( (size_t)cc * 3 );
+    m_radii.resize( (size_t)cc );
+    for( int s = 0; s < m_slices; ++s )
+        for( int ty = 0; ty < m_tilesY; ++ty )
+            for( int tx = 0; tx < m_tilesX; ++tx )
+            {
+                lsVector3 bmin, bmax;
+                clusterAABB( tx, ty, s, bmin, bmax );
+                const lsVector3 ctr = ( bmin + bmax ) * 0.5f;
+                const int ci = clusterIndex( tx, ty, s );
+                m_centers[(size_t)ci * 3 + 0] = ctr.x;
+                m_centers[(size_t)ci * 3 + 1] = ctr.y;
+                m_centers[(size_t)ci * 3 + 2] = ctr.z;
+                m_radii[(size_t)ci] = ( bmax - bmin ).length() * 0.5f;
+            }
 
     m_grid.assign( (size_t)clusterCount() * 2, 0u );
     m_indices.clear();
@@ -35,11 +58,9 @@ int lsClusterGrid::sliceFromViewDepth( float viewDepth ) const
 void lsClusterGrid::clusterAABB( int tx, int ty, int slice,
                                  lsVector3& outMin, lsVector3& outMax ) const
 {
-    // slice depth range (positive distances)
-    const float zNear = m_nearZ * std::pow( m_farZ / m_nearZ,
-                        (float)slice / (float)m_slices );
-    const float zFar  = m_nearZ * std::pow( m_farZ / m_nearZ,
-                        (float)( slice + 1 ) / (float)m_slices );
+    // slice depth range from the precomputed table (E5.1)
+    const float zNear = m_sliceDepths[(size_t)slice];
+    const float zFar  = m_sliceDepths[(size_t)slice + 1];
 
     // NDC x/y range of the tile -> view-space x/y at the two z planes.
     // View space: camera at origin looking down -Z, +X right, +Y up.
@@ -143,18 +164,23 @@ void lsClusterGrid::build( const std::vector<lsClusterLightInput>& lights )
             for( int ty = ty0; ty <= ty1; ++ty )
                 for( int tx = tx0; tx <= tx1; ++tx )
                 {
-                    lsVector3 bmin, bmax;
-                    clusterAABB( tx, ty, s, bmin, bmax );
-                    if( sphereAABB2( p, bmin, bmax ) > r2 ) continue;
+                    // E5.1b: precomputed cluster sphere (center+radius)
+                    const int ci = clusterIndex( tx, ty, s );
+                    const float cx = m_centers[(size_t)ci * 3 + 0];
+                    const float cy = m_centers[(size_t)ci * 3 + 1];
+                    const float cz = m_centers[(size_t)ci * 3 + 2];
+                    const float cr = m_radii[(size_t)ci];
+                    const float dx = p.x - cx, dy = p.y - cy, dz = p.z - cz;
+                    const float rr = r + cr;
+                    if( dx*dx + dy*dy + dz*dz > rr*rr ) continue;
 
                     if( L.type == 2 ) // spot: cone cull vs cluster sphere
                     {
-                        const lsVector3 c = ( bmin + bmax ) * 0.5f;
-                        const float cr = ( bmax - bmin ).length() * 0.5f;
+                        const lsVector3 c( cx, cy, cz );
                         if( !coneHitsSphere( p, L.direction, L.cosOuter,
                                              c, cr ) ) continue;
                     }
-                    fn( clusterIndex( tx, ty, s ) );
+                    fn( ci );
                 }
     };
 

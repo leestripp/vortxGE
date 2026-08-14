@@ -85,6 +85,17 @@ private:
     int     m_tilesX = 0, m_tilesY = 0, m_slices = 0;
     float   m_tilePixels = 16.0f;
     float   m_nearZ = 0.1f, m_farZ = 100.0f;
+    // E5.1: precomputed slice depth planes (m_slices+1 entries) — the
+    // grid build walks every overlapped cluster per light per pass and
+    // std::pow per cell was ~30ms on the 65-light stress scene.
+    std::vector<float> m_sliceDepths;
+    // E5.1b: per-cluster view-space bounding sphere (center xyz +
+    // radius), precomputed at setup() — the per-light overlap loop was
+    // rebuilding every cluster AABB twice per frame (~3M heavy cells on
+    // the stress scene, 30ms). Sphere-vs-sphere is ~8 ops per cell and
+    // conservative (the cluster sphere encloses the AABB).
+    std::vector<float> m_centers;  // clusterCount() * 3
+    std::vector<float> m_radii;    // clusterCount()
     float   m_tanX = 1.0f, m_tanY = 1.0f;
     int     m_maxIndices = 262144;  ///< index list capacity
     int     m_maxPerCluster = 16;   ///< per-cluster light cap

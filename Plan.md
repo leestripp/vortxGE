@@ -159,12 +159,17 @@ removed or clearly deprecated; docs updated.
 **Done when:** edit a light in Blender → click → it moves in the
 running demo; addon version mismatch is caught by the export tool.
 
-### E5 — Clustered-lighting polish
+### E5 — Clustered-lighting polish — ✅ DONE 2026-08-14
 
-- E5.1 Cluster grid upload: per-frame full-grid `TexImage2D`
+- E5.1 ✅ REDEFINED by measurement: the upload was never the cost
+  (0.001ms GPU) — the CPU grid BUILD was (30ms on the stress scene,
+  std::pow per cell per light). Fixed: precomputed slice-depth table +
+  per-cluster bounding spheres → 3.45ms. Sub-rect upload not needed.
+  Original note:
   (~1 MB) → sub-rect upload of dirty region.
-- E5.2 Light cap 64 → 128 (bigger UBO / SSBO on Vulkan).
-- E5.3 Profile the per-frame CPU grid build (use E2's profiler);
+- E5.2 ✅ Light cap 64 → 128 (uniform arrays, cluster slot cap, all 4
+  light_tex_* shaders, demo link cap; stress scene verified >64).
+- E5.3 ✅ Profiled with the E2 profiler (that's what found E5.1);
   consider partial rebuilds (static lights only re-assign on move).
 
 **Done when:** measurable upload/build cost reduction; 128-light
