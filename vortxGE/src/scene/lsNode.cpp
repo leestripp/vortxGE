@@ -70,7 +70,6 @@ lsNode::lsNode( lsNode* parent )
 
 	// Life
 	life = 0.0;
-	timer_life.start_Timer();
 }
 
 lsNode::~lsNode()
@@ -165,7 +164,7 @@ bool lsNode::IsMarkedForDeletion() const
  * @param delta Time since last frame (seconds)
  */
 
-void lsNode::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render, __attribute__((unused)) double delta )
+void lsNode::Move( lsScene* scn, __attribute__((unused)) lsRender* render, double delta )
 {
 #ifdef VORTX_DEBUG_NODES
 	cout << "lsNode::Move()" << endl;
@@ -197,7 +196,10 @@ void lsNode::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused))
 	ModelMatrix.debug( "lsNode ModelMatrix: " + getName() );
 #endif
 	
-	// Check lift timer.
+	// E6: age the lifetime with SIMULATION time, then check it.
+	if( life > 0.0 ) life_age += delta;
+
+	// Check life timer.
 	checkLife(scn);
 }
 
@@ -414,7 +416,7 @@ void lsNode::checkLife( lsScene *scn )
 #endif
 	if( life == 0.0 ) return;
 
-	if( timer_life.get_ElapsedTime() > life )
+	if( life_age > life )
 	{
 		// Dont fire again
 		life = 0.0;
@@ -437,7 +439,7 @@ void lsNode::Set_Life( double val )
 #ifdef VORTX_DEBUG_NODES
 	cout << "lsNode::Set_Life() - Name: " << getName() << endl;
 #endif
-	timer_life.start_Timer();
+	life_age = 0.0; // reset age so pooled/reused nodes get a fresh lifetime
 	life = val;
 }
 

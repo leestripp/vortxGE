@@ -572,7 +572,8 @@ private:
     /**
      * @brief Timer for lifetime tracking
      */
-	lsTimer timer_life;
+	double life_age = 0.0;	// E6: SIM-time age (accumulated from Move delta),
+							// was wall-clock lsTimer — replays/fixed-dt now deterministic
 	
     /**
      * @brief Lifetime in seconds (0 = infinite)

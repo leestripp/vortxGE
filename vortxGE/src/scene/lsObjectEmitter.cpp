@@ -38,7 +38,6 @@ lsObjectEmitter::lsObjectEmitter( lsAsset_Mesh *am, lsAsset *abs, lsNode* parent
 	rand_rotation = true;
 
 	// Emit
-	timer_emit.start_Timer();
 	emittime = 2000.0;
 
 	// Get the root node
@@ -111,8 +110,8 @@ void lsObjectEmitter::PreAllocate( lsScene* scn, lsRender* render )
 
 void lsObjectEmitter::EmitObject( lsScene *scn, lsRender *render )
 {
-	if( timer_emit.get_ElapsedTime() <= emittime ) return;
-	timer_emit.start_Timer();
+	if( emit_age < emittime ) return;
+	emit_age -= emittime; // phase-preserving: no drift over long runs
 
 	if( !m_allocated ) PreAllocate( scn, render );
 	if( m_pool.empty() ) return;
@@ -160,6 +159,9 @@ void lsObjectEmitter::Move( lsScene *scn, lsRender *render, double delta )
 	if( getAnimationManager() ) 
 		getAnimationManager()->UpdateAll( delta );
 	
+	// E6: accumulate sim time, then maybe emit
+	emit_age += delta;
+
 	// Emit Object
 	EmitObject( scn, render );
 	

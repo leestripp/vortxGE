@@ -175,7 +175,7 @@ running demo; addon version mismatch is caught by the export tool.
 **Done when:** measurable upload/build cost reduction; 128-light
 scene interactive.
 
-### E6 — Sim-time determinism
+### E6 — Sim-time determinism — ✅ DONE 2026-08-14
 
 Emitter spawns and object lifetimes are wall-clock (`lsTimer`), not
 sim-time — `VORTX_FIXED_DT` works around it for captures by disabling

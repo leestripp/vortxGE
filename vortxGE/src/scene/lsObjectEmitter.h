@@ -91,7 +91,7 @@ public:
 	void setRand_rotation(bool value);
 
 private:
-	lsTimer         timer_emit;
+	double          emit_age = 0.0;	// E6: sim-time accumulator (was lsTimer)
 	double          emittime;
 	
 	// Emit data
