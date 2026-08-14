@@ -345,4 +345,17 @@ private:
     
     /** @brief Light intensities (up to 3) */
 	lsUniformID iLightIntensity[64]; // L5.2: raised from 3
+	lsUniformID iLightRadius[64]; // L5: cluster window radius
+
+	// L5 clustered lighting (all -1 on non-light programs)
+	lsUniformID iClusterEnabled = -1;
+	lsUniformID iClusterGrid = -1;
+	lsUniformID iClusterIndices = -1;
+	lsUniformID iClusterTilesX = -1;
+	lsUniformID iClusterTilesY = -1;
+	lsUniformID iClusterSlices = -1;
+	lsUniformID iClusterNear = -1;
+	lsUniformID iClusterFar = -1;
+	lsUniformID iClusterTileSize = -1;
+	lsUniformID iClusterFlipY = -1;
 };

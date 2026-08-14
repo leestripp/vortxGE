@@ -40,6 +40,7 @@
 #include <mutex>
 
 #include "lsNode.h"
+#include "../math/lsClusterGrid.h"
 
 // Forward declarations
 class lsBulletWorld;
@@ -306,6 +307,12 @@ public:
      * 
      * @return Pointer to light manager
      */
+    /// L5: per-frame clustered-lighting GPU data, owned by the
+    /// pipeline cluster stage (non-owned pointer, like lsLight::getCsm()).
+    /// Null or disabled -> shaders use the legacy light loop.
+    void setClusterGpuData( const lsClusterGpuData* d ) { m_clusterGpu = d; }
+    const lsClusterGpuData* getClusterGpuData() const { return m_clusterGpu; }
+
     lsLightManager* getLightManager() const
     {
         return m_lightManager;
@@ -347,6 +354,9 @@ private:
     //=========================================================================
     // Private Members
     //=========================================================================
+
+    /// L5: non-owned pointer to the pipeline's cluster GPU data
+    const lsClusterGpuData* m_clusterGpu = nullptr;
     
     /**
      * @brief Draw list - objects to render

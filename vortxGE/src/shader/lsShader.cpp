@@ -79,6 +79,7 @@ lsShader::lsShader( lsRender *render )
 		iLightDiffuse[i] = -1;
 		iLightSpecular[i] = -1;
 		iLightIntensity[i] = -1;
+		iLightRadius[i] = -1;
 	}
 	iPcssEnabled = -1;
 	iTex_pointshadow = -1;
@@ -178,8 +179,21 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 				iLightDiffuse[i] = getRender()->GetUniformLocation( shader, ("vxLightDiffuse[" + to_string(i) + "]").c_str() );
 				iLightSpecular[i] = getRender()->GetUniformLocation( shader, ("vxLightSpecular[" + to_string(i) + "]").c_str() );
 				iLightIntensity[i] = getRender()->GetUniformLocation( shader, ("vxLightIntensity[" + to_string(i) + "]").c_str() );
+				iLightRadius[i] = getRender()->GetUniformLocation( shader, ("vxLightRadius[" + to_string(i) + "]").c_str() );
 			}
 			
+			// L5 clustered lighting
+			iClusterEnabled  = getRender()->GetUniformLocation( shader, "clusterEnabled" );
+			iClusterGrid     = getRender()->GetUniformLocation( shader, "tex_clusterGrid" );
+			iClusterIndices  = getRender()->GetUniformLocation( shader, "tex_clusterIndices" );
+			iClusterTilesX   = getRender()->GetUniformLocation( shader, "clusterTilesX" );
+			iClusterTilesY   = getRender()->GetUniformLocation( shader, "clusterTilesY" );
+			iClusterSlices   = getRender()->GetUniformLocation( shader, "clusterSlices" );
+			iClusterNear     = getRender()->GetUniformLocation( shader, "clusterNear" );
+			iClusterFar      = getRender()->GetUniformLocation( shader, "clusterFar" );
+			iClusterTileSize = getRender()->GetUniformLocation( shader, "clusterTileSize" );
+			iClusterFlipY    = getRender()->GetUniformLocation( shader, "clusterFlipY" );
+
 			// Material
 			iMatAlbedo = getRender()->GetUniformLocation( shader, "vxMatAlbedo" );
 			iMatRoughness = getRender()->GetUniformLocation( shader, "vxMatRoughness" );
@@ -238,6 +252,39 @@ static const std::vector<lsLight*>& resolveLightList( lsObject* object )
 		if( auto* scn = dynamic_cast<lsScene*>( p ) )
 			return scn->getLightManager()->getLights();
 	return own; // empty
+}
+
+// L5: find the owning scene + its cluster GPU data (null when the
+// pipeline has no cluster stage or it is disabled)
+static lsScene* findScene( lsObject* object )
+{
+	for( lsNode* p = object->getParent(); p; p = p->getParent() )
+		if( auto* scn = dynamic_cast<lsScene*>( p ) )
+			return scn;
+	return nullptr;
+}
+static const lsClusterGpuData* clusterDataFor( lsObject* object )
+{
+	if( lsScene* scn = findScene( object ) )
+	{
+		const lsClusterGpuData* cd = scn->getClusterGpuData();
+		if( cd && cd->enabled ) return cd;
+	}
+	return nullptr;
+}
+// L5: cluster mode shades from the SCENE light list always (per-object
+// linked lists are a legacy optimisation the grid replaces). Both
+// Setup_Lights and the shadow binding use this so slot ranks match
+// the cluster stage's build exactly.
+static const std::vector<lsLight*>& resolveLightsClusterAware( lsObject* object )
+{
+	if( lsScene* scn = findScene( object ) )
+	{
+		const lsClusterGpuData* cd = scn->getClusterGpuData();
+		if( cd && cd->enabled )
+			return scn->getLightManager()->getLights();
+	}
+	return resolveLightList( object );
 }
 
 // L3.2: 1x1 dummy cube depth texture. samplerCubeShadow defaults to
@@ -349,9 +396,9 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 			{
 #if defined(VORTX_DEBUG_TOOLS)
 				const std::vector<lsLight*> lights = filterDebugLights(
-					resolveLightList( object ) );
+					resolveLightsClusterAware( object ) ); // L5
 #else
-				const auto& lights = resolveLightList( object );
+				const auto& lights = resolveLightsClusterAware( object ); // L5
 #endif
 				// FIX 2026-08-11 (Vulkan dark floor, 2/4 — see Plan.md "D1").
 				// Slot compaction MUST match Setup_Lights exactly (active
@@ -448,6 +495,33 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 					getRender()->BindTexture( LS_TEXTURE_CUBE_MAP,
 											  getDummyCubeDepth( getRender() ) );
 					getRender()->Uniform1i( iTex_pointshadow, 7 );
+				}
+				// L5: bind the cluster grid (units 12/13) when the
+				// pipeline cluster stage fed the scene this frame
+				if( const lsClusterGpuData* cd = clusterDataFor( object ) )
+				{
+					getRender()->ActiveTexture( LS_TEXTURE0 + 12 );
+					getRender()->BindTexture( LS_TEXTURE_2D, cd->gridTex );
+					getRender()->Uniform1i( iClusterGrid, 12 );
+					getRender()->ActiveTexture( LS_TEXTURE0 + 13 );
+					getRender()->BindTexture( LS_TEXTURE_2D, cd->indexTex );
+					getRender()->Uniform1i( iClusterIndices, 13 );
+					getRender()->Uniform1i( iClusterTilesX, cd->tilesX );
+					getRender()->Uniform1i( iClusterTilesY, cd->tilesY );
+					getRender()->Uniform1i( iClusterSlices, cd->slices );
+					getRender()->Uniform1f( iClusterNear, cd->nearZ );
+					getRender()->Uniform1f( iClusterFar, cd->farZ );
+					getRender()->Uniform1f( iClusterTileSize, cd->tilePixels );
+					// VK offscreen targets render V-flipped (negative-height
+					// viewport) — mirror the tile row at the sampling site,
+					// same precedent as iPrepassFlipY (AGENTS.md rule)
+					getRender()->Uniform1i( iClusterFlipY,
+						getRender()->getType() == RenderType::Vulkan ? 1 : 0 );
+					getRender()->Uniform1i( iClusterEnabled, 1 );
+				}
+				else
+				{
+					getRender()->Uniform1i( iClusterEnabled, 0 );
 				}
 				// Pass the count of active lights to the shader
 				getRender()->Uniform1i(iLightCount, slot);
@@ -806,7 +880,7 @@ void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 	// runtime game code) are never linked and would render unlit, so
 	// fall back to the owning scene's light manager — its per-light
 	// active flags are refreshed every frame by setActiveLights().
-	const vector<lsLight*>* lights = &resolveLightList( object );
+	const vector<lsLight*>* lights = &resolveLightsClusterAware( object ); // L5
 
 #if defined(VORTX_DEBUG_TOOLS)
 	const vector<lsLight*> filtered = filterDebugLights( *lights );
@@ -863,6 +937,7 @@ void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__
 	if (iLightDiffuse[i] != -1) getRender()->Uniform4f( iLightDiffuse[i], light->diffuse.x, light->diffuse.y, light->diffuse.z, light->diffuse.w );
 	if (iLightSpecular[i] != -1) getRender()->Uniform4f( iLightSpecular[i], light->specular.x, light->specular.y, light->specular.z, light->specular.w );
 	if (iLightIntensity[i] != -1) getRender()->Uniform1f( iLightIntensity[i], light->getIntensity() );
+	if (iLightRadius[i] != -1) getRender()->Uniform1f( iLightRadius[i], lsLight::clusterRadius( light->getIntensity() ) ); // L5
 
 	// Only set direction and cutoff for spot/direct lights
 	if (light->getLight_type() == LSLT_SPOT || light->getLight_type() == LSLT_DIRECT)

@@ -35,6 +35,7 @@
 #include "../render/lsRender.h"
 
 // math
+#include <cmath>
 #include "../math/lsVector3.h"
 #include "../math/lsVector4.h"
 #include "../math/lsMatrix4x4.h"
@@ -315,6 +316,14 @@ public:
 
     /** @brief L3.3: false = light does not cast shadows at runtime
      * (stages skip rendering, shading ignores its map) */
+    /// L5: cluster assignment radius — 1/d^2 lights are infinite, so
+    /// clustering uses a derived cutoff where attenuation falls to 25%.
+    /// The shader applies a smooth window reaching zero at this radius
+    /// (no hard pool edges). Used by BOTH the cluster stage and
+    /// lsShader::Set_Light (must agree).
+    static float clusterRadius( float p_intensity )
+    { return sqrtf( p_intensity / 0.25f ); }
+
     bool cast_shadows = true;
 
     /** @brief L4.1 PCSS: max penumbra half-width in shadow-map uv

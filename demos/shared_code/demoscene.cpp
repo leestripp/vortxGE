@@ -109,6 +109,7 @@
 #include <scene/lsLight_Direct.h>
 #include <scene/lsLightManager.h>
 #include <pipeline/lsPointShadowStage.h>
+#include <pipeline/lsClusterStage.h>
 #include <scene/lsSpeaker.h>
 
 // Animation
@@ -960,6 +961,12 @@ void DemoScene::initPipeline()
 			m_viewer_scene, light, shadowQ, r );
 		sh->setName( string( "shadow-" ) + light->getName() );
 	}
+
+	// L5: cluster light assignment (builds + uploads the grid before
+	// the main pass; shaders read it via the scene)
+	auto* cl = m_pipeline->addStage<lsClusterStage>(
+		m_viewer_scene, m_playerRig->getCamera(), r );
+	cl->setName( "cluster-lights" );
 
 	// L4.1b: depth+normal prepass before the main pass (High preset
 	// only — it feeds L4.2 contact shadows, which are High-gated).

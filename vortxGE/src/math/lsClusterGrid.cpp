@@ -164,6 +164,13 @@ void lsClusterGrid::build( const std::vector<lsClusterLightInput>& lights )
         forEachOverlap( L, [&]( int ci ) { counts[ci]++; } );
     }
 
+    // per-cluster cap (nearest lights win: the two assignment passes
+    // iterate the same light order, so capping the count keeps the
+    // first N — caller passes lights in scene-list order, heroes first)
+    for( int ci2 = 0; ci2 < clusterCount(); ++ci2 )
+        if( counts[ci2] > (uint32_t)m_maxPerCluster )
+            counts[ci2] = (uint32_t)m_maxPerCluster;
+
     // prefix sums -> offsets
     uint32_t total = 0;
     for( int c = 0; c < clusterCount(); ++c )

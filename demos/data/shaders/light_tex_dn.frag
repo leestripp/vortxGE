@@ -39,12 +39,25 @@ uniform mat4 pMatrix;
 uniform vec3 vxLightPos[64];
 uniform vec4 vxLightDiffuse[64];
 uniform float vxLightIntensity[64];
+uniform float vxLightRadius[64]; // L5: cluster window radius
 uniform int vxLightType[64];
 uniform vec3 vxLightDir[64];
 uniform float vxLightCutoff[64];
 uniform float vxLightOuterCutoff[64];
 uniform int vxLightCount;
-uniform int vxDebugView; // D1.2: 0=off 1=lightcount 2=shadow 3=normals 4=depth
+uniform int vxDebugView;
+// L5 clustered lighting (appended after all samplers: VK binding order)
+uniform usampler2D tex_clusterGrid;
+uniform usampler2D tex_clusterIndices;
+uniform int clusterEnabled;
+uniform int clusterTilesX;
+uniform int clusterTilesY;
+uniform int clusterSlices;
+uniform float clusterNear;
+uniform float clusterFar;
+uniform float clusterTileSize;
+uniform int clusterFlipY;
+ // D1.2: 0=off 1=lightcount 2=shadow 3=normals 4=depth
 
 // Material
 uniform vec4 vxMatAlbedo;
@@ -306,7 +319,41 @@ void main(void) {
 	float dbgShadow = 1.0; // D1.2: product of per-light shadow factors
 	
 	// Loop over lights
-	for (int i = 0; i < vxLightCount; ++i) {
+	// L5 cluster mode: heroes (slots 0-2, shadow path) + this
+	// fragment's cluster list + straggler directs beyond slot 2
+	int heroN = vxLightCount;
+	uvec2 clusterOC = uvec2(0u, 0u);
+	if (clusterEnabled == 1) {
+		ivec2 tile = clamp(ivec2(gl_FragCoord.xy / clusterTileSize), ivec2(0), ivec2(clusterTilesX - 1, clusterTilesY - 1));
+		if (clusterFlipY == 1) tile.y = clusterTilesY - 1 - tile.y;
+		float vz = clamp(-osVertex.z, clusterNear, clusterFar);
+		int slice = int(log(vz / clusterNear) / log(clusterFar / clusterNear) * float(clusterSlices));
+		slice = clamp(slice, 0, clusterSlices - 1);
+		clusterOC = texelFetch(tex_clusterGrid, ivec2(tile.x, slice * clusterTilesY + tile.y), 0).rg;
+		heroN = min(vxLightCount, 3);
+	}
+	for (int iter = 0; iter < 128; ++iter) {
+		int i = -1;
+		if (iter < heroN) {
+			i = iter;
+		} else if (clusterEnabled == 1) {
+			int rel = iter - heroN;
+			if (rel < int(clusterOC.y)) {
+				uint addr = clusterOC.x + uint(rel);
+				i = int(texelFetch(tex_clusterIndices, ivec2(int(addr) & 255, int(addr) >> 8), 0).r);
+			} else {
+				// direct lights are global: shade any beyond the hero slots
+				int want = rel - int(clusterOC.y);
+				int seen = 0;
+				for (int j = heroN; j < vxLightCount; ++j) {
+					if (vxLightType[j] == 3) {
+						if (seen == want) { i = j; break; }
+						++seen;
+					}
+				}
+			}
+		}
+		if (i < 0 || i >= vxLightCount) break;
 		vec3 L = normalize(vxLightPos[i] - osVertex);
 		if(vxLightType[i] == 3) {
 			// LSLT_DIRECT = 3
@@ -329,6 +376,12 @@ void main(void) {
 	        attenuation *= spotEffect;
 	    }
 		
+		// L5: smooth window for cluster-shaded lights (heroes keep
+		// the legacy infinite falloff for shadow-path parity)
+		if (clusterEnabled == 1 && i >= 3 && vxLightType[i] != 3) {
+			float w = clamp(1.0 - pow(distance / vxLightRadius[i], 4.0), 0.0, 1.0);
+			attenuation *= w * w;
+		}
 		vec3 radiance = vxLightDiffuse[i].rgb * vxLightIntensity[i] * attenuation;
 
 		// Cook-Torrance BRDF
