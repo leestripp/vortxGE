@@ -185,6 +185,39 @@ replay-deterministic; remove the capture workaround.
 **Done when:** animated demo scenes produce identical frame-N dumps
 across runs without disabling spawns.
 
+### C-series — Camera/Light rewrite — ✅ DONE 2026-08-14
+
+User-reported regression (sun shadows moving / whole scene flickering
+dark on tiny camera movement) + mandate to rip apart Camera/Light.
+
+- **C0 Evidence + tooling** ✅ — deterministic tiny-orbit hook
+  (`VORTX_CAM_ORBIT=1` in demoscene), GL two-shot `VORTX_SHOT` (frames
+  30+90) for temporal A/B. The user's symptom was traced to a real
+  bug in the existing L1.5 texel snap.
+- **C1 Matrix hygiene** ✅ — lsMatrix4x4 convention doctests lock down
+  column-major layout, LookAt basis, Ortho depth mapping (engine maps
+  zMin→+1, zMax→−1), and RotateMatrix's Y-rotation handedness.
+- **THE BUG (root cause)** ✅ — the existing L1.5 ortho snap built a
+  light-VIEW-space translation but multiplied it AFTER the projection
+  (`snap * P * V` instead of `P * snap * V`). Tiny camera moves then
+  mapped fragments wildly out of the shadow map → whole scene flickered
+  dark/lit. Fixed to `P * snap * V`; debug overflow guard added.
+- **C2 lsCamera** ✅ — dirty-flag rebuild (`markDirty`/`isDirty`;
+  Update_Camera no-ops when clean), ortho extent getters,
+  getProjectionMatrix accessor.
+- **C3 lsLight_Direct** ✅ — follow logic extracted to
+  `updateFollowCamera()`; sun follow preserved by design.
+- **C4 Shadow consistency** ✅ — `lsLight::getShadowMatrix(render)`
+  caches per frame (counter advanced in `lsRenderPipeline::render()`);
+  the matrix used to render the map and to sample it are identical.
+- **C5 Verification** ✅ — new doctests (dirty flag, ortho getters,
+  per-frame cache, follow offset); 75/75 tests pass; GL+VK orbit
+  captures normal and lit.
+
+**Design note for multi-camera:** `lsScene::setActiveCamera` is only a
+default pointer. Additional cameras (rear-view mirror, split-screen)
+get their own `lsSceneStage` + named target + blit — no global state.
+
 ---
 
 ## Deferred / optional
