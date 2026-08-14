@@ -110,6 +110,7 @@
 #include <scene/lsLightManager.h>
 #include <pipeline/lsPointShadowStage.h>
 #include <pipeline/lsClusterStage.h>
+#include <debug/lsProfiler.h>
 #include <filesystem/lsDir.h>
 #include <sys/stat.h>
 #include <scene/lsSpeaker.h>
@@ -877,6 +878,8 @@ void DemoScene::setupShadows()
 
 void DemoScene::Update( double delta )
 {
+	VORTX_PROFILE_ZONE( "update" );
+
 	// Physics body count + fps every 5s (VORTX_PHYSICS_COUNT=1).
 	// Proves the emitter pool keeps the Bullet world bounded (E1.1).
 	// NOTE: delta is in MILLISECONDS (glfwApp main loop).

@@ -32,6 +32,9 @@
 
 // openGL — included only here and in lsOpenGL.cpp.
 #include <GL/glew.h>
+#include <unordered_map>
+#include <vector>
+
 
 // Base class — note that lsRender.h itself does NOT include <GL/glew.h>.
 #include "lsRender.h"
@@ -233,7 +236,20 @@ public:
     virtual lsEnum GetError() override;
     virtual void GetIntegerv( lsEnum pname, lsInt* params ) override;
 
+#if defined(VORTX_DEBUG_TOOLS)
+public:
+	// D3 profiler: GL_TIMESTAMP query pairs (core since GL 3.3),
+	// readback polled non-blocking next frame.
+	void profilerFrameBegin() override;
+	void profilerGpuBegin( const std::string& name ) override;
+	void profilerGpuEnd( const std::string& name ) override;
+#endif
 private:
+#if defined(VORTX_DEBUG_TOOLS)
+	struct ProfQueries { GLuint q[2] = { 0, 0 }; bool pending = false; };
+	std::unordered_map<std::string, ProfQueries> m_profQueries;
+	std::vector<std::string> m_profActiveGL;
+#endif
     // Framebuffer ID captured by StoreDefaultFramebuffer() for Restore...
     lsInt m_defaultFBO;
 };

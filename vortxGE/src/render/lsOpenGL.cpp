@@ -310,3 +310,44 @@ void lsOpenGL::GetQueryObjectiv( lsQueryID id, lsEnum pname, lsInt* params )    
 // ---- Diagnostic getters ----
 lsEnum lsOpenGL::GetError()                                                                 { return static_cast<lsEnum>(glGetError()); }
 void lsOpenGL::GetIntegerv( lsEnum pname, lsInt* params )                                   { glGetIntegerv( static_cast<GLenum>(pname), params ); }
+
+#if defined(VORTX_DEBUG_TOOLS)
+// ===================== D3 profiler: GL timer queries =====================
+#include "../debug/lsProfiler.h"
+
+void lsOpenGL::profilerGpuBegin( const std::string& name )
+{
+	ProfQueries& pq = m_profQueries[name];
+	if( ! pq.q[0] ) glGenQueries( 2, pq.q );
+	glQueryCounter( pq.q[0], GL_TIMESTAMP );
+	pq.pending = true;
+	m_profActiveGL.push_back( name );
+}
+
+void lsOpenGL::profilerGpuEnd( const std::string& name )
+{
+	auto it = m_profQueries.find( name );
+	if( it == m_profQueries.end() || ! it->second.q[1] ) return;
+	glQueryCounter( it->second.q[1], GL_TIMESTAMP );
+}
+
+void lsOpenGL::profilerFrameBegin()
+{
+	// Poll last frame's queries without blocking (GL 3.3 core).
+	for( const auto& name : m_profActiveGL )
+	{
+		auto it = m_profQueries.find( name );
+		if( it == m_profQueries.end() || ! it->second.pending ) continue;
+		ProfQueries& pq = it->second;
+		GLuint avail = GL_FALSE;
+		glGetQueryObjectuiv( pq.q[1], GL_QUERY_RESULT_AVAILABLE, &avail );
+		if( ! avail ) continue; // still in flight — try next frame
+		GLuint64 t0 = 0, t1 = 0;
+		glGetQueryObjectui64v( pq.q[0], GL_QUERY_RESULT, &t0 );
+		glGetQueryObjectui64v( pq.q[1], GL_QUERY_RESULT, &t1 );
+		lsProfiler::instance().recordGpu( name, double( t1 - t0 ) / 1.0e6 );
+		pq.pending = false;
+	}
+	m_profActiveGL.clear();
+}
+#endif // VORTX_DEBUG_TOOLS

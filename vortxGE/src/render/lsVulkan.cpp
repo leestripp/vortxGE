@@ -4056,3 +4056,82 @@ void lsVulkan::captureFboDepth( uint32_t fboID, const char* path )
 	readbackDepthImage( tit->second.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 						tit->second.width, tit->second.height, path );
 }
+
+#if defined(VORTX_DEBUG_TOOLS)
+// ===================== D3 profiler: GPU timestamp queries =====================
+#include "../debug/lsProfiler.h"
+
+void lsVulkan::profilerEnsurePool()
+{
+	if( m_profPool[0] ) return;
+	if( ! m_physDevice || ! m_device ) return;
+	VkPhysicalDeviceProperties props;
+	vkGetPhysicalDeviceProperties( m_physDevice, &props );
+	m_profPeriodNs = props.limits.timestampPeriod;
+	if( m_profPeriodNs <= 0.0f ) m_profPeriodNs = 1.0f;
+	VkQueryPoolCreateInfo qci{};
+	qci.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+	qci.queryType = VK_QUERY_TYPE_TIMESTAMP;
+	qci.queryCount = PROF_SLOTS;
+	for( uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++ )
+		if( vkCreateQueryPool( m_device, &qci, nullptr, &m_profPool[i] ) != VK_SUCCESS )
+		{
+			m_profPool[0] = m_profPool[1] = VK_NULL_HANDLE;
+			return; // timestamps unsupported — profiler stays CPU-only
+		}
+}
+
+void lsVulkan::profilerFrameBegin()
+{
+	profilerEnsurePool();
+	if( ! m_profPool[0] || ! m_inFrame ) return;
+	const uint32_t slot = m_currentFrame;
+
+	// Readback: this pool was last written 2 frames ago; BeginFrame's
+	// fence wait for THIS slot guarantees those results are complete.
+	if( ! m_profActive[slot].empty() )
+	{
+		std::vector<uint64_t> ts( m_profNext );
+		if( vkGetQueryPoolResults( m_device, m_profPool[slot], 0, m_profNext,
+			ts.size() * sizeof(uint64_t), ts.data(), sizeof(uint64_t),
+			VK_QUERY_RESULT_64_BIT ) == VK_SUCCESS )
+			for( const auto& name : m_profActive[slot] )
+			{
+				const uint32_t s = m_profSlots[name];
+				if( s + 1 >= m_profNext ) continue;
+				const double ms = double( ts[s+1] - ts[s] )
+					* double( m_profPeriodNs ) / 1.0e6;
+				lsProfiler::instance().recordGpu( name, ms );
+			}
+		m_profActive[slot].clear();
+	}
+	// m_profNext is the persistent slot high-water mark — stage->slot
+	// assignments in m_profSlots are stable across frames, so never
+	// reset it (resetting would size the next readback to 0).
+	vkCmdResetQueryPool( m_commandBuffers[slot], m_profPool[slot], 0, PROF_SLOTS );
+}
+
+void lsVulkan::profilerGpuBegin( const std::string& name )
+{
+	if( ! m_profPool[0] || ! m_inFrame ) return;
+	auto it = m_profSlots.find( name );
+	if( it == m_profSlots.end() )
+	{
+		if( m_profNext + 2 > PROF_SLOTS ) return; // pool full
+		it = m_profSlots.emplace( name, m_profNext ).first;
+		m_profNext += 2;
+	}
+	m_profActive[m_currentFrame].push_back( name );
+	vkCmdWriteTimestamp( m_commandBuffers[m_currentFrame],
+		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_profPool[m_currentFrame], it->second );
+}
+
+void lsVulkan::profilerGpuEnd( const std::string& name )
+{
+	if( ! m_profPool[0] || ! m_inFrame ) return;
+	auto it = m_profSlots.find( name );
+	if( it == m_profSlots.end() ) return;
+	vkCmdWriteTimestamp( m_commandBuffers[m_currentFrame],
+		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_profPool[m_currentFrame], it->second + 1 );
+}
+#endif // VORTX_DEBUG_TOOLS

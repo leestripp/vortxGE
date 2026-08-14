@@ -103,6 +103,7 @@ Debug tooling (many gated behind the `VORTX_DEBUG_TOOLS` build define):
 `VORTX_DEBUG_VIEW`, `VORTX_ONLY_LIGHT`, `VORTX_LIGHTS_OFF`,
 `VORTX_DISABLE_SHADOWS`, `VORTX_NOCLUSTER`, `VORTX_CLUSTER_TRACE`,
 `VORTX_PASS_TRACE`, `VORTX_SHADOW_TRACE`, `VORTX_FRAME_DUMP`,
+`VORTX_PROF` (built-in CPU/GPU profiler: `=1` console, `=path.csv`),
 `VORTX_DEPTH_SHOT`, `VORTX_FBO_SHOT`, plus per-subsystem `VORTX_DEBUG_*`
 toggles and Vulkan-side `VORTX_VK_*` switches.
 

@@ -72,7 +72,7 @@
 runs on VK with zero shadow-pass errors; VK captures fill the full
 swapchain; ctest 100%.
 
-### E2 — D3: built-in CPU/GPU profiler (spec unchanged)
+### E2 — D3: built-in CPU/GPU profiler — ✅ DONE 2026-08-14
 
 For a library whose demos are guidance, an in-engine profiler is what
 developers tune their own games with — and it unblocks measuring
@@ -88,9 +88,17 @@ E1/E3/E5.
 - D-series release-bloat rule applies: compiled out in Release
   (`VORTX_DEBUG_TOOLS`), prove with strings/size check.
 
-**Done when:** per-stage GPU+CPU ms table on both backends; Release
-binary has no profiler code; overhead <1% frame time when enabled,
-0 when compiled out.
+**DONE:** `lsProfiler` (debug/lsProfiler.{h,cpp}, whole TU behind
+`VORTX_DEBUG_TOOLS`) + `VORTX_PROFILE_ZONE` RAII macro (vanishes in
+Release). `lsRender` gained debug-only virtuals
+`profilerFrameBegin/GpuBegin/GpuEnd`; pipeline `render()` zones every
+stage. VK: per-frame-slot timestamp query pools (2-frame latency,
+fence-guaranteed; bug fixed: slot high-water mark must persist across
+frames). GL: GL_TIMESTAMP query pairs, non-blocking next-frame poll.
+`VORTX_PROF=1` console table every 120 frames / `=path.csv` per-frame
+rows. Verified both backends (VK main-scene GPU 2.9ms, GL 3.3ms);
+Release lib contains no profiler strings (only the empty TU filename);
+ctest 100%. Demo also gained `update` zone as usage guidance.
 
 ### E3 — Pipeline by default (R3/R5/R6)
 

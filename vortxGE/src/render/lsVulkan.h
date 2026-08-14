@@ -166,6 +166,21 @@ private:
 	std::vector<VkSemaphore> m_renderFinished;	// PER SWAPCHAIN IMAGE (present wait not fence-covered)
 	VkFence m_inFlight[FRAMES_IN_FLIGHT] = {};
 	uint32_t m_currentFrame = 0;
+
+#if defined(VORTX_DEBUG_TOOLS)
+	// D3 profiler: per-slot timestamp query pools (2 slots per stage,
+	// 2-frame readback latency so the fence wait guarantees results).
+	void profilerFrameBegin() override;
+	void profilerGpuBegin( const std::string& name ) override;
+	void profilerGpuEnd( const std::string& name ) override;
+	VkQueryPool m_profPool[FRAMES_IN_FLIGHT] = {};
+	std::unordered_map<std::string, uint32_t> m_profSlots; // name -> first slot
+	std::vector<std::string> m_profActive[FRAMES_IN_FLIGHT];
+	uint32_t m_profNext = 0;
+	float m_profPeriodNs = 0.0f;
+	static constexpr uint32_t PROF_SLOTS = 128;
+	void profilerEnsurePool();
+#endif
 	uint32_t m_acquiredImage = 0;
 	bool m_inFrame = false;
 	bool m_swapchainDirty = false;

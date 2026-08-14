@@ -146,6 +146,17 @@ public:
      */
     virtual void Present() = 0;
 
+#if defined(VORTX_DEBUG_TOOLS)
+    /** D3 profiler hooks (debug-tools builds only; default no-ops).
+     * profilerFrameBegin: read back LAST frame's GPU results + reset
+     * query pools (1-frame latency). GpuBegin/End bracket a named
+     * stage with GPU timestamps where supported (VK timestamp
+     * queries, GL timer queries). */
+    virtual void profilerFrameBegin() {}
+    virtual void profilerGpuBegin( const std::string& ) {}
+    virtual void profilerGpuEnd( const std::string& ) {}
+#endif
+
     /**
      * @brief Notify the backend of a drawable-size change (swapchain
      * recreation on Vulkan). GL: no-op (viewport handled per-pass).
