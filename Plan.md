@@ -47,10 +47,16 @@
     audit: who owns the `btRigidBody` / motion state / shape).
   - Regression test: doctest or scripted probe asserting body count
     returns to baseline after spawn→death cycles.
-- **E1.2 VK "Failed to create shadow pass" ×64 on many-light scenes.**
-  Pre-existing (predates L5), non-fatal but alarming console spam a
-  developer WOULD report. Reproduce: `VORTX_SCENE=light_stress` on
-  Vulkan. Pointshadow-pass related — root-cause and fix or gate.
+- **E1.2 VK "Failed to create shadow pass" ×64 — ✅ FIXED 2026-08-14.**
+  Root cause was NOT Vulkan: demo `setupShadows()` iterated ALL
+  lights but only created passes for DIRECT/SPOT, printing a false
+  "ERROR" for every point light (64 on the stress scene). Also ran
+  unconditionally in pipeline mode, double-creating shadow FBOs
+  alongside the pipeline stages. Fix: setupShadows now skips
+  non-DIRECT/SPOT and non-caster lights silently, and the call site
+  is skipped entirely in pipeline mode (stages replace it). Verified:
+  VK stress scene 0 errors (was 64); GL legacy base scene still
+  creates its 3 passes; ctest 100%.
 - **E1.3 VK swapchain subregion viewport mismatch.**
   Content renders into ~80% of the swapchain (black bands
   right/bottom in 2400×1350 captures). Only remaining item from the

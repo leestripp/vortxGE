@@ -639,8 +639,11 @@ void DemoScene::setupTestScene()
 		std::cerr << "ERROR: Failed to create SceneSpeaker." << std::endl;
 	}
 	
-	// Setup shadowmaps.
-	setupShadows();
+	// Setup shadowmaps (legacy pass path only — initPipeline creates
+	// shadow STAGES with cast_shadows gating in pipeline mode; running
+	// both would double-create shadow FBOs, E1.2)
+	if( !m_pipeline )
+		setupShadows();
 	
 	// Base-demo content only (tech scenes are pure .vgs)
 	if( baseScene )
@@ -829,18 +832,20 @@ void DemoScene::setupShadows()
 	
 	for (lsLight* light : lights)
 	{
-		// Add shadow maps to spot and direct lights
-		lsPass_ShadowMap* shadowPass = nullptr;
-		if( light->getLight_type() == LSLT_DIRECT)
-		{
-			// Create the shadow map pass (which creates its own FBO)
-			shadowPass = new lsPass_ShadowMap(0, 0, 4096, 4096, m_vortxge->getRender());
-		}
-		if (light->getLight_type() == LSLT_SPOT)
-		{
-			// Create the shadow map pass (which creates its own FBO)
-			shadowPass = new lsPass_ShadowMap(0, 0, 2048, 2048, m_vortxge->getRender());
-		}
+		// Only direct + spot lights get 2D shadow-map passes, and only
+		// shadow casters (L3.3). Point lights use the point-cube stage
+		// (pipeline) or nothing (legacy) — NOT an error (E1.2: this
+		// used to spam "Failed to create shadow pass" once per point
+		// light).
+		if( light->getLight_type() != LSLT_DIRECT
+			&& light->getLight_type() != LSLT_SPOT )
+			continue;
+		if( ! light->cast_shadows )
+			continue;
+
+		// Create the shadow map pass (which creates its own FBO)
+		const int res = ( light->getLight_type() == LSLT_DIRECT ) ? 4096 : 2048;
+		lsPass_ShadowMap* shadowPass = new lsPass_ShadowMap(0, 0, res, res, m_vortxge->getRender());
 		if(! shadowPass)
 		{
 			cerr << "ERROR: Failed to create shadow pass." << endl;
