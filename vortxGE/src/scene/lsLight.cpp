@@ -99,6 +99,13 @@ void lsLight::buildShadowmap_matrix( lsRender* render )
     // so sub-texel light/camera movement does not shift the map —
     // kills shadow swimming/shimmering. Perspective lights (spots)
     // are not snapped (no fixed texel grid).
+    //
+    // IMPORTANT: snapMatrix is a light-VIEW-space translation, so it
+    // must be applied BEFORE the projection: P * snapMatrix * V.
+    // The old code applied it after the projection (snapMatrix * P * V),
+    // which is dimensionally wrong and caused the shadow map to sample
+    // wildly out of bounds on tiny camera moves -> whole scene flickers
+    // between lit and dark.
     if( getCamera_mode() == LSCM_ORTHOGRAPHIC &&
         getPixel_x() > 0 && getPixel_y() > 0 )
     {
@@ -114,7 +121,17 @@ void lsLight::buildShadowmap_matrix( lsRender* render )
                            ox,    oy,    0.0f, 1.0f };
         lsMatrix4x4 snapMatrix;
         snapMatrix = snap;
-        lightProjectionViewMatrix = snapMatrix * lightProjectionViewMatrix;
+        lightProjectionViewMatrix = frustum.getProjectionMatrix() * snapMatrix * ViewMatrix;
+
+#if defined(VORTX_DEBUG_TOOLS)
+        if( fabsf( ox ) > texelX || fabsf( oy ) > texelY )
+        {
+            static int warned = 0;
+            if( warned++ < 5 )
+                cerr << "lsLight snap overflow: ox=" << ox << " oy=" << oy
+                     << " texel=" << texelX << "/" << texelY << endl;
+        }
+#endif
     }
 
     // The final matrix to transform from world space to shadow map texture space
