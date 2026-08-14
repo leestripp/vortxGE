@@ -75,6 +75,7 @@ lsCamera::lsCamera( lsNode* parent ) : lsAnimNode(parent)
 	pv1->setProp_name( "Camera Far Plane" );
 	pv1->setProp_id( LSPROPID_CAMERA_FAR );
 	Add_Property( pv1 );
+	markDirty();
 }
 
 lsCamera::~lsCamera()
@@ -125,6 +126,7 @@ void lsCamera::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused
 #endif
 	
 	// Camera and Light ViewMatrix updates
+	markDirty();
 	Update_Camera();
 }
 
@@ -143,6 +145,7 @@ void lsCamera::Set_Perspective( float view_angle, float width_ratio, float nplan
 	
 	frustum.Set_Perspective( view_angle, width_ratio, nplane, fplane );
 	camera_mode = LSCM_PERSPECTIVE;
+	markDirty();
 }
 
 void lsCamera::Set_ViewRatio( float vr )
@@ -164,6 +167,7 @@ void lsCamera::Set_Orthographic( float xMin, float xMax, float yMin, float yMax,
 	
 	frustum.Set_Orthographic( xMin, xMax, yMin, yMax, zMin, zMax );
 	camera_mode = LSCM_ORTHOGRAPHIC;
+	markDirty();
 }
 
 // In half bounds.
@@ -183,6 +187,9 @@ void lsCamera::Set_Orthographic( float cube )
 
 void lsCamera::Update_Camera()
 {
+	if( !m_matricesDirty )
+		return;
+	
 	lsVector3 eye, lookat_target, up_vector;
 	
 	eye = lsVector3( ModelMatrix.matrix[12], ModelMatrix.matrix[13], ModelMatrix.matrix[14] );

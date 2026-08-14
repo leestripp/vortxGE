@@ -189,6 +189,34 @@ public:
 		camera_mode = val;
 	}
 
+    /**
+     * @brief Mark view/projection matrices needing a rebuild.
+     *
+     * Setters and Move() call this; Update_Camera() is a no-op when
+     * nothing has changed. This removes redundant matrix rebuilds when
+     * many stages touch the same camera per frame.
+     */
+    void markDirty() { m_matricesDirty = true; }
+
+    /**
+     * @brief True when view/projection/frustum need rebuilding.
+     */
+    bool isDirty() const { return m_matricesDirty; }
+
+    /**
+     * @brief Access the cached projection matrix.
+     *
+     * The projection lives in the frustum; this is a convenience
+     * accessor so shadow/light code does not reach into frustum internals.
+     */
+    const lsMatrix4x4& getProjectionMatrix() { return frustum.getProjectionMatrix(); }
+
+    /** @brief Ortho extents (L2/C-series shadow fitting). */
+    float getOrtho_left() const { return orth_left; }
+    float getOrtho_right() const { return orth_right; }
+    float getOrtho_bottom() const { return orth_bottom; }
+    float getOrtho_top() const { return orth_top; }
+
     //=========================================================================
     // Public Data Members
     //=========================================================================
@@ -214,6 +242,9 @@ public:
     
     /** @brief Far clipping plane */
 	float cam_far;
+    
+    /** @brief True when ViewMatrix/projection/frustum need rebuilding */
+    bool m_matricesDirty = true;
 	
 	//=========================================================================
 	// Orthographic Parameters
