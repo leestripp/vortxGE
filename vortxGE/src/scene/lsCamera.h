@@ -198,6 +198,17 @@ public:
      */
     void markDirty() { m_matricesDirty = true; }
 
+    // Transform setters must dirty the view/frustum: rigs and scripts
+    // move cameras via these directly (lsNode virtuals) and previously
+    // Update_Camera() rebuilt unconditionally. Without the override the
+    // cull planes go stale -> objects pop out of view (C2 regression).
+    void Set_Pos( float x, float y, float z ) override
+    { lsAnimNode::Set_Pos( x, y, z ); markDirty(); }
+    void Set_Rot( float x, float y, float z ) override
+    { lsAnimNode::Set_Rot( x, y, z ); markDirty(); }
+    void Set_Scale( float x, float y, float z ) override
+    { lsAnimNode::Set_Scale( x, y, z ); markDirty(); }
+
     /**
      * @brief True when view/projection/frustum need rebuilding.
      */
