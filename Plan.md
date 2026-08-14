@@ -57,11 +57,13 @@
   is skipped entirely in pipeline mode (stages replace it). Verified:
   VK stress scene 0 errors (was 64); GL legacy base scene still
   creates its 3 passes; ctest 100%.
-- **E1.3 VK swapchain subregion viewport mismatch.**
-  Content renders into ~80% of the swapchain (black bands
-  right/bottom in 2400×1350 captures). Only remaining item from the
-  dark-floor saga. Viewport/extent mismatch — inspect the blit/
-  present path vs swapchain extent after the Wayland scale heal.
+- **E1.3 VK swapchain subregion — ✅ RESOLVED 2026-08-14 (prior work).**
+  Pipeline-mode VK capture at 2400×1350 fills the full frame — no
+  black bands. Fixed along the way by the self-healing framebuffer
+  poll (cfb92a7) + pipeline blit path. Side discovery: the LEGACY
+  pass-manager path on Vulkan renders clear color only (never fully
+  implemented — V2–V4 stubs era; all VK work landed on the pipeline
+  path). Not a regression; the legacy path is retired by E3.
 - **E1.4 Intermittent VK teardown segfault on SIGTERM** (seen once,
   not reproducible). Add to the soak list; fix if a second sighting
   gives a stack.
