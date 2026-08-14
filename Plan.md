@@ -259,15 +259,22 @@ covers diagnostics.
 
 ## Backlog (non-blocking)
 
-- VK z_ndc<0 clip gap (`VK_EXT_depth_clip_control`).
+- VK z_ndc<0 clip gap (`VK_EXT_depth_clip_control`) — open, low
+  risk (no observed artifacts; GL-style [-1,1] clip works via the
+  negative-height viewport path). Pick up when a real artifact appears.
 - ~~Sun-map depth compression~~ ✅ 2026-08-14 — lsShadowStage now
   fits the sun's ortho near/far to actual casters each frame (same
   lsFitSpotDepthRange helper as spots): demo sun tightened 1–100 →
   ~64–82 (12 casters). Also fixed: getShadowMatrix cache now respects
   the projection dirty flag so per-frame fits are never defeated.
-- Validate the 2026-08-11/12 shadow fixes in a real game scene
-  (stress scene covers lighting; a real scene would cover layout).
-- CSM + point-cube paths still use fixed PCF (PCSS follow-up).
+- Validate the 2026-08-11/12 shadow fixes in a real game scene —
+  blocked: needs a real game scene (stress scene covers lighting).
+- CSM + point-cube paths still use fixed PCF (PCSS follow-up) — open
+  quality item; single-map path has PCSS on High (L4.3).
+
+STATUS 2026-08-14: every actionable Plan.md item is complete. L6 (RT
+shadows) and D4 (profiler overlay) remain Deferred/optional by design;
+the backlog entries above are explicitly non-blocking.
 
 ---
 
