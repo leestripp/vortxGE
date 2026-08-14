@@ -110,8 +110,12 @@ paths indefinitely.
   `initPipeline()` runs unless `VORTX_LEGACY_PIPELINE=1`; verified
   GL+VK full-scene captures with zero env vars, legacy escape honored,
   ctest 100%.
-- E3.2 **R5: camera decoupling** — the pipeline must take its camera
-  from the scene, not from viewer/control classes.
+- E3.2 **R5: camera decoupling** ✅ 2026-08-14 — `lsScene` owns the
+  active camera (`setActiveCamera`/`getActiveCamera`, non-owning);
+  the demo's rig sets it once; initPipeline reads the scene, not the
+  player rig; `lsSceneStage` falls back to the scene camera at
+  execute-time when none is set. Verified: full-scene capture from the
+  scene-owned camera, ctest 100%.
 - E3.3 **R6: retire the old control/pass classes** once nothing
   references them; `lsPassManager` docs updated, migration notes in
   the demos doc.

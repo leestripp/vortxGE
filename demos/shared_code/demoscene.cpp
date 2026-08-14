@@ -395,6 +395,9 @@ void DemoScene::setupControls()
 			
 			lsCamera* playerCam = m_playerRig->getCamera();
 			playerCam->Set_Perspective(45.0, 1820.0 / 1080.0, 0.1, 1000.0);
+			// E3.2/R5: the scene owns the active camera; pipeline stages
+			// read it from the scene, not from the rig/control classes.
+			m_viewer_scene->setActiveCamera( playerCam );
 			
 			// create FBO pass to render main scene too.
 			// This gets applied to the Quad.
@@ -1019,7 +1022,7 @@ void DemoScene::initPipeline()
 		{
 			const int ms = lsShadowMap::resolutionFor( light, shadowQ ) / 2;
 			auto* cs = m_pipeline->addStage<lsCsmStage>(
-				m_viewer_scene, light, m_playerRig->getCamera(), ms, r );
+				m_viewer_scene, light, m_viewer_scene->getActiveCamera(), ms, r );
 			cs->setName( string( "csm-" ) + light->getName() );
 			continue;
 		}
@@ -1031,7 +1034,7 @@ void DemoScene::initPipeline()
 	// L5: cluster light assignment (builds + uploads the grid before
 	// the main pass; shaders read it via the scene)
 	auto* cl = m_pipeline->addStage<lsClusterStage>(
-		m_viewer_scene, m_playerRig->getCamera(), r );
+		m_viewer_scene, m_viewer_scene->getActiveCamera(), r );
 	cl->setName( "cluster-lights" );
 
 	// L4.1b: depth+normal prepass before the main pass (High preset
@@ -1041,13 +1044,13 @@ void DemoScene::initPipeline()
 	{
 		m_pipeline->targets().acquire( "prepass", true );
 		auto* pp = m_pipeline->addStage<lsPrepassStage>(
-			m_viewer_scene, m_playerRig->getCamera(), "prepass" );
+			m_viewer_scene, m_viewer_scene->getActiveCamera(), "prepass" );
 		pp->setName( "prepass" );
 	}
 
 	// stage 1: main scene -> "scene" target
 	auto* scene = m_pipeline->addStage<lsSceneStage>(
-		m_viewer_scene, m_playerRig->getCamera(), "scene" );
+		m_viewer_scene, m_viewer_scene->getActiveCamera(), "scene" );
 	scene->setName( "main-scene" );
 
 	// stage 2: "scene" target -> screen (replaces the Quad Viewer)

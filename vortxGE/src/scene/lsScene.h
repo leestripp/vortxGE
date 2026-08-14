@@ -128,6 +128,12 @@ public:
      * @param scn Pointer to scene
      * @param render Pointer to renderer
      */
+    /** E3.2/R5: the scene owns the ACTIVE camera (non-owning pointer).
+     * The pipeline reads the camera from the scene instead of reaching
+     * into viewer/control classes; apps (or a camera rig) set it once. */
+    void setActiveCamera( lsCamera* cam ) { m_activeCamera = cam; }
+    lsCamera* getActiveCamera() const { return m_activeCamera; }
+
     void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
 
     /**
@@ -351,6 +357,7 @@ public:
     lsListener* getListener() const { return m_listener; }
 	
 private:
+	lsCamera* m_activeCamera = nullptr; // E3.2: scene-owned active camera
     //=========================================================================
     // Private Members
     //=========================================================================

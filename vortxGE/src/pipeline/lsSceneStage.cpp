@@ -17,6 +17,9 @@ lsSceneStage::~lsSceneStage()
 
 void lsSceneStage::execute( lsRender* render, lsTargetPool& targets )
 {
+	// E3.2/R5: fall back to the scene's active camera when no explicit
+	// camera is set — stages need not be wired to control classes.
+	if( !m_camera && m_scene ) m_camera = m_scene->getActiveCamera();
 	if( !m_scene || !m_camera ) return;
 
 	// lazily create the pass token (needs the render interface)
