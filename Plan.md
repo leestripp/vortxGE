@@ -131,7 +131,13 @@ removed or clearly deprecated; docs updated.
 
 ### E4 — Blender tooling & live-link
 
-- **E4.1 Addon sync (bug):** the installed Blender addon
+- **E4.1+E4.2 — ✅ DONE 2026-08-14.** Addon synced to v1.6 (repo
+  `blender_scripts/export_scene.py` is now the single source; installed
+  over the stale v1.4). `export_scenes.py` warns when the installed
+  addon is older. Live-link phase 2: `vortxge.push_to_engine` operator
+  + Live-link panel section (target path + Push button); verified
+  headless (push wrote 65 lights WITH cast_shadows flags). Original notes:
+ the installed Blender addon
   (`~/.config/blender/5.2/scripts/addons/vortxge_exporter.py`) is
   v1.4; `blender_scripts/export_scene.py` is v1.5 with `cast_shadows`.
   A GUI export through the old addon **silently strips cast_shadows

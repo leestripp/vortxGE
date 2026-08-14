@@ -19,7 +19,33 @@ EXPORTER = os.path.join(ROOT, "blender_scripts", "export_blend_headless.py")
 BLENDER = os.environ.get("VORTX_BLENDER", "blender")
 
 
+def check_installed_addon_version():
+    """Warn if the Blender addon installed in the user config is older
+    than blender_scripts/export_scene.py (E4.1 — a stale addon strips
+    newer export features like cast_shadows on GUI exports)."""
+    import re as _re, glob as _glob
+    repo = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "..", "blender_scripts", "export_scene.py")
+    def _ver(path):
+        try:
+            with open(path) as f: cc = f.read()
+        except OSError:
+            return None
+        m = _re.search(r'"version":\s*\((\d+),\s*(\d+)\)', cc)
+        return (int(m.group(1)), int(m.group(2))) if m else None
+    rv = _ver(repo)
+    if rv is None: return
+    for inst in _glob.glob(os.path.expanduser(
+            "~/.config/blender/*/scripts/addons/vortxge_exporter.py")):
+        iv = _ver(inst)
+        if iv and iv < rv:
+            print(f"WARNING: installed Blender addon {inst} is v{iv[0]}.{iv[1]} "
+                  f"but the repo exporter is v{rv[0]}.{rv[1]} — GUI exports will "
+                  f"lack new features. Re-install: cp blender_scripts/export_scene.py "
+                  f"{inst}")
+
 def main() -> int:
+    check_installed_addon_version()
     blends = sorted(glob.glob(os.path.join(SRC, "*.blend")))
     if not blends:
         print("export_scenes: no demos/scenes_src/*.blend found")

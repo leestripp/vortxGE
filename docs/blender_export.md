@@ -37,8 +37,12 @@ truth; the engine consumes exported `.vgs` text scenes + `.glb` meshes.
 
 ## Live-link (hot-apply edits into a running demo)
 
-Phase 1 (engine side) is done; phase 2 (one-click push from Blender) is
-in progress.
+Both phases done (2026-08-14). The Blender addon (v1.6) has a
+**Live-link** section in the vortxGE Tools panel: set the target `.vgs`
+path, click **Push to Engine** — the current scene state is exported
+straight onto the watched file. Re-install the addon after repo updates:
+`cp blender_scripts/export_scene.py ~/.config/blender/*/scripts/addons/vortxge_exporter.py`
+(`tools/export_scenes.py` warns when the installed addon is older).
 
 1. Run a demo with the live-link enabled:
 

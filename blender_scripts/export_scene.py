@@ -1,7 +1,7 @@
 bl_info = {
     "name": "vortxGE Scene Exporter",
     "author": "Lee A. Stripp",
-    "version": (1, 5),
+    "version": (1, 6),
     "blender": (5, 2, 0),
     "location": "File > Export > vortxGE Scene (.vgs)",
     "description": "Exports the scene to a vortxGE .vgs file and all meshes to .glb files",
@@ -343,6 +343,30 @@ def menu_func_export(self, context):
     self.layout.operator(ExportVortxGEScene.bl_idname, text="vortxGE Scene (.vgs)")
 
 
+class VortxGEPushToEngine(bpy.types.Operator):
+    """Live-link push (Plan.md E4.2): export the CURRENT scene state
+    straight onto the .vgs file a running demo is watching with
+    VORTX_LIVELINK=1. Transforms + light color/intensity hot-apply in
+    the engine within ~0.5 s (structural add/remove still needs a
+    restart)."""
+    bl_idname = "vortxge.push_to_engine"
+    bl_label = "Push to Engine"
+    bl_description = "Export current scene state to the live-link .vgs target"
+
+    def execute(self, context):
+        target = context.scene.get("vortxge_push_target", "")
+        if not target:
+            self.report({'ERROR'}, "Set the live-link target path first")
+            return {'CANCELLED'}
+        try:
+            write_vortxge_scene(context, bpy.path.abspath(target))
+        except Exception as e:
+            self.report({'ERROR'}, f"Push failed: {e}")
+            return {'CANCELLED'}
+        self.report({'INFO'}, f"Pushed to {target}")
+        return {'FINISHED'}
+
+
 class VortxGEPanel(Panel):
     """Creates a Panel in the Object properties window"""
     bl_label = "vortxGE Tools"
@@ -354,7 +378,13 @@ class VortxGEPanel(Panel):
     def draw(self, context):
         layout = self.layout
         obj = context.object
-        
+
+        # Live-link push (E4.2) — always visible
+        box = layout.box()
+        box.label(text="Live-link")
+        box.prop(context.scene, "vortxge_push_target", text="Target .vgs")
+        box.operator("vortxge.push_to_engine", icon='EXPORT')
+
         # Check if the object is a MESH to show physics tools
         if obj and obj.type == 'MESH':
             
@@ -561,6 +591,7 @@ class CreatePhysicsTriMesh(Operator):
 
 classes = (
     ExportVortxGEScene,
+    VortxGEPushToEngine,
     VortxGEPanel,
     CreatePhysicsBox,
     CreatePhysicsPill,
@@ -571,6 +602,14 @@ classes = (
 
 def register():
     # Register custom properties
+    from bpy.props import StringProperty
+    bpy.types.Scene.vortxge_push_target = StringProperty(
+        name="Live-link Target",
+        description="Path to the .vgs a VORTX_LIVELINK=1 demo is watching",
+        subtype='FILE_PATH',
+        default=""
+    )
+
     bpy.types.Object.no_export = BoolProperty(
         name="No Export",
         description="Exclude this object from vortxGE scene export",
@@ -611,6 +650,7 @@ def unregister():
         bpy.utils.unregister_class(cls)
         
     # Unregister custom properties
+    del bpy.types.Scene.vortxge_push_target
     del bpy.types.Object.no_export
     del bpy.types.Object.physics_type
     del bpy.types.Object.mass
