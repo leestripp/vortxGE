@@ -14,6 +14,12 @@
 
 #include "lsLight.h"
 
+unsigned lsLight::s_shadowFrame = 0;
+
+void lsLight::nextShadowFrame()
+{
+	++s_shadowFrame;
+}
 
 lsLight::lsLight( lsNode* parent ) : lsCamera(parent)
 {
@@ -69,8 +75,20 @@ void lsLight::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((un
     // and before any pass_type that might need to sample its shadow map.
     if (has_shadowmap) {
         syncShadowFrustum(); // L3.1: spots sync FOV to the outer cone
-        buildShadowmap_matrix(render);
+        getShadowMatrix(render); // ensures ShadowmapMatrix is current
     }
+}
+
+const lsMatrix4x4& lsLight::getShadowMatrix( lsRender* render )
+{
+	if( m_shadowMatrixFrame == s_shadowFrame && m_shadowMatrixRender == render )
+		return m_shadowMatrixCache;
+
+	buildShadowmap_matrix( render );
+	m_shadowMatrixCache = ShadowmapMatrix;
+	m_shadowMatrixFrame = s_shadowFrame;
+	m_shadowMatrixRender = render;
+	return m_shadowMatrixCache;
 }
 
 void lsLight::buildShadowmap_matrix( lsRender* render )

@@ -117,6 +117,21 @@ public:
     void buildShadowmap_matrix( lsRender* render );
 
     /**
+     * @brief Return the shadow matrix for this renderer, rebuilding at most
+     * once per pipeline frame. This guarantees the matrix used to render
+     * the shadow map and the matrix used to sample it are byte-identical.
+     */
+    const lsMatrix4x4& getShadowMatrix( lsRender* render );
+
+    /**
+     * @brief Advance the per-frame shadow-matrix generation counter.
+     *
+     * Called once per frame by lsRenderPipeline::render() before any
+     * stage executes.
+     */
+    static void nextShadowFrame();
+
+    /**
      * @brief Hook called before the shadow matrix is (re)built
      *
      * Light types can tighten/sync their shadow frustum here.
@@ -342,6 +357,18 @@ private:
 	// Private Members
 	//=========================================================================
 	
+    /** @brief Cached shadow matrix for the current frame */
+    lsMatrix4x4 m_shadowMatrixCache;
+
+    /** @brief Frame counter for which m_shadowMatrixCache is valid */
+    unsigned m_shadowMatrixFrame = 0;
+
+    /** @brief Renderer that produced m_shadowMatrixCache (bias differs) */
+    lsRender* m_shadowMatrixRender = nullptr;
+
+    /** @brief Per-frame counter incremented by lsRenderPipeline::render() */
+    static unsigned s_shadowFrame;
+
     /** @brief Light type (LSLT_*) */
     int light_type;
 

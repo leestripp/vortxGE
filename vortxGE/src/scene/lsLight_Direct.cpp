@@ -29,6 +29,28 @@ lsLight_Direct::~lsLight_Direct()
 {
 }
 
+void lsLight_Direct::updateFollowCamera()
+{
+	if( !m_followCamera )
+		return;
+
+	// The sun follows the camera so its ortho shadow box stays with the
+	// player. We snap to whole-texel boundaries in buildShadowmap_matrix,
+	// so sub-texel camera motion does not swim the shadows.
+	lsVector3 cam_pos = lsVector3(
+		m_followCamera->ModelMatrix.matrix[12],
+		m_followCamera->ModelMatrix.matrix[13],
+		m_followCamera->ModelMatrix.matrix[14] );
+	lsVector3 final_pos = cam_pos + position;
+
+	ModelMatrix.matrix[12] = final_pos.x;
+	ModelMatrix.matrix[13] = final_pos.y;
+	ModelMatrix.matrix[14] = final_pos.z;
+
+	// Light direction follows camera offset.
+	m_lightDirection = position;
+}
+
 void lsLight_Direct::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render, __attribute__((unused)) double delta )
 {
 	// Auto update
@@ -67,23 +89,7 @@ void lsLight_Direct::Move( __attribute__((unused)) lsScene* scn, __attribute__((
 	// Build matrix
 	 ModelMatrix = ModelMatrix *  transmat * rotmat * scalemat;
 	
-	if(m_followCamera)
-	{
-		// position is offset, do not update it.
-		lsVector3 cam_pos = lsVector3(m_followCamera->ModelMatrix.matrix[12], m_followCamera->ModelMatrix.matrix[13], m_followCamera->ModelMatrix.matrix[14]);
-		lsVector3 final_pos = cam_pos + position;
-		// set new pos.
-		ModelMatrix.matrix[12] = final_pos.x;
-		ModelMatrix.matrix[13] = final_pos.y;
-		ModelMatrix.matrix[14] = final_pos.z;
-		
-		// Light direction follows camera.
-		m_lightDirection = final_pos - cam_pos;
-	} else
-	{
-		// Set light direction to Pos.
-		m_lightDirection = position;
-	}
+	updateFollowCamera();
 	
 #ifdef VORTX_DEBUG_NODES
 	// debug

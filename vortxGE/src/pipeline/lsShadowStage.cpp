@@ -102,7 +102,7 @@ void lsShadowStage::execute( lsRender* render, lsTargetPool& targets )
 		{
 			m_light->Set_Perspective( m_light->spot_outer_cutoff * 2.0, 1.0,
 									  nearZ, farZ );
-			m_light->buildShadowmap_matrix( render );
+			m_light->getShadowMatrix( render );
 #if defined(VORTX_DEBUG_TOOLS)
 			if( shadowTrace() )
 				std::cout << "SHADOWSTAGE L3.1 fit light=" << m_light->getName()

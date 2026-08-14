@@ -1,4 +1,5 @@
 #include "lsRenderPipeline.h"
+#include "../scene/lsLight.h"
 
 #include "../debug/lsProfiler.h"
 
@@ -18,6 +19,10 @@ lsRenderStage* lsRenderPipeline::findStage( const std::string& name ) const
 
 void lsRenderPipeline::render()
 {
+	// C4: advance the shadow-matrix frame so each light rebuilds its shadow
+	// matrix at most once this frame, even if multiple stages touch it.
+	lsLight::nextShadowFrame();
+
 #if defined(VORTX_DEBUG_TOOLS)
 	const bool prof = lsProfiler::instance().active();
 	if( prof ) m_render->profilerFrameBegin();

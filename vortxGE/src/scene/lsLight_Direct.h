@@ -19,6 +19,7 @@ public:
     // Camera following
     void setFollowCamera(lsCamera* camera) { m_followCamera = camera; }
     lsCamera* getFollowCamera() const { return m_followCamera; }
+    void updateFollowCamera();
 	
 	// public data
     lsVector3 m_lightDirection;		// Calculate direction based on camera as we move with it.
