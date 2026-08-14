@@ -703,11 +703,94 @@ void DemoScene::Update( double delta )
 		cam->Set_Pos( (float)std::sin( s_orbitT ), 5.0f,
 		              8.0f + (float)std::cos( s_orbitT ) );
 	}
-	// Fixed camera yaw for sky/culling regression captures.
-	if( const char* yawEnv = std::getenv( "VORTX_CAM_YAW" ) )
-		if( m_viewer_scene && m_viewer_scene->getActiveCamera() )
-			m_viewer_scene->getActiveCamera()->Set_Rot(
-				0.0f, (float)atof( yawEnv ), 0.0f );
+	// S-debug: rotate the player rig through its REAL input path
+	// (HandleMouseLook → Bullet yaw quaternion) to reproduce interactive
+	// rotation bugs in headless captures. VORTX_RIG_YAW=<deg>,
+	// VORTX_RIG_PITCH=<deg>, applied once on the first frame.
+	{
+		static bool s_rigRotDone = false;
+		const char* ryEnv = std::getenv( "VORTX_RIG_YAW" );
+		const char* rpEnv = std::getenv( "VORTX_RIG_PITCH" );
+		if( ! s_rigRotDone && ( ryEnv || rpEnv ) && m_playerRig )
+		{
+			s_rigRotDone = true;
+			// HandleMouseLook: yaw_delta = -dx * 0.05 * delta(ms);
+			// pitch_delta = -dy * sens * delta. 6.0 dx @16.7ms = 5°/call.
+			float yawT = ryEnv ? (float)atof( ryEnv ) : 0.0f;
+			float pitchT = rpEnv ? (float)atof( rpEnv ) : 0.0f;
+			int nY = (int)( std::abs( yawT ) / 5.0f + 0.5f );
+			float dx = yawT > 0 ? -6.0f : 6.0f;
+			for( int i = 0; i < nY; i++ )
+				m_playerRig->HandleMouseLook( 16.666f, dx, 0.0f );
+			int nP = (int)( std::abs( pitchT ) / 5.0f + 0.5f );
+			float dy = pitchT > 0 ? -6.0f : 6.0f;
+			for( int i = 0; i < nP; i++ )
+				m_playerRig->HandleMouseLook( 16.666f, 0.0f, dy );
+		}
+	}
+
+	// S-debug: continuous mouse-look spin through the rig's real input
+	// path (HandleMouseLook every frame). VORTX_MOUSE_SPIN=<deg/frame>
+	// (sign = direction). Combine with VORTX_SHOT_EVERY to catch
+	// transient black-sky frames in captures.
+	if( const char* spinEnv = std::getenv( "VORTX_MOUSE_SPIN" ) )
+		if( m_playerRig )
+		{
+			const float deg = (float)atof( spinEnv );
+			const float dx = -deg / ( 0.05f * 16.666f ); // sens*delta(ms)
+			const char* spinPEnv = std::getenv( "VORTX_MOUSE_SPIN_PITCH" );
+			const float degP = spinPEnv ? (float)atof( spinPEnv ) : 0.0f;
+			const float dy = -degP / ( 0.05f * 16.666f );
+			m_playerRig->HandleMouseLook( 16.666f, dx, dy );
+		}
+
+	// S-debug: hold a movement key through the rig's real input path.
+	// VORTX_WALK=w|a|s|d — combine with VORTX_MOUSE_SPIN for
+	// walk-while-turning repros.
+	if( const char* walkEnv = std::getenv( "VORTX_WALK" ) )
+		if( m_playerRig )
+		{
+			const char k = walkEnv[0];
+			m_playerRig->HandleKeyboardInput(
+				k == 'w', k == 's', k == 'a', k == 'd',
+				false, false, false );
+		}
+
+	// S-debug: standalone debug camera, fully independent of the player
+	// rig (the rig owns and updates its own camera every frame — never
+	// steer it from here). VORTX_DEBUG_CAM=1 creates + activates it;
+	// VORTX_CAM_YAW/PITCH (degrees) and VORTX_CAM_POS="x,y,z" steer it.
+	static lsCamera* s_debugCam = nullptr;
+	if( std::getenv( "VORTX_DEBUG_CAM" ) && m_viewer_scene && ! s_debugCam )
+	{
+		s_debugCam = new lsCamera( m_viewer_scene );
+		if( s_debugCam )
+		{
+			s_debugCam->setName( "DebugCam" );
+			s_debugCam->Set_Perspective( 45.0, 1820.0 / 1080.0, 0.1, 1000.0 );
+			s_debugCam->Set_Pos( 0, 5, 8 );	// rig start pose
+			m_viewer_scene->Add_Node( s_debugCam );
+			m_viewer_scene->setActiveCamera( s_debugCam );
+			cout << "DemoScene: debug camera active" << endl;
+		}
+	}
+	if( s_debugCam && m_viewer_scene
+	    && m_viewer_scene->getActiveCamera() == s_debugCam )
+	{
+		const char* yawEnv = std::getenv( "VORTX_CAM_YAW" );
+		const char* pitchEnv = std::getenv( "VORTX_CAM_PITCH" );
+		const char* posEnv = std::getenv( "VORTX_CAM_POS" );
+		if( yawEnv || pitchEnv )
+			s_debugCam->Set_Rot(
+				pitchEnv ? (float)atof( pitchEnv ) : 0.0f,
+				yawEnv ? (float)atof( yawEnv ) : 0.0f, 0.0f );
+		if( posEnv )
+		{
+			float px = 0, py = 5, pz = 8;
+			sscanf( posEnv, "%f,%f,%f", &px, &py, &pz );
+			s_debugCam->Set_Pos( px, py, pz );
+		}
+	}
 #endif
 
 	// Physics body count + fps every 5s (VORTX_PHYSICS_COUNT=1).

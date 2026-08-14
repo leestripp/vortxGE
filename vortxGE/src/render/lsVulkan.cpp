@@ -933,6 +933,21 @@ void lsVulkan::Present()
 		s_shotFrames = ( getenv( "VORTX_SHOT" ) || getenv( "VORTX_VK_DEBUG" ) ||
 						 getenv( "VORTX_FBO_SHOT" ) || getenv( "VORTX_DEPTH_SHOT" ) ||
 						 getenv( "VORTX_RDC" ) ) ? 30 : 0x7FFFFF;
+	// VORTX_SHOT_EVERY=N: multi-frame captures (frames 20..220) for
+	// transient bugs that single-frame shots can't catch.
+	static const char* everyEnv = getenv( "VORTX_SHOT_EVERY" );
+	static int s_frameNo = 0;
+	++s_frameNo;
+	const int every = everyEnv ? atoi( everyEnv ) : 0;
+	if( every > 0 && getenv( "VORTX_SHOT" ) &&
+	    s_frameNo >= 20 && s_frameNo <= 3600 && s_frameNo % every == 0 )
+	{
+		std::string p = getenv( "VORTX_SHOT" );
+		const size_t dot = p.find_last_of( '.' );
+		if( dot != std::string::npos )
+			p = p.substr( 0, dot ) + "_" + std::to_string( s_frameNo ) + p.substr( dot );
+		Screenshot( p.c_str() );
+	}
 	if( s_shotFrames < 0x7FFFFF && --s_shotFrames == 0 )
 	{
 		s_shotFrames = 0x7FFFFF; // disarm: the whole block is one-shot

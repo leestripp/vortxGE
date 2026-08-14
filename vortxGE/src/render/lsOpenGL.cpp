@@ -80,7 +80,12 @@ void lsOpenGL::EndFrame()
 	if( !shotPath ) return;
 	static int s_frame = 0;
 	++s_frame;
-	if( s_frame == 30 || s_frame == 90 ) // two-shot: temporal A/B
+	static const char* everyEnv = getenv( "VORTX_SHOT_EVERY" );
+	const int every = everyEnv ? atoi( everyEnv ) : 0;
+	bool shot = ( s_frame == 30 || s_frame == 90 ); // two-shot: temporal A/B
+	if( every > 0 && s_frame >= 20 && s_frame <= 3600 && s_frame % every == 0 )
+		shot = true;
+	if( shot )
 	{
 		std::string p = shotPath;
 		const size_t dot = p.find_last_of( '.' );
