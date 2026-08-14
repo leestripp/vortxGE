@@ -21,7 +21,19 @@
 
 ### E1 — Stability & correctness (bugs a game would hit)
 
-- **E1.1 Progressive slowdown — physics body leak.**
+- **E1.1 Progressive slowdown — physics body leak. ✅ CLOSED 2026-08-14**
+  Already fixed by the emitter object pool (7f9cfd6, 2026-08-04 — same
+  day as the report): PreAllocate creates 100 parked objects+bodies
+  upfront, EmitObject reuses them ring-buffer style, no per-spawn
+  allocation or deletion. Full ownership chain audited: checkLife →
+  lsEvent_DelNode → MarkForDeletion → CleanupDeletedNodes (root sweep
+  per Move) → unique_ptr → ~lsObject deletes bulletobject →
+  ~lsBulletObject removes the body from the dynamics world.
+  Verified live: bodies=106 stable across 3572 frames / ~47 spawn
+  cycles, fps ~41 steady (VORTX_PHYSICS_COUNT=1 probe, kept in the
+  demo as guidance — 5s cadence, bodies+fps).
+  Remaining: user soak test (original report was over minutes).
+
   Symptom (user report 2026-08-04): demo starts fine, gets slower and
   slower. Prime suspect: `lsObjectEmitter` spawns `lsBulletObject`
   rigid bodies on a timer; objects die via `lsObject::checkLife`

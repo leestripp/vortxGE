@@ -82,6 +82,10 @@ protected:
     // Live-link (VORTX_LIVELINK=1): watch the scene .vgs for external
     // edits (Blender push) and re-apply transforms in place
     bool        m_liveLink = false;
+    // E1.1 probe (VORTX_PHYSICS_COUNT=1): periodic physics body count + fps
+    bool        m_physCount = false;
+    double      m_physAcc = 0.0;
+    int         m_physFrames = 0;
     long        m_liveMtime = 0;
     double      m_liveCheckAcc = 0.0;
     void setupTestScene();

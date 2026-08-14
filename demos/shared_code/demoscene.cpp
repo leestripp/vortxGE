@@ -498,6 +498,7 @@ void DemoScene::setupTestScene()
 	const char* sceneEnv = std::getenv( "VORTX_SCENE" );
 	m_sceneName = ( sceneEnv && *sceneEnv ) ? sceneEnv : "demoscene";
 	m_liveLink = std::getenv( "VORTX_LIVELINK" ) != nullptr;
+	m_physCount = std::getenv( "VORTX_PHYSICS_COUNT" ) != nullptr;
 	if( m_liveLink )
 		cout << "INFO: live-link enabled — watching data/" << m_sceneName << ".vgs" << endl;
 	const bool baseScene = ( m_sceneName == "demoscene" );
@@ -871,6 +872,26 @@ void DemoScene::setupShadows()
 
 void DemoScene::Update( double delta )
 {
+	// Physics body count + fps every 5s (VORTX_PHYSICS_COUNT=1).
+	// Proves the emitter pool keeps the Bullet world bounded (E1.1).
+	// NOTE: delta is in MILLISECONDS (glfwApp main loop).
+	if( m_physCount )
+	{
+		m_physAcc += delta;
+		m_physFrames++;
+		if( m_physAcc >= 5000.0 )
+		{
+			int bodies = -1;
+			if( m_viewer_scene && m_viewer_scene->getBulletworld()
+				&& m_viewer_scene->getBulletworld()->getDynamicsWorld() )
+				bodies = m_viewer_scene->getBulletworld()->getDynamicsWorld()->getNumCollisionObjects();
+			cout << "PHYSICS-COUNT: bodies=" << bodies
+			     << " fps=" << ( m_physFrames / ( m_physAcc / 1000.0 ) ) << endl;
+			m_physAcc = 0.0;
+			m_physFrames = 0;
+		}
+	}
+
 	// Live-link: poll the scene file mtime twice a second; on change
 	// re-apply transforms in place (no structural changes, pipeline-
 	// safe) and refresh world matrices.
