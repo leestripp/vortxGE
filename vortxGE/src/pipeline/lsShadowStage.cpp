@@ -112,6 +112,37 @@ void lsShadowStage::execute( lsRender* render, lsTargetPool& targets )
 		}
 	}
 
+	// C-series backlog: direct (sun) depth-fit — tighten the hard-coded
+	// ortho near/far to the actual casters for better depth precision
+	// (deep ortho frusta compress depth). Same pattern as the spot fit.
+	if( m_light->getLight_type() == LSLT_DIRECT )
+	{
+		std::vector<lsVector3> positions;
+		std::vector<float> radii;
+		for( lsObject* o = m_scene->getDraw_list(); o;
+			 o = o->getNext_drawobject() )
+		{
+			positions.push_back( o->ModelMatrix * lsVector3( 0.0f, 0.0f, 0.0f ) );
+			const float sc = o->scale.length();
+			radii.push_back( sc > 2.0f ? 2.0f : sc );
+		}
+		float nearZ, farZ;
+		if( lsFitSpotDepthRange( m_light->ViewMatrix, positions, radii,
+								 nearZ, farZ ) )
+		{
+			m_light->Set_Orthographic( m_light->getOrtho_left(),
+				m_light->getOrtho_right(), m_light->getOrtho_bottom(),
+				m_light->getOrtho_top(), nearZ, farZ );
+			m_light->getShadowMatrix( render );
+#if defined(VORTX_DEBUG_TOOLS)
+			if( shadowTrace() )
+				std::cout << "SHADOWSTAGE direct fit light=" << m_light->getName()
+						  << " near=" << nearZ << " far=" << farZ
+						  << " casters=" << positions.size() << std::endl;
+#endif
+		}
+	}
+
 	// --- Render phase (mirrors lsPass_ShadowMap::Render)
 	fbo->Enable();
 

@@ -260,7 +260,11 @@ covers diagnostics.
 ## Backlog (non-blocking)
 
 - VK z_ndc<0 clip gap (`VK_EXT_depth_clip_control`).
-- Sun-map depth compression (deep ortho frusta → tighter fitting).
+- ~~Sun-map depth compression~~ ✅ 2026-08-14 — lsShadowStage now
+  fits the sun's ortho near/far to actual casters each frame (same
+  lsFitSpotDepthRange helper as spots): demo sun tightened 1–100 →
+  ~64–82 (12 casters). Also fixed: getShadowMatrix cache now respects
+  the projection dirty flag so per-frame fits are never defeated.
 - Validate the 2026-08-11/12 shadow fixes in a real game scene
   (stress scene covers lighting; a real scene would cover layout).
 - CSM + point-cube paths still use fixed PCF (PCSS follow-up).

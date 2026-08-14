@@ -81,7 +81,12 @@ void lsLight::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((un
 
 const lsMatrix4x4& lsLight::getShadowMatrix( lsRender* render )
 {
-	if( m_shadowMatrixFrame == s_shadowFrame && m_shadowMatrixRender == render )
+	// Cache hit only when the projection/view are unchanged. The dirty
+	// flag is set by Set_Perspective/Set_Orthographic (e.g. the stage's
+	// per-frame depth fit) — without this check the fit would be silently
+	// defeated by the cache.
+	if( m_shadowMatrixFrame == s_shadowFrame &&
+	    m_shadowMatrixRender == render && !isDirty() )
 		return m_shadowMatrixCache;
 
 	buildShadowmap_matrix( render );
