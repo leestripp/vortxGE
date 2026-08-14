@@ -225,6 +225,9 @@ bool lsVulkan::Init()
 		m_uboAlignment = props.limits.minUniformBufferOffsetAlignment;
 		if( m_uboAlignment < 16 ) m_uboAlignment = 16;
 
+		// Test hook: shrink the ring to force mid-frame wraps
+		// (VORTX_UBO_RING_KB=64 reproduces the black-sky corruption in
+		// busy scenes on demand).
 		if( const char* kb = getenv( "VORTX_UBO_RING_KB" ) )
 			m_uboRingSize = (VkDeviceSize)atol( kb ) * 1024;
 
@@ -2330,13 +2333,28 @@ VkPipeline lsVulkan::getPipeline( VkProgramObj& prog, const VkVao& vao,
 // ---------------------------------------------------------------------
 uint32_t lsVulkan::allocUboSlice( uint32_t bytes )
 {
+	// Per-frame uniform ring: each draw memcpys its UBO block here and
+	// binds it via dynamic offset. The GPU reads the data at EXECUTION
+	// time (after submit), not at record time — so a slice must stay
+	// untouched for the rest of the frame.
+	//
+	// WRAPPING IS A CORRUPTION BUG, not a benign reset: a mid-frame wrap
+	// lets later draws overwrite the EARLIEST draws' slices before
+	// execution. 2026-08-14 black-sky bug: the sky draws first in the
+	// scene pass, so its slice (view/proj matrices + sky params) was the
+	// first casualty once long sessions grew the draw count past the old
+	// 1MB ring. Symptom: whole sky black (no gradient, no stars) in busy
+	// views only — an orientation "sweet spot" — while the rest of the
+	// scene rendered normally. Ring is now 16MB (VORTX_UBO_RING_KB
+	// overrides); if this warning ever fires, RAISE THE RING SIZE.
 	VkDeviceSize aligned = ( m_uboCursor + m_uboAlignment - 1 ) &
 						   ~( m_uboAlignment - 1 );
 	if( aligned + bytes > m_uboRingSize )
 	{
-		aligned = 0;	// overflow: wrap (frames are small; log once)
+		aligned = 0;	// CORRUPTION: overwrites this frame's earliest
+						// draws — see comment above
 		static bool warned = false;
-		if(! warned ) { cout << "WARN: lsVulkan UBO ring wrapped" << endl; warned = true; }
+		if(! warned ) { cout << "WARN: lsVulkan UBO ring wrapped — earliest draws' uniforms corrupted this frame; increase m_uboRingSize" << endl; warned = true; }
 	}
 	m_uboCursor = aligned + bytes;
 	return (uint32_t)aligned;

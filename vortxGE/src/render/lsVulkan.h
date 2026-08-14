@@ -369,10 +369,13 @@ private:
 	void*			m_uboMapped = nullptr;
 	VkDeviceSize	m_uboCursor = 0;
 	VkDeviceSize	m_uboAlignment = 256;
-	// V2 fix (S-debug): 1MB wrapped mid-frame in busy views; later
-	// uploads overwrote the FIRST draws' slices (the sky draws first in
-	// the scene pass) -> orientation-dependent black sky. 16MB default,
-	// VORTX_UBO_RING_KB overrides for wrap testing.
+	// Per-frame uniform ring size. The GPU reads slices at execution
+	// time, so the ring must hold a WHOLE frame's uploads: a mid-frame
+	// wrap overwrites the earliest draws' uniforms (see allocUboSlice).
+	// 1MB was exceeded by long sessions (emitter cube accumulation grew
+	// the per-frame draw count) -> orientation-dependent black sky,
+	// fixed 2026-08-14 (commit 5794ee2). 16MB ~= 16k typical draws.
+	// VORTX_UBO_RING_KB overrides (used to force wraps in tests).
 	VkDeviceSize	m_uboRingSize = 16 * 1024 * 1024;
 
 	// descriptor pool (shared)

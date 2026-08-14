@@ -299,6 +299,51 @@ New debug hook: `VORTX_CAM_YAW=<deg>` (VORTX_DEBUG_TOOLS) sets a fixed
 camera yaw for sky/culling regression captures — verified sky visible
 at yaw 0/90/180/270 on GL and 135 on VK.
 
+### S1.2 — VK black-sky "sweet spot" root cause: UBO ring wrap — ✅ 2026-08-14
+
+**Symptom** (user report): whole sky vanishes to pure black (no
+gradient, no stars) at a deterministic camera orientation ("~45° right"),
+restores when rotating away, dies again rotating back. Vulkan only.
+
+**Root cause:** `lsVulkan`'s per-frame uniform ring was 1MB. Every
+draw memcpys its UBO block into the ring and binds it by dynamic
+offset; the GPU reads slices at *execution* time, after submit. In
+busy views the frame's uploads exceeded 1MB, `allocUboSlice` wrapped
+mid-frame, and later uploads overwrote the *earliest* draws' slices.
+The sky draws first in the scene pass, so its slice (view/proj
+matrices + sky params) was the first victim — black sky while the rest
+of the scene (later draws, still-valid slices) rendered fine. The
+"sweet spot" was simply any view whose draw count pushed post-sky
+uploads past the sky's offset. Smoking gun in the session log:
+`WARN: lsVulkan UBO ring wrapped`.
+
+**Fix:** ring default 16MB (~16k typical draws of headroom),
+`VORTX_UBO_RING_KB` env override to force wraps in tests. Commit
+5794ee2. Comments in `allocUboSlice` now document the hazard: if the
+wrap warning ever fires, raise the ring size.
+
+**Why short capture runs never reproduced it:** `VORTX_FIXED_DT`
+disables the cube emitter (deterministic captures), and fresh sessions
+have few objects — the wrap needs long-session draw counts (emitter
+accumulation, same growth behind the old "progressive slowdown"
+report). Lesson: repro long-session bugs with emitter-active runs.
+
+### S-debug — Diagnostic hooks (VORTX_DEBUG_TOOLS builds)
+
+Added while hunting the black-sky bug (commit 0db0bdc); all are
+inert without their env var:
+
+| Hook | Effect |
+|---|---|
+| `VORTX_DEBUG_CAM=1` | Standalone scene-owned camera becomes active; never touches the FirstPersonRig's camera |
+| `VORTX_CAM_YAW/PITCH=<deg>` | Steer the debug camera's rotation |
+| `VORTX_CAM_POS="x,y,z"` | Steer the debug camera's position |
+| `VORTX_RIG_YAW/PITCH=<deg>` | Rotate the player rig once via its REAL input path (`HandleMouseLook` -> Bullet quaternion) |
+| `VORTX_MOUSE_SPIN=<deg/frame>` (+`_PITCH`) | Continuous mouse-look through the real input path |
+| `VORTX_WALK=w|a|s|d` | Hold a movement key through `HandleKeyboardInput` |
+| `VORTX_SHOT_EVERY=N` | Capture every N frames (20..40000), GL + VK |
+| `VORTX_UBO_RING_KB=<kb>` | Override the VK uniform-ring size (force wraps) |
+
 ## Deferred / optional
 
 ### L6 — (Vulkan-only) RT shadow path
