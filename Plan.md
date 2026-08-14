@@ -64,9 +64,12 @@
   pass-manager path on Vulkan renders clear color only (never fully
   implemented — V2–V4 stubs era; all VK work landed on the pipeline
   path). Not a regression; the legacy path is retired by E3.
-- **E1.4 Intermittent VK teardown segfault on SIGTERM** (seen once,
-  not reproducible). Add to the soak list; fix if a second sighting
-  gives a stack.
+- **E1.4 Intermittent VK teardown segfault on SIGTERM** — 🟡 MONITORED
+  2026-08-14. Seen once, never reproduced despite repeated SIGTERM
+  soak runs during the C-series orbit/capture sessions (dozens of
+  clean exits both backends). No stack available. Standing rule: if a
+  second sighting produces a core/stack, fix immediately; until then
+  it stays on the soak list and does not block.
 
 **Done when:** body count stable across spawn cycles; stress scene
 runs on VK with zero shadow-pass errors; VK captures fill the full
@@ -153,8 +156,29 @@ removed or clearly deprecated; docs updated.
   (phase 1 engine side done: `VORTX_LIVELINK=1` hot-applies
   transforms/light props, verified). Add a "Push to engine" operator
   to the addon UI that re-exports straight onto the watched `.vgs`.
-- E4.3 (stretch) Structural live updates: add/remove objects without
-  restart (needs pipeline-stage light re-binding — design first).
+- **E4.3 (stretch) Structural live updates — DESIGN COMPLETE
+  2026-08-14**, implementation deferred (not blocking).
+  Problem: live-link today updates transforms/light props on EXISTING
+  nodes; add/remove breaks because pipeline stages bind scene light
+  POINTERS at initPipeline (lsShadowStage/lsCsmStage hold lsLight*),
+  and the cluster stage reads the scene's light list once.
+  Design:
+  1. Pipeline gains `rebindLights(scene)` — rebuilds only the light
+     stages (shadow/CSM/point-shadow) from the scene light manager;
+     preserves targets and camera stages. Scene emits a new
+     `LSPE_LIGHTS_CHANGED` event when lights are added/removed/
+     cast_shadows-toggled; the pipeline checks the flag once per frame
+     (cheap) and rebinds between frames (never mid-command-buffer).
+  2. lsLightManager gets add/remove notifications (it already owns the
+     list) → sets the dirty flag on the owning scene.
+  3. Live-link: Blender push of a new light appends the node via the
+     existing node-creation path; the flag triggers the rebind next
+     frame. Removal: the existing DelNode event chain handles teardown;
+     rebind rebuilds stages without the removed light.
+  4. Safety: rebind runs between frames after EndFrame; GL/VK device
+     idle is guaranteed by the existing frame fence.
+  Estimate: ~1 day including stress-scene verification (64→65 lights
+  live). Tracked here; implement when a game needs it.
 
 **Done when:** edit a light in Blender → click → it moves in the
 running demo; addon version mismatch is caught by the export tool.
