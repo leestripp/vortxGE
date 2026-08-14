@@ -73,7 +73,54 @@ void lsShadowStage::execute( lsRender* render, lsTargetPool& targets )
 
 	const int size = m_shadowMap->size();
 
-	// --- Update phase (mirrors lsPass_ShadowMap::Update): the light is
+	// SHADOW-STABILITY FIX (2026-08-14): world-anchored texel snapping
+	// for DIRECT lights. The demo sun follows the camera (followCamera),
+	// which recenters its ortho shadow map every frame; without snapping,
+	// every camera move slides all shadow texels across the world and the
+	// shadows shimmer/flicker. Snap the light so the FIXED WORLD ORIGIN
+	// lands exactly on a shadow-texel boundary: texels stay glued to
+	// world positions and camera motion no longer moves the shadows.
+	// (x/y kill the sliding; z snapping keeps depth stable -> no acne
+	// flicker.) Spots/points are light-centric and already stable.
+	if( m_light->getLight_type() == LSLT_DIRECT && size > 0 )
+	{
+		const float wptX = ( m_light->getOrtho_right() - m_light->getOrtho_left() ) / (float)size;
+		const float wptY = ( m_light->getOrtho_top() - m_light->getOrtho_bottom() ) / (float)size;
+		const float wptZ = ( m_light->getCam_far() - m_light->getCam_near() ) / (float)size;
+		if( wptX > 0.0f && wptY > 0.0f && wptZ > 0.0f )
+		{
+			const lsMatrix4x4& V = m_light->ViewMatrix;
+			// light-space position of the world origin == ViewMatrix
+			// translation column (V * (0,0,0,1))
+			const float lx = V.matrix[12], ly = V.matrix[13], lz = V.matrix[14];
+			const float dx = std::floor( lx / wptX ) * wptX - lx;
+			const float dy = std::floor( ly / wptY ) * wptY - ly;
+			const float dz = std::floor( lz / wptZ ) * wptZ - lz;
+			if( dx != 0.0f || dy != 0.0f || dz != 0.0f )
+			{
+				// light-space delta -> world delta via R^T (rows of the
+				// upper 3x3, column-major storage)
+				m_light->ModelMatrix.matrix[12] += V.matrix[0]*dx + V.matrix[1]*dy + V.matrix[2]*dz;
+				m_light->ModelMatrix.matrix[13] += V.matrix[4]*dx + V.matrix[5]*dy + V.matrix[6]*dz;
+				m_light->ModelMatrix.matrix[14] += V.matrix[8]*dx + V.matrix[9]*dy + V.matrix[10]*dz;
+				m_light->Update_Camera(); // rebuild ViewMatrix snapped
+			}
+#if defined(VORTX_DEBUG_TOOLS)
+			if( shadowTrace() )
+			{
+				static int s_snapTrace = 0;
+				if( s_snapTrace++ % 30 == 0 )
+					std::cout << "SHADOWSTAGE snap light=" << m_light->getName()
+					          << " pos=(" << m_light->ModelMatrix.matrix[12] << ", "
+					          << m_light->ModelMatrix.matrix[13] << ", "
+					          << m_light->ModelMatrix.matrix[14] << ")"
+					          << " wpt=(" << wptX << ")" << std::endl;
+			}
+#endif
+		}
+	}
+
+	// --- Update phase: the light is
 	// the cull camera for the shadow view
 	m_scene->InitDrawlist();
 	m_scene->Optimize( m_light, m_passType, m_scene, render );

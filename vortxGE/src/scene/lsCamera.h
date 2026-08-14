@@ -174,6 +174,11 @@ public:
 	float getCam_ratio() const { return cam_ratio; }
 	float getCam_near() const { return cam_near; }
 	float getCam_far() const { return cam_far; }
+	// Ortho extents (shadow-map texel snapping, R6-era shadow fix)
+	float getOrtho_left() const { return orth_left; }
+	float getOrtho_right() const { return orth_right; }
+	float getOrtho_bottom() const { return orth_bottom; }
+	float getOrtho_top() const { return orth_top; }
 
 	int getCamera_mode() const
 	{
