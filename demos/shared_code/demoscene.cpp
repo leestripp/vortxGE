@@ -708,21 +708,6 @@ void DemoScene::Update( double delta )
 {
 	VORTX_PROFILE_ZONE( "update" );
 
-#if defined(VORTX_DEBUG_TOOLS)
-	// Shadow-fix verification: deterministic camera orbit so shadow
-	// swimming can be tested without input (VORTX_CAM_ORBIT=1).
-	if( std::getenv( "VORTX_CAM_ORBIT" ) && m_viewer_scene
-		&& m_viewer_scene->getActiveCamera() )
-	{
-		static double s_orbitT = 0.0;
-		s_orbitT += delta * 0.001;
-		lsCamera* cam = m_viewer_scene->getActiveCamera();
-		const double a = s_orbitT * 0.8;
-		cam->Set_Pos( (float)( std::sin( a ) * 6.0 ), 5.0f,
-		              (float)( 8.0 + std::cos( a ) * 2.0 ) );
-	}
-#endif
-
 	// Physics body count + fps every 5s (VORTX_PHYSICS_COUNT=1).
 	// Proves the emitter pool keeps the Bullet world bounded (E1.1).
 	// NOTE: delta is in MILLISECONDS (glfwApp main loop).
