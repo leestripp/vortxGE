@@ -259,10 +259,12 @@ bool DemoScene::Init()
 		setupControls();
 		setupTestScene();
 
-		// Plan.md Part 3 Phase R2: opt-in explicit render pipeline.
-		// Scene->FBO via lsSceneStage, FBO->screen via lsBlitStage —
-		// replaces the Quad-Viewer control + pass_fbo at render time.
-		if( getenv( "VORTX_PIPELINE" ) )
+		// E3.1 (2026-08-14): the explicit render pipeline is the DEFAULT
+		// render path. Scene->FBO via lsSceneStage, FBO->screen via
+		// lsBlitStage, shadow/cluster stages — replaces the Quad-Viewer
+		// control + pass_fbo chain. Legacy pass-manager path remains
+		// for one release behind VORTX_LEGACY_PIPELINE=1.
+		if( ! getenv( "VORTX_LEGACY_PIPELINE" ) )
 			initPipeline();
 		
 	} else

@@ -106,8 +106,10 @@ The stage-based pipeline is proven (L1–L5 all landed on it) but still
 opt-in (`VORTX_PIPELINE=1`). A library should not ship two render
 paths indefinitely.
 
-- E3.1 **R3: pipeline becomes the default** demo path; legacy
-  pass-manager path behind `VORTX_LEGACY_PIPELINE=1` for one release.
+- E3.1 **R3: pipeline is the default** demo path ✅ 2026-08-14 —
+  `initPipeline()` runs unless `VORTX_LEGACY_PIPELINE=1`; verified
+  GL+VK full-scene captures with zero env vars, legacy escape honored,
+  ctest 100%.
 - E3.2 **R5: camera decoupling** — the pipeline must take its camera
   from the scene, not from viewer/control classes.
 - E3.3 **R6: retire the old control/pass classes** once nothing
