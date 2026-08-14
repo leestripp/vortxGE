@@ -41,14 +41,14 @@ uniform int prepassFlipY;
 uniform mat4 pMatrix;
 
 // Lighting
-uniform vec3 vxLightPos[64];
-uniform vec4 vxLightDiffuse[64];
-uniform float vxLightIntensity[64];
-uniform float vxLightRadius[64]; // L5: cluster window radius
-uniform int vxLightType[64];
-uniform vec3 vxLightDir[64];
-uniform float vxLightCutoff[64];
-uniform float vxLightOuterCutoff[64];
+uniform vec3 vxLightPos[128];
+uniform vec4 vxLightDiffuse[128];
+uniform float vxLightIntensity[128];
+uniform float vxLightRadius[128]; // L5: cluster window radius
+uniform int vxLightType[128];
+uniform vec3 vxLightDir[128];
+uniform float vxLightCutoff[128];
+uniform float vxLightOuterCutoff[128];
 uniform int vxLightCount;
 uniform int vxDebugView;
 // L5 clustered lighting (appended after all samplers: VK binding order)

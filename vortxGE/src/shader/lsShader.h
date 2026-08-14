@@ -322,29 +322,29 @@ private:
 	lsUniformID iDebugView;		///< D1.2: vxDebugView selector (light_tex_* shaders)
     
     /** @brief Light types (up to 3) */
-	lsUniformID iLightType[64]; // L5.2: raised from 3
+	lsUniformID iLightType[128]; // L5.2: raised from 3
     
     /** @brief Light positions (up to 3) */
-	lsUniformID iLightPos[64]; // L5.2: raised from 3
+	lsUniformID iLightPos[128]; // L5.2: raised from 3
     
     /** @brief Light directions (up to 3) */
-	lsUniformID iLightDir[64]; // L5.2: raised from 3
+	lsUniformID iLightDir[128]; // L5.2: raised from 3
     
     /** @brief Light inner cutoffs (spotlights) */
-	lsUniformID iLightCutoff[64]; // L5.2: raised from 3
+	lsUniformID iLightCutoff[128]; // L5.2: raised from 3
     
     /** @brief Light outer cutoffs (spotlights) */
-	lsUniformID iLightOuterCutoff[64]; // L5.2: raised from 3
+	lsUniformID iLightOuterCutoff[128]; // L5.2: raised from 3
     
     /** @brief Light diffuse colors (up to 3) */
-	lsUniformID iLightDiffuse[64]; // L5.2: raised from 3
+	lsUniformID iLightDiffuse[128]; // L5.2: raised from 3
     
     /** @brief Light specular colors (up to 3) */
-	lsUniformID iLightSpecular[64]; // L5.2: raised from 3
+	lsUniformID iLightSpecular[128]; // L5.2: raised from 3
     
     /** @brief Light intensities (up to 3) */
-	lsUniformID iLightIntensity[64]; // L5.2: raised from 3
-	lsUniformID iLightRadius[64]; // L5: cluster window radius
+	lsUniformID iLightIntensity[128]; // L5.2: raised from 3
+	lsUniformID iLightRadius[128]; // L5: cluster window radius
 
 	// L5 clustered lighting (all -1 on non-light programs)
 	lsUniformID iClusterEnabled = -1;

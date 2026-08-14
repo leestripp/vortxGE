@@ -73,7 +73,7 @@ void lsClusterStage::execute( lsRender* render, lsTargetPool& targets )
     {
         if( !light || !light->getActive() ) continue;
         const int slot = rank++;
-        if( slot >= 64 ) break;              // shader array cap (L5.2a)
+        if( slot >= 128 ) break;             // shader array cap (E5.2)
 
         const int type = light->getLight_type();
         if( type == LSLT_DIRECT || slot < 3 ) continue;

@@ -69,7 +69,7 @@ lsShader::lsShader( lsRender *render )
 		iPointNear[i] = -1;
 		iPointFar[i] = -1;
 	}
-	for(int i = 0; i < 64; ++i) // L5.2: light property arrays
+	for(int i = 0; i < 128; ++i) // E5.2: light property arrays
 	{
 		iLightPos[i] = -1;
 		iLightType[i] = -1;
@@ -170,7 +170,7 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 			// Lights uniforms (arrays)
 			iLightCount = getRender()->GetUniformLocation( shader, "vxLightCount" );
 			iDebugView = getRender()->GetUniformLocation( shader, "vxDebugView" );
-			for(int i = 0; i < 64; ++i) { // L5.2
+			for(int i = 0; i < 128; ++i) { // E5.2
 				iLightType[i] = getRender()->GetUniformLocation( shader, ("vxLightType[" + to_string(i) + "]").c_str() );
 				iLightPos[i] = getRender()->GetUniformLocation( shader, ("vxLightPos[" + to_string(i) + "]").c_str() );
 				iLightDir[i] = getRender()->GetUniformLocation( shader, ("vxLightDir[" + to_string(i) + "]").c_str() );
@@ -906,7 +906,7 @@ void lsShader::Setup_Lights( lsCamera *camera, lsObject *object )
 
 void lsShader::Set_Light( int i, lsCamera *camera, lsLight *light, __attribute__((unused)) lsObject *object )
 {
-	if (i < 0 || i >= 64) return; // L5.2: 64 light property slots (shadows stay slots 0-2)
+	if (i < 0 || i >= 128) return; // E5.2: 128 light property slots (shadows stay slots 0-2)
 
 	lsMatrix4x4 light_in_view_space_matrix;
 	
