@@ -262,11 +262,10 @@ covers diagnostics.
 - VK z_ndc<0 clip gap (`VK_EXT_depth_clip_control`) — open, low
   risk (no observed artifacts; GL-style [-1,1] clip works via the
   negative-height viewport path). Pick up when a real artifact appears.
-- ~~Sun-map depth compression~~ ✅ 2026-08-14 — lsShadowStage now
-  fits the sun's ortho near/far to actual casters each frame (same
-  lsFitSpotDepthRange helper as spots): demo sun tightened 1–100 →
-  ~64–82 (12 casters). Also fixed: getShadowMatrix cache now respects
-  the projection dirty flag so per-frame fits are never defeated.
+- Sun-map depth compression — REVERTED 2026-08-14: per-frame ortho
+  near/far refit destabilized shadows (radius-capped floor mesh broke
+  the fit). Sun keeps its fixed, conservative range. Kept: the
+  getShadowMatrix cache now respects the projection dirty flag.
 - Validate the 2026-08-11/12 shadow fixes in a real game scene —
   blocked: needs a real game scene (stress scene covers lighting).
 - CSM + point-cube paths still use fixed PCF (PCSS follow-up) — open
