@@ -196,23 +196,23 @@ void lsFirstPersonRig::Move(lsScene* scn, lsRender* render, double delta)
     }
 }
 
-void lsFirstPersonRig::Optimize(lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render)
+void lsFirstPersonRig::Optimize(lsCamera* cam, int pass_type, lsScene* scn, lsRender* render)
 {
 	// Pass optimization calls to the camera as it handles the actual view frustum
 	if (m_camera) {
-		m_camera->Optimize(cam, pass, scn, render);
+		m_camera->Optimize(cam, pass_type, scn, render);
 	}
 	// The rig itself typically doesn't need complex optimization separate from its camera
 }
 
-void lsFirstPersonRig::Draw(lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render)
+void lsFirstPersonRig::Draw(lsCamera* cam, int pass_type, lsScene* scn, lsRender* render)
 {
 	// The rig itself usually has no visual representation, but its camera does.
 	// No explicit drawing for the rig. Drawing for the camera is handled by the scene's passes.
 	// If you wanted to draw a debug representation of the rig's capsule:
 	// (You'd need a debug mesh for the capsule and add it as a child or directly draw it here)
 	// For now, it just calls the base class, which will draw any asset assigned to the rig.
-	lsObject::Draw(cam, pass, scn, render);
+	lsObject::Draw(cam, pass_type, scn, render);
 }
 
 

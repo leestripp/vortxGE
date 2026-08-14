@@ -25,10 +25,10 @@ lsBatch_Bullet::~lsBatch_Bullet()
 	Cleanup();
 }
 
-void lsBatch_Bullet::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
+void lsBatch_Bullet::Draw( lsCamera *cam, lsObject *object, int pass_type )
 {
     // Not used but must exsist
-    if( getNext_batch() ) getNext_batch()->Draw( cam, object, pass );
+    if( getNext_batch() ) getNext_batch()->Draw( cam, object, pass_type );
 }
 
 void lsBatch_Bullet::Update( __attribute__((unused)) double delta )

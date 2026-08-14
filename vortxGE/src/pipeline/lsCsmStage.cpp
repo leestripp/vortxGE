@@ -1,10 +1,10 @@
 #include "lsCsmStage.h"
+#include "../render/lsRenderTypes.h"
 
 #include "../datablocks/lsFBO_Depth.h"
 #include "../scene/lsCamera.h"
 #include "../scene/lsLight.h"
 #include "../scene/lsScene.h"
-#include "lsStagePassToken.h"
 
 #if defined(VORTX_DEBUG_TOOLS)
 #include <cstdlib>
@@ -32,7 +32,6 @@ lsCsmStage::lsCsmStage( lsScene* scene, lsLight* light, lsCamera* camera,
 
 lsCsmStage::~lsCsmStage()
 {
-	delete m_passToken;
 	delete m_csm;
 }
 
@@ -56,8 +55,6 @@ void lsCsmStage::execute( lsRender* render, lsTargetPool& targets )
 	const auto& cascades = m_csm->cascades();
 	if( cascades.empty() ) return;
 
-	if( !m_passToken )
-		m_passToken = new lsStagePassToken( render, LSPT_SHADOWMAP );
 
 	atlas->Enable();
 	render->Enable( LS_DEPTH_TEST );
@@ -79,14 +76,14 @@ void lsCsmStage::execute( lsRender* render, lsTargetPool& targets )
 		cam.frustum.Set_Orthographic( -r, r, -r, r, -r, 3.0f * r );
 
 		m_scene->InitDrawlist();
-		m_scene->Optimize( &cam, m_passToken, m_scene, render );
-		m_scene->OptimizeThread( &cam, m_passToken, m_scene, render );
+		m_scene->Optimize( &cam, m_passType, m_scene, render );
+		m_scene->OptimizeThread( &cam, m_passType, m_scene, render );
 
 		int qx, qy;
 		m_csm->quadrant( (int)i, qx, qy );
 		render->Viewport( qx, qy, ms, ms );
 
-		m_scene->Draw( &cam, m_passToken, nullptr, render );
+		m_scene->Draw( &cam, m_passType, nullptr, render );
 	}
 
 	// restore defaults for the next stage

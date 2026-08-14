@@ -18,7 +18,6 @@
 
 class lsScene;
 class lsCamera;
-class lsStagePassToken;
 
 class lsPrepassStage : public lsRenderStage
 {
@@ -38,7 +37,7 @@ private:
 	lsScene* m_scene = nullptr;
 	lsCamera* m_camera = nullptr;
 	std::string m_target;
-	lsStagePassToken* m_passToken = nullptr;
+	int			m_passType = LSPT_PREPASS;	// R6: plain pass-type int
 
 	static lsTextureID s_depthTex;
 };

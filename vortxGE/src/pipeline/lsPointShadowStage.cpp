@@ -1,10 +1,10 @@
 #include "lsPointShadowStage.h"
+#include "../render/lsRenderTypes.h"
 
 #include "../datablocks/lsFBO_DepthCube.h"
 #include "../scene/lsCamera.h"
 #include "../scene/lsLight.h"
 #include "../scene/lsScene.h"
-#include "lsStagePassToken.h"
 
 #if defined(VORTX_DEBUG_TOOLS)
 #include <cstdlib>
@@ -59,7 +59,6 @@ lsPointShadowStage::lsPointShadowStage( lsScene* scene, lsLight* light,
 
 lsPointShadowStage::~lsPointShadowStage()
 {
-	delete m_passToken;
 	delete m_cube;
 }
 
@@ -69,8 +68,6 @@ void lsPointShadowStage::execute( lsRender* render, lsTargetPool& targets )
 	(void)targets;
 	if( !m_scene || !m_light || !m_cube ) return;
 
-	if( !m_passToken )
-		m_passToken = new lsStagePassToken( render, LSPT_SHADOWMAP );
 
 	// light world position
 	const lsVector3 lightPos( m_light->ModelMatrix.matrix[12],
@@ -94,14 +91,14 @@ void lsPointShadowStage::execute( lsRender* render, lsTargetPool& targets )
 		cam.frustum.Set_Perspective( 90.0f, 1.0f, nearZ, farZ );
 
 		m_scene->InitDrawlist();
-		m_scene->Optimize( &cam, m_passToken, m_scene, render );
-		m_scene->OptimizeThread( &cam, m_passToken, m_scene, render );
+		m_scene->Optimize( &cam, m_passType, m_scene, render );
+		m_scene->OptimizeThread( &cam, m_passType, m_scene, render );
 
 		m_cube->EnableFace( face );
 		render->Viewport( 0, 0, size, size );
 		m_cube->ClearBuffers();
 
-		m_scene->Draw( &cam, m_passToken, nullptr, render );
+		m_scene->Draw( &cam, m_passType, nullptr, render );
 	}
 
 	// restore defaults for the next stage

@@ -72,12 +72,6 @@
 #include <datablocks/lsBulletShape.h>
 #include <datablocks/lsTexture.h> // Include for lsTexture
 
-// Controls
-#include <controls/lsControlManager.h>
-#include <controls/lsControl.h>
-#include <controls/lsComposite.h>
-#include <controls/lsViewer.h>
-
 // Plan.md Part 3: render pipeline (R2)
 #include <pipeline/lsRenderPipeline.h>
 #include <pipeline/lsSceneStage.h>
@@ -85,14 +79,6 @@
 #include <pipeline/lsShadowStage.h>
 #include <pipeline/lsCsmStage.h>
 #include <pipeline/lsPrepassStage.h>
-
-// Passes
-#include <passes/lsPassManager.h>
-#include <passes/lsPass.h>
-#include <passes/lsPass_DR.h>
-#include <passes/lsPass_FBO.h>
-#include <passes/lsPass_Occlusion.h>
-#include <passes/lsPass_ShadowMap.h>
 
 // Scene
 #include <scene/lsSceneManager.h>
@@ -174,10 +160,8 @@ DemoScene::DemoScene()
 	m_view_width = 1920;
 	m_view_height = 1080;
 
-	m_quad_viewer = nullptr;
-	m_quad_scene = nullptr;
 
-	m_viewer = nullptr;
+	m_scenemanager = nullptr;
 	m_viewer_scene = nullptr;
 
 	m_playerRig = nullptr;
@@ -259,13 +243,9 @@ bool DemoScene::Init()
 		setupControls();
 		setupTestScene();
 
-		// E3.1 (2026-08-14): the explicit render pipeline is the DEFAULT
-		// render path. Scene->FBO via lsSceneStage, FBO->screen via
-		// lsBlitStage, shadow/cluster stages — replaces the Quad-Viewer
-		// control + pass_fbo chain. Legacy pass-manager path remains
-		// for one release behind VORTX_LEGACY_PIPELINE=1.
-		if( ! getenv( "VORTX_LEGACY_PIPELINE" ) )
-			initPipeline();
+		// The stage-based pipeline is THE render path (R6, 2026-08-14 —
+		// the legacy pass-manager/viewer chain has been removed).
+		initPipeline();
 		
 	} else
 	{
@@ -306,78 +286,13 @@ void DemoScene::setupControls()
 {
 	cout << "DemoScene::setupControls() called" << endl;
 
-	// pass_fbo needs to pass its texture to this.
-	lsAsset_Quad *asset_quad = NULL;
 	
-	// Add quad viewer control
-	m_quad_viewer = new lsViewer( m_vortxge->getRender(), nullptr );
-	if( m_quad_viewer )
+	
+	// R6 (2026-08-14): the demo owns its scene manager directly — the
+	// lsViewer/lsControl render chain has been removed.
+	m_scenemanager = new lsSceneManager();
+	if( m_scenemanager )
 	{
-		m_quad_viewer->setName( "Quad Viewer" );
-		
-		// Init
-		m_quad_viewer->Init();
-		m_vortxge->getControlManager()->Add_Control( m_quad_viewer );
-		
-		// Create quad scene
-		m_quad_scene = new lsScene( m_vortxge->getRender(), 100.0, 1 );
-		if( m_quad_scene )
-		{
-			// Give our scene a name.
-			m_quad_scene->setName("Quad Scene");
-			
-			m_quad_viewer->getSceneManager()->Add_Scene( m_quad_scene );
-			
-			// Add Camera
-			lsCamera *quad_camera = new lsCamera( m_quad_scene );
-			if( quad_camera )
-			{
-				// Orthographic camera defaults
-				quad_camera->Set_Orthographic( 1.0 );
-
-				m_quad_scene->Add_Node( quad_camera );
-			}
-
-			// Create Quad
-			lsObject *quad = new lsObject( m_quad_scene );
-			if( quad )
-			{
-				quad->setName( "Quad" );
-				quad->Set_Rot( 0, 180.0, 0 );
-				
-				// Use quad asset
-				asset_quad = m_quad_scene->getAssetManager()->CreateAsset_Quad();
-				asset_quad->AllocAsset();
-				quad->Set_Asset( asset_quad );
-
-				m_quad_scene->Add_Node( quad );
-			}
-
-			// Create Direct render Pass
-			lsPass_DR *pass_dr = new lsPass_DR( m_vortxge->getRender() );
-			if( pass_dr )
-			{
-				// If the user see's this colour, Quad could be backwards, not rendering.
-				pass_dr->setBackground_colour( lsVector4( 0.5, 0, 0, 1.0 ) );
-				
-				m_quad_viewer->getPassManager()->Add_Pass( pass_dr );
-				pass_dr->setScene( m_quad_scene );
-				pass_dr->setCamera( quad_camera );
-				pass_dr->setCull_camera( quad_camera );
-			}
-		}// if( m_quad_scene )
-	}// if m_quad_viewer
-	
-	
-	// Add demoscene viewer control
-	m_viewer = new lsViewer( m_vortxge->getRender(), NULL );
-	if( m_viewer )
-	{
-		m_viewer->setName( "Demo Scene Viewer" );
-
-		// Init
-		m_viewer->Init();
-		m_vortxge->getControlManager()->Add_Control( m_viewer );
 
 		// Create viewer scene
 		// World size 1000 meters
@@ -385,7 +300,7 @@ void DemoScene::setupControls()
 		m_viewer_scene = new lsScene( m_vortxge->getRender(), 1000.0, 1000 );
 		if( m_viewer_scene )
 		{
-			m_viewer->getSceneManager()->Add_Scene( m_viewer_scene );
+			m_scenemanager->Add_Scene( m_viewer_scene );
 			
 			//***********************************************
 			// Add Player Rig - instantiate lsFirstPersonRig
@@ -399,38 +314,6 @@ void DemoScene::setupControls()
 			// read it from the scene, not from the rig/control classes.
 			m_viewer_scene->setActiveCamera( playerCam );
 			
-			// create FBO pass to render main scene too.
-			// This gets applied to the Quad.
-			lsPass_FBO *pass_fbo = new lsPass_FBO( m_vortxge->getRender() );
-			if( pass_fbo )
-			{
-				// Create the main-scene FBO at the framebuffer's pixel size.
-				//
-				// Previously this was hard-coded to (1920,1080) which works
-				// on a 1920x1080 logical framebuffer but breaks on HiDPI
-				// displays (e.g. 125% desktop scaling -> 2400x1350 physical
-				// framebuffer) because the FBO texture then only covers the
-				// top-left ~80% of the window. The pass_fbo Resize() will
-				// recreate this FBO at the correct size whenever the
-				// framebuffer pixel size changes (HiDPI, window resize).
-				lsFBO_ColourDepth_8 *lsfbo = new lsFBO_ColourDepth_8(
-					(double)m_view_width, (double)m_view_height,
-					m_vortxge->getRender() );
-				if( lsfbo )
-				{
-					pass_fbo->setFBO( lsfbo );
-
-					// Connect the Quad
-					asset_quad->Set_texture( lsfbo->getTexture() );
-				}
-				// Black background for our main scene.
-				pass_fbo->setBackground_colour( lsVector4( 0, 0, 0, 1.0 ) );
-
-				m_viewer->getPassManager()->Add_Pass( pass_fbo );
-				pass_fbo->setScene( m_viewer_scene );
-				pass_fbo->setCamera( playerCam );
-				pass_fbo->setCull_camera( playerCam );
-			}// if pass_fbo
 			
 			// Create a lsLight_Direct to follow the player.
 			m_sun_light = new lsLight_Direct(m_viewer_scene);
@@ -576,10 +459,10 @@ void DemoScene::setupTestScene()
 	m_viewer_scene->Add_Node(ground);
 	
 	// Load the selected scene file
-	if (m_viewer)
+	if( m_scenemanager )
 	{
 		const std::string sceneFile = "data/" + m_sceneName + ".vgs";
-		if( !m_viewer->getSceneManager()->LoadSceneFromFile( sceneFile, m_viewer_scene ) )
+		if( !m_scenemanager->LoadSceneFromFile( sceneFile, m_viewer_scene ) )
 			cerr << "ERROR: failed to load scene file " << sceneFile << endl;
 		
 		// Manually trigger a single Move pass to update ModelMatrix for all nodes
@@ -588,7 +471,7 @@ void DemoScene::setupTestScene()
 		m_viewer_scene->MoveThread(m_viewer_scene, m_vortxge->getRender(), 0.0); // Update all children recursively
 		
 		// After loading and updating transforms, link lights to objects
-		m_viewer->getSceneManager()->LinkLightsInScene(m_viewer_scene, 64); // L5.2
+		m_scenemanager->LinkLightsInScene(m_viewer_scene, 64); // L5.2
 	}
 
 	// M4: register mesh objects for distance-driven streaming.
@@ -644,12 +527,6 @@ void DemoScene::setupTestScene()
 	{
 		std::cerr << "ERROR: Failed to create SceneSpeaker." << std::endl;
 	}
-	
-	// Setup shadowmaps (legacy pass path only — initPipeline creates
-	// shadow STAGES with cast_shadows gating in pipeline mode; running
-	// both would double-create shadow FBOs, E1.2)
-	if( !m_pipeline )
-		setupShadows();
 	
 	// Base-demo content only (tech scenes are pure .vgs)
 	if( baseScene )
@@ -826,60 +703,6 @@ void DemoScene::setupObjectEmitter()
 	cout << "DemoScene::setupObjectEmitter() completed" << endl;
 }
 
-void DemoScene::setupShadows()
-{
-	if (!m_viewer || !m_viewer_scene) return;
-	
-	cout << "DemoScene::setupShadows() called" << endl;
-	
-	// Get all lights from the scene's central light manager
-	const auto& lights = m_viewer_scene->getLightManager()->getLights();
-	std::vector<lsPass*> shadow_passes;
-	
-	for (lsLight* light : lights)
-	{
-		// Only direct + spot lights get 2D shadow-map passes, and only
-		// shadow casters (L3.3). Point lights use the point-cube stage
-		// (pipeline) or nothing (legacy) — NOT an error (E1.2: this
-		// used to spam "Failed to create shadow pass" once per point
-		// light).
-		if( light->getLight_type() != LSLT_DIRECT
-			&& light->getLight_type() != LSLT_SPOT )
-			continue;
-		if( ! light->cast_shadows )
-			continue;
-
-		// Create the shadow map pass (which creates its own FBO)
-		const int res = ( light->getLight_type() == LSLT_DIRECT ) ? 4096 : 2048;
-		lsPass_ShadowMap* shadowPass = new lsPass_ShadowMap(0, 0, res, res, m_vortxge->getRender());
-		if(! shadowPass)
-		{
-			cerr << "ERROR: Failed to create shadow pass." << endl;
-			continue;
-		}
-		// debug
-		cout << "  Found Shadow Map Light '" << light->getName() << "', adding shadow map." << endl;
-		
-		// Configure the pass
-		shadowPass->setScene(m_viewer_scene);
-		shadowPass->setCamera(light); // The light acts as the camera for rendering the shadow map
-		shadowPass->setCull_camera(light);
-		shadowPass->setLight(light);
-		
-		// Link the shadow map texture back to the light
-		if(shadowPass->getFBO())
-		{
-			light->setTex_shadowmap(shadowPass->getFBO()->getDepthTexture());
-			light->setHas_shadowmap(true);
-			light->setPixel_x(shadowPass->getFBO()->getWidth());
-			light->setPixel_y(shadowPass->getFBO()->getHeight());
-		}
-		
-		// Add the pass to the viewer's pass manager.
-		// lsPassManager adds to the front, so this will execute before the main render pass.
-		m_viewer->getPassManager()->Add_Pass(shadowPass);
-	}
-}
 
 void DemoScene::Update( double delta )
 {
@@ -908,7 +731,7 @@ void DemoScene::Update( double delta )
 	// Live-link: poll the scene file mtime twice a second; on change
 	// re-apply transforms in place (no structural changes, pipeline-
 	// safe) and refresh world matrices.
-	if( m_liveLink && m_viewer )
+	if( m_liveLink && m_scenemanager )
 	{
 		m_liveCheckAcc += delta;
 		if( m_liveCheckAcc >= 0.5 )
@@ -923,7 +746,7 @@ void DemoScene::Update( double delta )
 				else if( (long)st.st_mtime != m_liveMtime )
 				{
 					m_liveMtime = (long)st.st_mtime;
-					int n = m_viewer->getSceneManager()->ApplySceneTransforms(
+					int n = m_scenemanager->ApplySceneTransforms(
 						sceneFile, m_viewer_scene );
 					// refresh world matrices so rendering + shadow
 					// stages see the new transforms this frame
@@ -937,12 +760,6 @@ void DemoScene::Update( double delta )
 
 	lsEvent *e;
 	
-	// quad scene events.
-	while( (e = m_quad_scene->Poll_Event()) )
-	{
-		// Discard.
-	}
-	
 	// process scene events
 	while( (e = m_viewer_scene->Poll_Event()) )
 	{
@@ -952,6 +769,10 @@ void DemoScene::Update( double delta )
 	// m_vortxge update
 	if( m_vortxge )
 	{
+		// R6: scenes tick directly via the demo-owned scene manager
+		// (was: controlmanager -> lsViewer::Update -> scene chain).
+		if( m_scenemanager )
+			m_scenemanager->Update( m_vortxge->getRender(), delta );
 		m_vortxge->Update( delta );
 	}
 

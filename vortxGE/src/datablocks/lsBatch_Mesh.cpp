@@ -1,4 +1,5 @@
 #include <iostream>
+#include "../render/lsRenderTypes.h"
 // debug
 #include "../vortx_debug.h"
 
@@ -7,8 +8,6 @@
 #include "../shader/lsShader.h"
 
 // passes
-#include "../passes/lsPass.h"
-#include "../passes/lsPass_ShadowMap.h"
 
 // Scene
 #include "../scene/lsNode.h"
@@ -94,26 +93,26 @@ lsBatch_Mesh::~lsBatch_Mesh()
 	if( animationmanager ) delete animationmanager;
 }
 
-void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
+void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, int pass_type )
 {
 #ifdef VORTX_DEBUG_RENDER
 	cout << "lsBatch_Mesh::Draw - START: " << object->getName() << endl;
 #endif
 
 	lsShader* shaderToUse = getShader();
-	if (pass->getPass_type() == LSPT_SHADOWMAP) {
+	if (pass_type == LSPT_SHADOWMAP) {
 		shaderToUse = getRender()->getShaderManager()->Find_Shader("shadowmap");
-	} else if (pass->getPass_type() == LSPT_PREPASS) {
+	} else if (pass_type == LSPT_PREPASS) {
 		shaderToUse = getRender()->getShaderManager()->Find_Shader("prepass"); // L4.1b
 	}
 
 	if( shaderToUse )
 	{
-		shaderToUse->UseShader( cam, object, pass, this );
+		shaderToUse->UseShader( cam, object, pass_type, this );
 
 		// Lights only for non-shadow passes
-		if (pass->getPass_type() != LSPT_SHADOWMAP &&
-			pass->getPass_type() != LSPT_PREPASS)
+		if (pass_type != LSPT_SHADOWMAP &&
+			pass_type != LSPT_PREPASS)
 		{
 			shaderToUse->Setup_Lights( cam, object );
 		}
@@ -135,7 +134,7 @@ void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
 #endif
 
 	// Pass it on
-	if( getNext_batch() ) getNext_batch()->Draw( cam, object, pass );
+	if( getNext_batch() ) getNext_batch()->Draw( cam, object, pass_type );
 }
 
 void lsBatch_Mesh::Update( double delta )

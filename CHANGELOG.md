@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Legacy render path (R6):** `vortxGE/src/passes/` (lsPassManager and
+  all pass classes) and `vortxGE/src/controls/` (lsControl,
+  lsControlManager, lsComposite, lsViewer) deleted. The stage-based
+  pipeline is the only render path. Scene-graph Draw/Optimize take
+  `int pass_type` (LSPT_* now in `render/lsRenderTypes.h`); demos own
+  an `lsSceneManager` directly.
+
+
 ### Added
 - **L5 — clustered forward lighting (2026-08-14):** the fixed 3-light
   limit is gone. Light property uniform arrays raised to 64 in all

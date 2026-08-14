@@ -1,11 +1,11 @@
 #include "lsShadowStage.h"
+#include "../render/lsRenderTypes.h"
 
 #include "../datablocks/lsFBO_Depth.h"
 #include "../scene/lsLight.h"
 #include "../scene/lsLight_Spot.h"
 #include "../scene/lsObject.h"
 #include "../scene/lsScene.h"
-#include "lsStagePassToken.h"
 
 #include <vector>
 
@@ -37,7 +37,6 @@ lsShadowStage::lsShadowStage( lsScene* scene, lsLight* light,
 
 lsShadowStage::~lsShadowStage()
 {
-	delete m_passToken;
 	delete m_shadowMap;
 }
 
@@ -71,16 +70,14 @@ void lsShadowStage::execute( lsRender* render, lsTargetPool& targets )
 	// shadow maps unconditionally; pipeline mode now matches.
 
 
-	if( !m_passToken )
-		m_passToken = new lsStagePassToken( render, LSPT_SHADOWMAP );
 
 	const int size = m_shadowMap->size();
 
 	// --- Update phase (mirrors lsPass_ShadowMap::Update): the light is
 	// the cull camera for the shadow view
 	m_scene->InitDrawlist();
-	m_scene->Optimize( m_light, m_passToken, m_scene, render );
-	m_scene->OptimizeThread( m_light, m_passToken, m_scene, render );
+	m_scene->Optimize( m_light, m_passType, m_scene, render );
+	m_scene->OptimizeThread( m_light, m_passType, m_scene, render );
 
 	// L3.1 (spot): fit near/far to the culled drawlist content, then
 	// rebuild the shadow matrix with the tight frustum. Culling above
@@ -128,7 +125,7 @@ void lsShadowStage::execute( lsRender* render, lsTargetPool& targets )
 
 	fbo->ClearBuffers();
 
-	m_scene->Draw( m_light, m_passToken, nullptr, render );
+	m_scene->Draw( m_light, m_passType, nullptr, render );
 
 	// restore defaults for the next stage
 	render->BindFramebuffer( LS_FRAMEBUFFER, lsTargetPool::SCREEN );

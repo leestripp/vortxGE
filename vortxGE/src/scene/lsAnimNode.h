@@ -83,7 +83,7 @@ public:
      * @param scn Scene
      * @param render Renderer
      */
-	virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	virtual void Optimize( lsCamera* cam, int pass_type, lsScene* scn, lsRender* render );
 	
     /**
      * @brief Draw with animation
@@ -92,7 +92,7 @@ public:
      * @param scn Scene
      * @param render Renderer
      */
-	virtual void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	virtual void Draw( lsCamera* cam, int pass_type, lsScene* scn, lsRender* render );
 	
     //=========================================================================
 	// Scene Access

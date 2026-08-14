@@ -10,11 +10,11 @@
 #pragma once
 
 #include "lsRenderStage.h"
+#include "../render/lsRenderTypes.h"
 #include "lsTargetPool.h"
 
 class lsScene;
 class lsCamera;
-class lsPass;
 
 class lsSceneStage : public lsRenderStage
 {
@@ -46,5 +46,5 @@ private:
 	// non-null lsPass with a pass_type (LSPT_FBO selects the standard
 	// material shaders). Owned minimal token; removed in Phase R6 when
 	// the object path stops taking lsPass.
-	lsPass*		m_passToken = nullptr;
+	int		m_passType = LSPT_FBO;	// R6: plain pass-type int
 };

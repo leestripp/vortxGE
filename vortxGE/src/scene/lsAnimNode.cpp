@@ -86,11 +86,11 @@ void lsAnimNode::Move( lsScene* scn, __attribute__((unused)) lsRender* render, d
     checkLife( scn );
 }
 
-void lsAnimNode::Optimize( __attribute__((unused)) lsCamera *cam, __attribute__((unused)) lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsRender *render)
+void lsAnimNode::Optimize( __attribute__((unused)) lsCamera *cam, __attribute__((unused)) int pass_type, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsRender *render)
 {
 }
 
-void lsAnimNode::Draw( __attribute__((unused)) lsCamera *cam, __attribute__((unused)) lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsRender *render)
+void lsAnimNode::Draw( __attribute__((unused)) lsCamera *cam, __attribute__((unused)) int pass_type, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsRender *render)
 {
 }
 

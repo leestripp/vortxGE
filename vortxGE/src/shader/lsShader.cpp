@@ -348,7 +348,7 @@ static int debugViewMode()
 }
 #endif
 
-void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, lsBatch *batch )
+void lsShader::UseShader( lsCamera *cam, lsObject *object, int /* pass_type */, lsBatch *batch )
 {
 #ifdef VORTX_DEBUG_SHADERS
 	cout << "lsShader::UseShader() - Called" << endl;
@@ -544,7 +544,7 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, lsPass* /* pass */, l
 #else
 				getRender()->Uniform1i( iDebugView, 0 );
 #endif
-				Setup_Lights(cam, object); // Now Setup_Lights will pass all light properties
+				Setup_Lights(cam, object); // Now Setup_Lights will pass_type all light properties
 			}
 			
 			// Material

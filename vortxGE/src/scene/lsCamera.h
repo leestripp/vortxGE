@@ -102,7 +102,7 @@ public:
      * @param scn Scene
      * @param render Renderer
      */
-	virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	virtual void Optimize( lsCamera* cam, int pass_type, lsScene* scn, lsRender* render );
 	
     //=========================================================================
 	// Projection Setup

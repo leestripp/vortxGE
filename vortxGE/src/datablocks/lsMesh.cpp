@@ -68,9 +68,9 @@ lsMesh::~lsMesh()
 	if( batch_list ) delete batch_list;
 }
 
-void lsMesh::Draw( lsCamera *cam, lsPass *pass, lsObject *object )
+void lsMesh::Draw( lsCamera *cam, int pass_type, lsObject *object )
 {
-	if( batch_list ) batch_list->Draw( cam, object, pass );
+	if( batch_list ) batch_list->Draw( cam, object, pass_type );
 }
 
 void lsMesh::Add_Batch( lsBatch *batch )

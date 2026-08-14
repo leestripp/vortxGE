@@ -134,7 +134,7 @@ public:
     void setActiveCamera( lsCamera* cam ) { m_activeCamera = cam; }
     lsCamera* getActiveCamera() const { return m_activeCamera; }
 
-    void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+    void Optimize( lsCamera* cam, int pass_type, lsScene* scn, lsRender* render );
 
     /**
      * @brief Render the scene
@@ -146,7 +146,7 @@ public:
      * @param scn Pointer to scene
      * @param render Pointer to renderer
      */
-    void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+    void Draw( lsCamera* cam, int pass_type, lsScene* scn, lsRender* render );
     
     /**
      * @brief Initialize rendering resources

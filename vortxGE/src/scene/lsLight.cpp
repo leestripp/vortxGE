@@ -9,7 +9,6 @@
 #include "../animation/lsAnimationManager.h"
 
 // passes
-#include "../passes/lsPass.h"
 
 #include "../render/lsRender.h"
 
@@ -63,11 +62,11 @@ lsLight::~lsLight()
 }
 
 
-void lsLight::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, lsRender* render )
+void lsLight::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) int pass_type, __attribute__((unused)) lsScene* scn, lsRender* render )
 {
     // If this light casts shadows, its shadow matrix needs to be calculated.
-    // This should happen after its transform has been updated in the Move pass,
-    // and before any pass that might need to sample its shadow map.
+    // This should happen after its transform has been updated in the Move pass_type,
+    // and before any pass_type that might need to sample its shadow map.
     if (has_shadowmap) {
         syncShadowFrustum(); // L3.1: spots sync FOV to the outer cone
         buildShadowmap_matrix(render);

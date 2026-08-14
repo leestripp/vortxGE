@@ -75,7 +75,7 @@ void lsBatch_Lines::Cleanup()
     pColours = NULL;
 }
 
-void lsBatch_Lines::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
+void lsBatch_Lines::Draw( lsCamera *cam, lsObject *object, int pass_type )
 {
 #ifdef VORTX_DEBUG_RENDER
     cout << "lsBatch_Lines::Draw - " << object->getName() << endl;
@@ -83,7 +83,7 @@ void lsBatch_Lines::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
 
     if( getShader() )
     {
-        getShader()->UseShader( cam, object, pass, this );
+        getShader()->UseShader( cam, object, pass_type, this );
     }else
     {
         cout << "lsBatch_Lines::Draw - Shader missing" << endl;
@@ -101,7 +101,7 @@ void lsBatch_Lines::Draw( lsCamera *cam, lsObject *object, lsPass *pass )
 #endif
 
     // Pass it on
-    if( getNext_batch() ) getNext_batch()->Draw( cam, object, pass );
+    if( getNext_batch() ) getNext_batch()->Draw( cam, object, pass_type );
 }
 
 void lsBatch_Lines::Update( double delta )

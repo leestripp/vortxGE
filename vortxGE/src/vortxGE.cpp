@@ -15,7 +15,6 @@
 #include "openal/lsOpenAL.h" // Include lsOpenAL header
 
 // Controls
-#include "controls/lsControlManager.h"
 
 // Shader
 #include "shader/lsShaderManager.h"
@@ -48,7 +47,6 @@ vortxGE::vortxGE()
 	// Managers
 	shadermanager = nullptr;
 	assetmanager = NULL;
-	controlmanager = NULL;
 	stats = NULL;
 	openal = NULL;
 }
@@ -151,16 +149,7 @@ int vortxGE::Init()
 		return 1;
 	}
 	
-	controlmanager = new lsControlManager( render );
-	if(! controlmanager )
-	{
-		cout << "ERROR: vortxGE::Init() - Could not instance lsControlManager" << endl;
-		delete stats;
-		delete render;
-		delete shadermanager;
-		delete assetmanager;
-		return 1;
-	}
+
 	
 	// OpenaL
 	openal = new lsOpenAL();
@@ -191,7 +180,6 @@ int vortxGE::Init()
 
 void vortxGE::Cleanup()
 {
-	if( controlmanager ) delete controlmanager;
 	if( assetmanager ) delete assetmanager;
 	if( shadermanager ) delete shadermanager;
 	
@@ -199,7 +187,6 @@ void vortxGE::Cleanup()
 	if( stats ) delete stats;
 	if( openal ) delete openal;
 	
-	controlmanager = NULL;
 	assetmanager = NULL;
 	shadermanager = NULL;
 	
@@ -220,7 +207,6 @@ void vortxGE::Update( double delta )
 	stats->Loop_Start();
 
 	// Move all active scene objects
-	if( controlmanager ) controlmanager->Update( delta );
 }
 
 /*!
@@ -238,8 +224,8 @@ void vortxGE::Render()
 	if( render ) render->BeginFrame();
 
 	// render - pipeline (Part 3) or legacy control chain
+	// R6: the pipeline is the only render path.
 	if( m_renderPipeline ) m_renderPipeline->render();
-	else if( controlmanager ) controlmanager->Render();
 
 	// reset framebuffer
 	render->RestoreDefaultFramebuffer();
@@ -273,8 +259,6 @@ void vortxGE::Resize( int x, int y, int width, int height )
 	// image clipped/off-center)
 	if( render ) render->Resize( width, height );
 
-	// pass resize up chain
-	if( controlmanager ) controlmanager->Resize( x, y, width, height );
 }
 
 // ---------------------------------------------------------------------

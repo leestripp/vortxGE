@@ -1,8 +1,8 @@
 #include "lsSceneStage.h"
+#include "../render/lsRenderTypes.h"
 
 #include "../scene/lsCamera.h"
 #include "../scene/lsScene.h"
-#include "lsStagePassToken.h"
 
 lsSceneStage::lsSceneStage( lsScene* scene, lsCamera* camera,
 							const std::string& targetName )
@@ -12,7 +12,6 @@ lsSceneStage::lsSceneStage( lsScene* scene, lsCamera* camera,
 
 lsSceneStage::~lsSceneStage()
 {
-	delete m_passToken;
 }
 
 void lsSceneStage::execute( lsRender* render, lsTargetPool& targets )
@@ -23,8 +22,6 @@ void lsSceneStage::execute( lsRender* render, lsTargetPool& targets )
 	if( !m_scene || !m_camera ) return;
 
 	// lazily create the pass token (needs the render interface)
-	if( !m_passToken )
-		m_passToken = new lsStagePassToken( render, LSPT_FBO );
 
 	const bool toScreen =
 		( m_target.empty() || m_target == "screen" );
@@ -58,9 +55,9 @@ void lsSceneStage::execute( lsRender* render, lsTargetPool& targets )
 	// per-frame scene traversal (mirrors lsPass_FBO::Update+Render:
 	// build draw list, optimize lights, cull drawables, then draw)
 	m_scene->InitDrawlist();
-	m_scene->Optimize( m_camera, m_passToken, m_scene, render );
-	m_scene->OptimizeThread( m_camera, m_passToken, m_scene, render );
-	m_scene->Draw( m_camera, m_passToken, m_scene, render );
+	m_scene->Optimize( m_camera, m_passType, m_scene, render );
+	m_scene->OptimizeThread( m_camera, m_passType, m_scene, render );
+	m_scene->Draw( m_camera, m_passType, m_scene, render );
 
 	if( !toScreen )
 		render->BindFramebuffer( LS_FRAMEBUFFER, lsTargetPool::SCREEN );

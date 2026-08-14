@@ -95,7 +95,6 @@ const int LSNT_PICKUP           =	101;
 class lsScene;
 class lsCamera;
 class lsLight;
-class lsPass;
 class lsRender;
 class lsEventManager;
 
@@ -178,7 +177,7 @@ public:
      * @param scn Pointer to the scene
      * @param render Pointer to the renderer
      */
-	virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	virtual void Optimize( lsCamera* cam, int pass_type, lsScene* scn, lsRender* render );
 	
     /**
      * @brief Render the node
@@ -191,7 +190,7 @@ public:
      * @param scn Pointer to the scene
      * @param render Pointer to the renderer
      */
-	virtual void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	virtual void Draw( lsCamera* cam, int pass_type, lsScene* scn, lsRender* render );
 	
     /**
      * @brief Initialize draw list
@@ -228,7 +227,7 @@ public:
      * @param scn Pointer to the scene
      * @param render Pointer to the renderer
      */
-	void OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	void OptimizeThread( lsCamera* cam, int pass_type, lsScene* scn, lsRender* render );
 
     //=========================================================================
 	// Scene Access

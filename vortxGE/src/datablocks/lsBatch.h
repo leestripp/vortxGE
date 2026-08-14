@@ -50,7 +50,6 @@
 
 class lsObject;
 class lsCamera;
-class lsPass;
 class lsShader;
 
 //=========================================================================
@@ -109,7 +108,7 @@ public:
      * @param object Object being rendered
      * @param pass Current render pass
      */
-    virtual void Draw( lsCamera *cam, lsObject *object, lsPass *pass ) = 0;
+    virtual void Draw( lsCamera *cam, lsObject *object, int pass_type ) = 0;
     
     /**
      * @brief Update batch state

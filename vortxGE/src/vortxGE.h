@@ -54,7 +54,6 @@ class lsRender;
 // backend dependencies — safe to include here).
 #include "render/lsRenderTypes.h"
 class lsShaderManager;
-class lsControlManager;
 class lsAssetManager;
 class lsOpenAL;
 
@@ -193,10 +192,6 @@ public:
      * @post Returns valid pointer after Init()
      * @see lsControlManager
      */
-	lsControlManager* getControlManager() const
-	{
-		return controlmanager;
-	}
 
     /**
      * @brief Get the shader manager for shader operations
@@ -308,7 +303,6 @@ private:
 	lsAssetManager      *assetmanager;
 	
     /** @brief Control manager - handles user input */
-	lsControlManager    *controlmanager;
 	lsRenderPipeline    *m_renderPipeline = nullptr;  // non-owning (Part 3)
 	
     /** @brief Statistics tracker - FPS and performance metrics */

@@ -1,5 +1,6 @@
 // core
 #include "../vortx_debug.h"
+#include "../render/lsRenderTypes.h"
 
 // math
 #include "../math/lsVector3.h"
@@ -10,7 +11,6 @@
 #include "../scene/lsLightManager.h"
 
 // passes
-#include "../passes/lsPass.h"
 
 // assets
 #include "../assets/lsAsset.h"
@@ -122,9 +122,9 @@ void lsObject::Move( lsScene* scn, __attribute__((unused)) lsRender* render, dou
     checkLife( scn );
 }
 
-void lsObject::Optimize( __attribute__((unused)) lsCamera *cam, lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsRender *render )
+void lsObject::Optimize( __attribute__((unused)) lsCamera *cam, int pass_type, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsRender *render )
 {
-    switch( pass->getPass_type() )
+    switch( pass_type )
     {
     case LSPT_SHADOWMAP:
         // need to reset
@@ -160,17 +160,17 @@ void lsObject::Optimize( __attribute__((unused)) lsCamera *cam, lsPass *pass, __
     }
 }
 
-void lsObject::Draw( lsCamera *cam, lsPass *pass, lsScene *scn, lsRender *render )
+void lsObject::Draw( lsCamera *cam, int pass_type, lsScene *scn, lsRender *render )
 {
     lsMesh *mesh = NULL;
 
-    if( pass )
+    if( pass_type )
     {
-        switch( pass->getPass_type() )
+        switch( pass_type )
         {
         case LSPT_DIRECTRENDER:
         case LSPT_FBO:
-        case LSPT_PREPASS: // L4.1b: same visibility as the main pass
+        case LSPT_PREPASS: // L4.1b: same visibility as the main pass_type
             if(( asset )&&( ! getOccluded() ))
             {
                 if( asset->getData() )
@@ -182,7 +182,7 @@ void lsObject::Draw( lsCamera *cam, lsPass *pass, lsScene *scn, lsRender *render
                     case LSAT_MESHGUIDE_GRID:
                     case LSAT_MESHGUIDE_EMPTY:
                         mesh = (lsMesh*)asset->getData();
-                        mesh->Draw( cam, pass, this );
+                        mesh->Draw( cam, pass_type, this );
                         break;
 
                     default:
@@ -206,7 +206,7 @@ void lsObject::Draw( lsCamera *cam, lsPass *pass, lsScene *scn, lsRender *render
                 case LSAT_MESH:
                 case LSAT_QUAD:
                     mesh = (lsMesh*)asset->getData();
-                    mesh->Draw( cam, pass, this );
+                    mesh->Draw( cam, pass_type, this );
                     break;
                 default:
                     // Guides and other things don't cast shadows.
@@ -216,17 +216,17 @@ void lsObject::Draw( lsCamera *cam, lsPass *pass, lsScene *scn, lsRender *render
             break;
 		
         default:
-            cout << "lsObject::Draw: ERROR - Unknown pass type" << endl;
+            cout << "lsObject::Draw: ERROR - Unknown pass_type type" << endl;
             break;
 
         }// switch pass_type
-    }// if pass
+    }// if pass_type
 	
     // Pass it on
-    if( getNext_drawobject() ) getNext_drawobject()->Draw( cam, pass, scn, render );
+    if( getNext_drawobject() ) getNext_drawobject()->Draw( cam, pass_type, scn, render );
 }
 
-void lsObject::DrawSingle( lsCamera *cam, lsPass *pass, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsRender *render )
+void lsObject::DrawSingle( lsCamera *cam, int pass_type, __attribute__((unused)) lsScene *scn, __attribute__((unused)) lsRender *render )
 {
 #ifdef VORTX_DEBUG_RENDER
     cout << "lsObject::DrawSingle" << endl;
@@ -234,9 +234,9 @@ void lsObject::DrawSingle( lsCamera *cam, lsPass *pass, __attribute__((unused)) 
 
     lsMesh *mesh = NULL;
 
-    if( pass )
+    if( pass_type )
     {
-        switch( pass->getPass_type() )
+        switch( pass_type )
         {
         case LSPT_OCCLUSION:
             if(( asset )&&( ! getOccluded() ))
@@ -250,7 +250,7 @@ void lsObject::DrawSingle( lsCamera *cam, lsPass *pass, __attribute__((unused)) 
                     case LSAT_MESH:
                     case LSAT_QUAD:
                         mesh = (lsMesh*)asset->getData();
-                        mesh->Draw( cam, pass, this );
+                        mesh->Draw( cam, pass_type, this );
                         break;
 
                     default:
@@ -263,11 +263,11 @@ void lsObject::DrawSingle( lsCamera *cam, lsPass *pass, __attribute__((unused)) 
             break;
 
         default:
-            cout << "lsObject::DrawSingle: ERROR - Unknown pass type" << endl;
+            cout << "lsObject::DrawSingle: ERROR - Unknown pass_type type" << endl;
             break;
 
         }// switch pass_type
-    }// if pass
+    }// if pass_type
 
     // DO NOT Pass it on
 }

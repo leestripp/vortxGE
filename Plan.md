@@ -116,13 +116,17 @@ paths indefinitely.
   player rig; `lsSceneStage` falls back to the scene camera at
   execute-time when none is set. Verified: full-scene capture from the
   scene-owned camera, ctest 100%.
-- E3.3 **R6: legacy pass chain deprecated** ✅ 2026-08-14 —
-  `lsPassManager`/`lsPass` carry @deprecated markers, docs updated
-  (RenderingPipeline.md marked as the deprecated path,
-  ApplicationDevelopment.md migration note: pipeline stages +
-  scene-owned camera). Code not deleted: the legacy path stays
-  functional behind `VORTX_LEGACY_PIPELINE=1` for one release (the
-  gtkmm demo still uses it).
+- E3.3 **R6: legacy code REMOVED** ✅ 2026-08-14 (user directive:
+  no zombie code) — deleted `vortxGE/src/passes/` (lsPass, lsPassManager,
+  lsPass_DR, lsPass_FBO, lsPass_Occlusion, lsPass_ShadowMap) and
+  `vortxGE/src/controls/` (lsControl, lsControlManager, lsComposite,
+  lsViewer) + `lsStagePassToken.h`. Scene-graph Draw/Optimize/UseShader
+  signatures carry `int pass_type` (LSPT_* moved to
+  `render/lsRenderTypes.h`); pipeline stages hold a plain int. The demo
+  owns its `lsSceneManager` directly and ticks it in `Update()`.
+  `VORTX_LEGACY_PIPELINE` is gone. Verified: build clean, ctest 100%,
+  GL physics ticking (bodies=106), VK full-scene capture. The gtkmm
+  demo rides the same demoscene — no porting needed.
 - Guard: `VORTX_SHOT` parity + frame-dump diff clean + ctest 100%
   before/after each step.
 

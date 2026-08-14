@@ -50,7 +50,7 @@ lsBatch_Quad::~lsBatch_Quad()
 	Clear_GLdata();
 }
 
-void lsBatch_Quad::Draw( lsCamera* cam, lsObject *object, lsPass *pass )
+void lsBatch_Quad::Draw( lsCamera* cam, lsObject *object, int pass_type )
 {
 #ifdef VORTX_DEBUG_RENDER
 	cout << "lsBatch_Quad::Draw - " << object->getName() << endl;
@@ -58,7 +58,7 @@ void lsBatch_Quad::Draw( lsCamera* cam, lsObject *object, lsPass *pass )
 
 	if( getShader() )
 	{
-		getShader()->UseShader( cam, object, pass, this );
+		getShader()->UseShader( cam, object, pass_type, this );
 
 	} else
 	{
@@ -77,7 +77,7 @@ void lsBatch_Quad::Draw( lsCamera* cam, lsObject *object, lsPass *pass )
 #endif
 
 	// Pass it on
-	if( getNext_batch() ) getNext_batch()->Draw( cam, object, pass );
+	if( getNext_batch() ) getNext_batch()->Draw( cam, object, pass_type );
 }
 
 void lsBatch_Quad::Update( double delta )

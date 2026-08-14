@@ -128,7 +128,7 @@ void lsCamera::Move( __attribute__((unused)) lsScene* scn, __attribute__((unused
 	Update_Camera();
 }
 
-void lsCamera::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
+void lsCamera::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) int pass_type, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
 {
 }
 

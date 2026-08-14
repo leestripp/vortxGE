@@ -92,7 +92,6 @@ User-facing:
 |---|---|---|
 | `VORTX_RENDERER` | `vulkan` \| `opengl` | Render backend (Vulkan first, GL fallback) |
 | `VORTX_SCENE` | scene name | Load `data/<name>.vgs` instead of `demoscene` |
-| `VORTX_LEGACY_PIPELINE` | `1` | Old pass-manager render path (default is the stage pipeline) |
 | `VORTX_LIVELINK` | `1` | Watch the scene `.vgs`; hot-apply external edits (Blender push) |
 | `VORTX_SHADOW_QUALITY` | `low` \| `med` \| `high` | Shadow preset (default `high`: PCSS + contact shadows) |
 | `VORTX_CSM` | `1` | Cascaded shadow maps for directional lights |

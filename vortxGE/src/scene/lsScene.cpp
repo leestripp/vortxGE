@@ -145,14 +145,14 @@ void lsScene::Move( __attribute__((unused)) lsScene* scn, lsRender* render, doub
 //******************
 // Optimize
 
-void lsScene::Optimize( lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
+void lsScene::Optimize( lsCamera* cam, __attribute__((unused)) int pass_type, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
 {
 	// Update Actice light based on distance from camera.
 	// TODO: create a setable distance for the user.
 	m_lightManager->setActiveLights(cam, 50.0);
 
 	// NOTE: asset streaming is NOT driven from here. Optimize() runs
-	// per-pass with whatever cull camera is active (including shadow-pass
+	// per-pass_type with whatever cull camera is active (including shadow-pass_type
 	// light cameras), which made the streaming manager see conflicting
 	// camera positions and flap load/evict. The app drives
 	// lsStreamingManager::update() once per frame from the main thread
@@ -166,11 +166,11 @@ void lsScene::Optimize( lsCamera* cam, __attribute__((unused)) lsPass* pass, __a
  * \n
  *
  * \param cam
- * \param pass
+ * \param pass_type
  * \param scn
  * \param render
  */
-void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene* scn, lsRender* render )
+void lsScene::Draw( lsCamera* cam, int pass_type, __attribute__((unused)) lsScene* scn, lsRender* render )
 {
 #ifdef VORTX_DEBUG_RENDER
 	cout << "lsScene::Draw" << endl;
@@ -182,7 +182,7 @@ void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene
 	if(sky_object)
 	{
 		// Set depth function to draw the skybox (which is fixed at max depth 1.0)
-		//    We use LS_LEQUAL to allow it to pass even when its depth equals the far plane's depth.
+		//    We use LS_LEQUAL to allow it to pass_type even when its depth equals the far plane's depth.
 		render->DepthFunc( LS_LEQUAL );
 
 		// Disable depth writing (We don't want the skybox to obscure other objects' depth)
@@ -191,7 +191,7 @@ void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene
 		// Disable culling for skybox geometry (so we see the inside of the cube/sphere)
 		render->Disable( LS_CULL_FACE );
 
-		sky_object->Draw( cam, pass, this, render );
+		sky_object->Draw( cam, pass_type, this, render );
 
 		// 4. Restore state after drawing skybox
 		render->Enable( LS_CULL_FACE );
@@ -202,7 +202,7 @@ void lsScene::Draw( lsCamera* cam, lsPass* pass, __attribute__((unused)) lsScene
 	}
 	
 	// Draw remaining scene objects
-	if( draw_list ) draw_list->Draw( cam, pass, this, render );
+	if( draw_list ) draw_list->Draw( cam, pass_type, this, render );
 	
 	if( render->getStats() ) render->getStats()->Draw_Stop();
 }
@@ -272,7 +272,7 @@ void lsScene::InitDrawlist()
  * \n
  *
  * \param cam
- * \param pass
+ * \param pass_type
  * \n
  *
  * \param object

@@ -25,7 +25,6 @@
 class lsBatch;
 class lsObject;
 class lsCamera;
-class lsPass;
 class lsRender;
 class lsAssetManager;
 class lsShaderManager;
@@ -77,7 +76,7 @@ public:
      * @param pass Render pass
      * @param object Object being rendered
      */
-	void Draw( lsCamera *cam, lsPass *pass, lsObject *object );
+	void Draw( lsCamera *cam, int pass_type, lsObject *object );
 	
     /**
      * @brief Update mesh animation

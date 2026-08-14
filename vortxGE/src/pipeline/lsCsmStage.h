@@ -17,7 +17,6 @@
 class lsScene;
 class lsLight;
 class lsCamera;
-class lsPass;
 
 class lsCsmStage : public lsRenderStage
 {
@@ -39,5 +38,5 @@ private:
 	lsLight*				m_light;
 	lsCamera*				m_camera;
 	lsCascadedShadowMap*	m_csm = nullptr;
-	lsPass*					m_passToken = nullptr;
+	int					m_passType = LSPT_SHADOWMAP;	// R6: plain pass-type int
 };

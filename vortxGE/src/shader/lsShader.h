@@ -45,7 +45,6 @@
 class lsObject;
 class lsCamera;
 class lsLight;
-class lsPass;
 class lsBatch;
 
 using namespace std;
@@ -92,7 +91,7 @@ public:
      * @param pass Current render pass
      * @param batch Batch being rendered
      */
-	void UseShader( lsCamera *cam, lsObject *object, lsPass *pass, lsBatch *batch );
+	void UseShader( lsCamera *cam, lsObject *object, int pass_type, lsBatch *batch );
 	
     /**
      * @brief Load shader from files

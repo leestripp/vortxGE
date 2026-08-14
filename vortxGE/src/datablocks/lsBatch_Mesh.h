@@ -62,7 +62,6 @@ const int INDEX_DATA				= 5;
 
 class lsRender;
 class lsObject;
-class lsPass;
 class lsCamera;
 class lsProperty;
 class lsAnimationManager;
@@ -117,7 +116,7 @@ public:
      * @param object Object being rendered
      * @param pass Current render pass
      */
-	void Draw( lsCamera *cam, lsObject *object, lsPass *pass );
+	void Draw( lsCamera *cam, lsObject *object, int pass_type );
 	
     /**
      * @brief Update batch state

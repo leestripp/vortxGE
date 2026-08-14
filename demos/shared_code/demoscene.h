@@ -27,7 +27,7 @@ class vortxGE;
 #include "render/lsRenderTypes.h"
 class lsBatch_Quad;
 class lsScene;
-class lsViewer;
+class lsSceneManager;
 class lsObject;
 class lsCamera;
 class lsEvent;
@@ -89,7 +89,6 @@ protected:
     long        m_liveMtime = 0;
     double      m_liveCheckAcc = 0.0;
     void setupTestScene();
-    void setupShadows();
     void setupObjectEmitter();
     void setupTestModel();      // debug-gated (VORTX_TEST_MODEL)
     void setupSampleModels();   // Khronos sample models (data/testmodels/)
@@ -108,14 +107,12 @@ private:
     int m_view_height;
 	
 	// Quad controls.
-    lsScene *m_quad_scene;
-    lsViewer *m_quad_viewer;
 	
     // Main Scene controls
     lsScene *m_viewer_scene;
     lsStreamingManager m_streamingManager;	///< M4: distance-driven mesh streaming
     lsAsyncFileLoader m_asyncLoader{ 2 };		///< M5: worker pool for async mesh loads
-    lsViewer *m_viewer;
+    lsSceneManager *m_scenemanager;	// R6: demo owns its scene manager directly
 	
     // Player Rig
     lsFirstPersonRig* m_playerRig = nullptr; // Changed type to lsFirstPersonRig

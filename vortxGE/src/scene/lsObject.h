@@ -118,7 +118,7 @@ public:
      * @param scn Scene
      * @param render Renderer
      */
-	virtual void Optimize( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	virtual void Optimize( lsCamera* cam, int pass_type, lsScene* scn, lsRender* render );
 	
     /**
      * @brief Render the object
@@ -130,7 +130,7 @@ public:
      * @param scn Scene
      * @param render Renderer
      */
-	virtual void Draw( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	virtual void Draw( lsCamera* cam, int pass_type, lsScene* scn, lsRender* render );
 	
     /**
      * @brief Render without occlusion testing
@@ -143,7 +143,7 @@ public:
      * @param scn Scene
      * @param render Renderer
      */
-	void DrawSingle( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render );
+	void DrawSingle( lsCamera* cam, int pass_type, lsScene* scn, lsRender* render );
 	
     //=========================================================================
 	// Transform Overrides

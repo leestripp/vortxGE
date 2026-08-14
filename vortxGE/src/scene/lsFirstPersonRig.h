@@ -94,7 +94,7 @@ public:
 	 * @param scn Pointer to scene
 	 * @param render Pointer to renderer
 	 */
-	virtual void Optimize(lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render) override;
+	virtual void Optimize(lsCamera* cam, int pass_type, lsScene* scn, lsRender* render) override;
 	
 	/**
 	 * @brief Draw the player (typically hidden in FPS)
@@ -104,7 +104,7 @@ public:
 	 * @param scn Pointer to scene
 	 * @param render Pointer to renderer
 	 */
-	virtual void Draw(lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render) override;
+	virtual void Draw(lsCamera* cam, int pass_type, lsScene* scn, lsRender* render) override;
 	
 	//=========================================================================
 	// Input Handling

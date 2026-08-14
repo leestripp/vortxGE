@@ -307,12 +307,12 @@ void lsNode::InitDrawlist()
 }
 
 // used by Threading
-void lsNode::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
+void lsNode::Optimize( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) int pass_type, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
 {
 	// Do nothing
 }
 
-void lsNode::OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender* render )
+void lsNode::OptimizeThread( lsCamera* cam, int pass_type, lsScene* scn, lsRender* render )
 {
 #ifdef VORTX_DEBUG_NODES
 	cout << "lsNode::OptimizeThread()" << endl;
@@ -337,7 +337,7 @@ void lsNode::OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender
 		if (!child->IsMarkedForDeletion())
 		{
 			// Add thread
-			th.push_back( thread( &lsNode::Optimize, child.get(), cam, pass, scn, render ) );
+			th.push_back( thread( &lsNode::Optimize, child.get(), cam, pass_type, scn, render ) );
 			tc++;
 			
 			// check our thread count
@@ -373,12 +373,12 @@ void lsNode::OptimizeThread( lsCamera* cam, lsPass* pass, lsScene* scn, lsRender
 	{
 		if (!child->IsMarkedForDeletion())
 		{
-			child->OptimizeThread( cam, pass, scn, render );
+			child->OptimizeThread( cam, pass_type, scn, render );
 		}
 	}
 }
 
-void lsNode::Draw( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) lsPass* pass, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
+void lsNode::Draw( __attribute__((unused)) lsCamera* cam, __attribute__((unused)) int pass_type, __attribute__((unused)) lsScene* scn, __attribute__((unused)) lsRender* render )
 {
 #ifdef VORTX_DEBUG_NODES
 	cout << "lsNode::Draw() - Name: " << getName() << endl;
@@ -476,7 +476,7 @@ void lsNode::Find_Node( lsScene* scn, const string& name )
 		scn->setFound_node( this );
 	} else
 	{
-		// pass it one
+		// pass_type it one
 		for (auto& child : m_children)
 		{
 			child->Find_Node( scn, name );

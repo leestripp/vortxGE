@@ -16,7 +16,6 @@
 class lsScene;
 class lsLight;
 class lsFBO_Depth;
-class lsPass;
 
 class lsShadowStage : public lsRenderStage
 {
@@ -36,5 +35,5 @@ private:
 	lsScene*		m_scene;
 	lsLight*		m_light;
 	lsShadowMap*	m_shadowMap = nullptr;
-	lsPass*			m_passToken = nullptr;
+	int			m_passType = LSPT_SHADOWMAP;	// R6: plain pass-type int
 };
