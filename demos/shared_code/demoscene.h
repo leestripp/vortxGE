@@ -79,6 +79,11 @@ protected:
 
     /// Selected scene name (VORTX_SCENE, default "demoscene")
     std::string m_sceneName = "demoscene";
+    // Live-link (VORTX_LIVELINK=1): watch the scene .vgs for external
+    // edits (Blender push) and re-apply transforms in place
+    bool        m_liveLink = false;
+    long        m_liveMtime = 0;
+    double      m_liveCheckAcc = 0.0;
     void setupTestScene();
     void setupShadows();
     void setupObjectEmitter();

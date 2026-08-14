@@ -674,3 +674,68 @@ void lsSceneManager::LinkLightsInScene(lsScene* scene, int maxLightsPerObject)
 	cout << "INFO: Light linking complete." << endl;
 }
 
+
+// Live-link: collect all nodes by name (transform re-application map)
+static void collectByName( lsNode* n, map<string, lsNode*>& out )
+{
+	if( ! n ) return;
+	out[n->getName()] = n;
+	for( auto& child : n->getChildren() )
+		collectByName( child.get(), out );
+}
+
+int lsSceneManager::ApplySceneTransforms( const string& filename, lsScene* targetScene )
+{
+	lsDir dir;
+	string fullpath = dir.getexepath() + filename;
+
+	lsFileIO file;
+	if( ! file.open( fullpath, LSIO_LINE_READ ) )
+		return 0;
+
+	map<string, lsNode*> byName;
+	collectByName( targetScene, byName );
+
+	int updated = 0;
+	string line;
+	lsString converter;
+	while( file.readline() )
+	{
+		line = file.getLine();
+		if( line.empty() || line[0] == '#' ) continue;
+		vector<string> tokens = tokenize_vgs( line );
+		if( tokens.empty() ) continue;
+		const string& command = tokens[0];
+
+		if( command == "add_object" && tokens.size() >= 6 )
+		{
+			const string name = parse_name( tokens[1] );
+			auto it = byName.find( name );
+			if( it == byName.end() ) continue; // new object: structural, skip
+			lsVector3 pos = parse_vector3( tokens[3] );
+			lsVector3 rot = parse_vector3( tokens[4] );
+			lsVector3 scale = parse_vector3( tokens[5] );
+			it->second->Set_Pos( pos.x, pos.y, pos.z );
+			it->second->Set_Rot( rot.x, rot.y, rot.z );
+			it->second->Set_Scale( scale.x, scale.y, scale.z );
+			updated++;
+		}
+		else if( command == "add_light" && tokens.size() >= 8 )
+		{
+			const string name = parse_name( tokens[2] );
+			auto it = byName.find( name );
+			if( it == byName.end() ) continue;
+			lsLight* light = dynamic_cast<lsLight*>( it->second );
+			if( ! light ) continue;
+			lsVector3 pos = parse_vector3( tokens[4] );
+			lsVector3 rot = parse_vector3( tokens[5] );
+			lsVector3 color = parse_vector3( tokens[6] );
+			light->Set_Pos( pos.x, pos.y, pos.z );
+			light->Set_Rot( rot.x, rot.y, rot.z );
+			light->diffuse = lsVector4( color.x, color.y, color.z, 1.0f );
+			light->setIntensity( converter.toFloat( tokens[7] ) );
+			updated++;
+		}
+	}
+	return updated;
+}

@@ -110,6 +110,8 @@
 #include <scene/lsLightManager.h>
 #include <pipeline/lsPointShadowStage.h>
 #include <pipeline/lsClusterStage.h>
+#include <filesystem/lsDir.h>
+#include <sys/stat.h>
 #include <scene/lsSpeaker.h>
 
 // Animation
@@ -495,6 +497,9 @@ void DemoScene::setupTestScene()
 	// (skybox, physics ground, speaker).
 	const char* sceneEnv = std::getenv( "VORTX_SCENE" );
 	m_sceneName = ( sceneEnv && *sceneEnv ) ? sceneEnv : "demoscene";
+	m_liveLink = std::getenv( "VORTX_LIVELINK" ) != nullptr;
+	if( m_liveLink )
+		cout << "INFO: live-link enabled — watching data/" << m_sceneName << ".vgs" << endl;
 	const bool baseScene = ( m_sceneName == "demoscene" );
 	cout << "DemoScene: scene '" << m_sceneName << "'" << endl;
 
@@ -866,6 +871,36 @@ void DemoScene::setupShadows()
 
 void DemoScene::Update( double delta )
 {
+	// Live-link: poll the scene file mtime twice a second; on change
+	// re-apply transforms in place (no structural changes, pipeline-
+	// safe) and refresh world matrices.
+	if( m_liveLink && m_viewer )
+	{
+		m_liveCheckAcc += delta;
+		if( m_liveCheckAcc >= 0.5 )
+		{
+			m_liveCheckAcc = 0.0;
+			const std::string sceneFile = "data/" + m_sceneName + ".vgs";
+			const std::string fullpath = lsDir().getexepath() + sceneFile;
+			struct stat st;
+			if( ::stat( fullpath.c_str(), &st ) == 0 )
+			{
+				if( m_liveMtime == 0 ) m_liveMtime = (long)st.st_mtime;
+				else if( (long)st.st_mtime != m_liveMtime )
+				{
+					m_liveMtime = (long)st.st_mtime;
+					int n = m_viewer->getSceneManager()->ApplySceneTransforms(
+						sceneFile, m_viewer_scene );
+					// refresh world matrices so rendering + shadow
+					// stages see the new transforms this frame
+					m_viewer_scene->Move( m_viewer_scene, m_vortxge->getRender(), 0.0 );
+					m_viewer_scene->MoveThread( m_viewer_scene, m_vortxge->getRender(), 0.0 );
+					cout << "INFO: live-link applied " << n << " node update(s)" << endl;
+				}
+			}
+		}
+	}
+
 	lsEvent *e;
 	
 	// quad scene events.
