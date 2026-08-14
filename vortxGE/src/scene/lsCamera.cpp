@@ -187,8 +187,10 @@ void lsCamera::Set_Orthographic( float cube )
 
 void lsCamera::Update_Camera()
 {
-	if( !m_matricesDirty )
-		return;
+	// C2 fix: always rebuild. The dirty-flag early-out left cull planes
+	// stale on camera-move paths that don't mark dirty (regression:
+	// objects/sky sphere culled while in view). The flag remains for
+	// the per-frame shadow-matrix cache only.
 	
 	lsVector3 eye, lookat_target, up_vector;
 	
