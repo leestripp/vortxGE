@@ -78,9 +78,16 @@ void lsOpenGL::EndFrame()
 	// side-by-side comparison. One-shot.
 	static const char* shotPath = getenv( "VORTX_SHOT" );
 	if( !shotPath ) return;
-	static int s_frames = 30;
-	if( s_frames <= 0 || --s_frames != 0 ) return;
-	Screenshot( shotPath );
+	static int s_frame = 0;
+	++s_frame;
+	if( s_frame == 30 || s_frame == 90 ) // two-shot: temporal A/B
+	{
+		std::string p = shotPath;
+		const size_t dot = p.find_last_of( '.' );
+		if( dot != std::string::npos )
+			p = p.substr( 0, dot ) + "_" + std::to_string( s_frame ) + p.substr( dot );
+		Screenshot( p.c_str() );
+	}
 #endif
 }
 
