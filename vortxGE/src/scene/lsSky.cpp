@@ -16,6 +16,8 @@
 #include "../datablocks/lsMesh.h"
 #include "../assets/lsAsset_Mesh.h"
 #include "../assets/lsAssetManager.h"
+#include "../datablocks/lslistitem_vertexdata.h"
+#include <cstring>
 
 using std::cout;
 using std::endl;
@@ -44,6 +46,15 @@ namespace
 lsSky::lsSky()
 {
 	m_params = computeParams();
+}
+
+lsSky::~lsSky()
+{
+	if( m_meshAsset )
+	{
+		m_meshAsset->FreeAsset();	// deletes the sphere mesh data
+		delete m_meshAsset;
+	}
 }
 
 void lsSky::setTimeOfDay( float hours )
@@ -128,8 +139,64 @@ lsSkyParams lsSky::computeParams() const
 	return p;
 }
 
-bool lsSky::init( lsScene* scene, lsShaderManager* shaders, lsRender* render,
-				  const char* meshPath )
+lsMesh* lsSky::buildSphereMesh( lsRender* render )
+{
+	// UV sphere, positions only — the sky shader derives the view
+	// direction from the vertex position, so no normals/uvs needed.
+	// Radius is far inside any sane camera far plane and far larger
+	// than any camera offset, so frustum culling can never touch it.
+	const float R      = 100.0f;
+	const int   RINGS  = 16;	// latitude segments
+	const int   SECTORS = 32;	// longitude segments
+
+	const int vertexCount = ( RINGS + 1 ) * ( SECTORS + 1 );
+	const int indexCount  = RINGS * SECTORS * 6;
+
+	lsBatch_Mesh* batch = new lsBatch_Mesh( render );
+	if( ! batch ) return nullptr;
+	batch->Init_data( vertexCount, indexCount );
+
+	for( int i = 0; i <= RINGS; i++ )
+	{
+		float theta = SKY_PI * (float)i / (float)RINGS;	// 0..pi pole to pole
+		float st = std::sin( theta ), ct = std::cos( theta );
+		for( int j = 0; j <= SECTORS; j++ )
+		{
+			float phi = 2.0f * SKY_PI * (float)j / (float)SECTORS;
+			lsListItem_vertexdata vd;
+			memset( &vd, 0, sizeof( vd ) );
+			vd.vertex[0] = R * st * std::cos( phi );
+			vd.vertex[1] = R * ct;
+			vd.vertex[2] = R * st * std::sin( phi );
+			batch->Add_VertexData( &vd );
+		}
+	}
+	for( int i = 0; i < RINGS; i++ )
+	{
+		for( int j = 0; j < SECTORS; j++ )
+		{
+			int a = i * ( SECTORS + 1 ) + j;
+			int b = a + SECTORS + 1;
+			// 1-based: the engine's batch path replicates the legacy
+			// LoadGLTF +1 index quirk (pinned by lsGLTFParser tests)
+			batch->Add_Index( a + 1 ); batch->Add_Index( b + 1 );     batch->Add_Index( a + 2 );
+			batch->Add_Index( b + 1 ); batch->Add_Index( b + 2 );     batch->Add_Index( a + 2 );
+		}
+	}
+	batch->Copy_GLdata();
+	if( m_shader ) batch->setShader( m_shader );
+
+	lsMesh* mesh = new lsMesh( render );
+	if( ! mesh ) return nullptr;
+	mesh->Add_Batch( batch );
+	lsBoundingSphere bs;
+	bs.center = lsVector3( 0.0f, 0.0f, 0.0f );
+	bs.radius = R;
+	mesh->setBSphere( bs );
+	return mesh;
+}
+
+bool lsSky::init( lsScene* scene, lsShaderManager* shaders, lsRender* render )
 {
 	if( ! scene || ! shaders || ! render )
 	{
@@ -153,9 +220,16 @@ bool lsSky::init( lsScene* scene, lsShaderManager* shaders, lsRender* render,
 		shaders->Add_Shader( m_shader );
 	}
 
-	// Sky object: inward-facing sphere, drawn first with no depth write
-	lsAsset_Mesh* meshAsset = scene->getAssetManager()->CreateAsset_Mesh( meshPath );
-	if( meshAsset ) meshAsset->AllocAsset();
+	// Sky object: generated sphere, drawn first with no depth write
+	lsMesh* skyMesh = buildSphereMesh( render );
+	if( ! skyMesh )
+	{
+		cout << "ERROR: lsSky::init : can't build sky sphere mesh" << endl;
+		return false;
+	}
+	// Owned by lsSky (Add_Asset is manager-private); freed in ~lsSky.
+	m_meshAsset = new lsAsset_Mesh( render );
+	m_meshAsset->setData( skyMesh );
 
 	m_skyObject = new lsObject( scene );
 	if( ! m_skyObject )
@@ -164,7 +238,7 @@ bool lsSky::init( lsScene* scene, lsShaderManager* shaders, lsRender* render,
 		return false;
 	}
 	m_skyObject->setName( "SkyObject" );
-	m_skyObject->Set_Asset( meshAsset );
+	m_skyObject->Set_Asset( m_meshAsset );
 	m_skyObject->Set_Scale( 1.0f, 1.0f, 1.0f );
 	m_skyObject->Set_Pos( 0, 0, 0 );
 	m_skyObject->Set_Rot( 0, 0, 0 );

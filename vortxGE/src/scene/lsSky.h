@@ -72,6 +72,7 @@ class lsSky
 {
 public:
 	lsSky();
+	~lsSky();
 
 	/** @brief Set time of day in hours, wrapped to [0, 24) */
 	void	setTimeOfDay( float hours );
@@ -92,9 +93,9 @@ public:
 	lsSkyParams	computeParams() const;
 
 	/** @brief Create the "sky" shader + sky object and register it
-	 *         as the scene's sky object (drawn first, no depth write). */
-	bool	init( lsScene* scene, lsShaderManager* shaders, lsRender* render,
-				  const char* meshPath = "data/meshes/SkySphere.glb" );
+	 *         as the scene's sky object (drawn first, no depth write).
+	 *         The sky sphere mesh is generated in code — no mesh file. */
+	bool	init( lsScene* scene, lsShaderManager* shaders, lsRender* render );
 
 	/** @brief Directional light driven by the cycle (sun by day,
 	 *         pale moon at night). Pass nullptr to detach. */
@@ -109,6 +110,9 @@ public:
 	lsShader*			getShader() const { return m_shader; }
 
 private:
+	/** @brief Procedural UV sphere (positions only), radius kSkyRadius */
+	class lsMesh*	buildSphereMesh( lsRender* render );
+
 	float	m_timeOfDay	= 10.0f;	///< hours [0, 24)
 	float	m_dayLength	= 0.0f;		///< seconds per cycle, 0 = frozen
 	float	m_sunTiltDeg = 23.5f;	///< sun path tilt
@@ -117,5 +121,6 @@ private:
 	lsShader*		m_shader	= nullptr;
 	lsObject*		m_skyObject	= nullptr;
 	lsLight_Direct*	m_sun		= nullptr;
+	class lsAsset_Mesh* m_meshAsset	= nullptr;	///< owned sphere asset
 	lsSkyParams		m_params;
 };

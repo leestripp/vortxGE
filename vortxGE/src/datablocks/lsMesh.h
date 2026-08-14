@@ -132,6 +132,11 @@ public:
 		return bSphere;
 	}
 
+    /**
+     * @brief Set bounding sphere (procedural meshes that skip UploadGLTF)
+     */
+	void setBSphere( const lsBoundingSphere& s ) { bSphere = s; }
+
 	/**
 	 * @brief Get batch list
 	 * @return First batch in list

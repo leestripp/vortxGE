@@ -284,6 +284,21 @@ shadow-cache test now observes a real rebuild counter
 (`getShadowMatrixRebuildCount`) instead of comparing addresses of the
 same member.
 
+### S1.1 — Self-contained sky geometry, old skybox removed — ✅ 2026-08-14
+
+SkySphere.glb retired: `lsSky::buildSphereMesh()` generates the sky
+sphere in code (UV sphere R=100, positions only, 1-based indices per
+the engine's pinned index quirk). R=100 is far inside the 1000 far
+plane and far larger than any camera offset, so no cull path can ever
+touch it. The old HDRI texture-skybox path (`VORTX_SKY=texture`),
+its shaders and the `skybox` shader files are removed; ShaderKind::Skybox
+remains in-engine for user shaders. `lsSky` owns the mesh asset
+(`Add_Asset` is manager-private) and frees it in `~lsSky`.
+`lsMesh::setBSphere` added for procedural meshes that skip UploadGLTF.
+New debug hook: `VORTX_CAM_YAW=<deg>` (VORTX_DEBUG_TOOLS) sets a fixed
+camera yaw for sky/culling regression captures — verified sky visible
+at yaw 0/90/180/270 on GL and 135 on VK.
+
 ## Deferred / optional
 
 ### L6 — (Vulkan-only) RT shadow path

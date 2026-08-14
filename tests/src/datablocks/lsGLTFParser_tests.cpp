@@ -79,7 +79,7 @@ std::vector<std::byte> makeTriangleGLTF()
 TEST_CASE( "lsGLTFParser: all demo .glb files parse" )
 {
 	const char* files[] = { "Cube.001.glb", "Cube.002.glb", "Cube.003.glb",
-							"Plane.glb", "SkySphere.glb", "Suzanne.glb",
+							"Plane.glb", "Suzanne.glb",
 							"Wood_Cube.glb", "bullet_shape.glb" };
 	for (const char* f : files)
 	{

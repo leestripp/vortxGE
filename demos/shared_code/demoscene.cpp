@@ -393,14 +393,10 @@ void DemoScene::setupTestScene()
 	const bool baseScene = ( m_sceneName == "demoscene" );
 	cout << "DemoScene: scene '" << m_sceneName << "'" << endl;
 
-	// Sky setup — S-series procedural sky with day/night cycle by
-	// default. VORTX_SKY=texture falls back to the old HDRI skybox.
+	// Sky setup — S-series procedural sky with day/night cycle.
 	// VORTX_TIME_OF_DAY=<hours> sets the start time (default 10:00,
 	// matching the previous fixed sun); VORTX_DAY_LENGTH=<seconds>
 	// animates the cycle (default 0 = frozen, capture-deterministic).
-	const char* skyEnv = std::getenv( "VORTX_SKY" );
-	const bool texturedSky = ( skyEnv && std::string( skyEnv ) == "texture" );
-	if( ! texturedSky )
 	{
 		m_sky = new lsSky();
 		if( const char* t = std::getenv( "VORTX_TIME_OF_DAY" ) )
@@ -420,57 +416,6 @@ void DemoScene::setupTestScene()
 			delete m_sky; m_sky = nullptr;
 		}
 	}
-	else
-	{
-	// Skybox Setup
-	// Load custom shaders not part of vortxGE's default set
-	lsShader* skyboxShader = m_vortxge->getShaderManager()->Find_Shader("skybox");
-	if(! skyboxShader)
-	{
-		skyboxShader = new lsShader(m_vortxge->getRender());
-		if(skyboxShader)
-		{
-			skyboxShader->Load_Shader("skybox");
-			// Set shader type. LSST_SKYBOX
-			skyboxShader->setKind(ShaderKind::Skybox);
-			
-			m_vortxge->getShaderManager()->Add_Shader(skyboxShader);
-		} else
-		{
-			cout << "ERROR: DemoScene::Init() : Can't create lsShader instance for skybox." << endl;
-		}
-	}
-	
-	// Load the sphere mesh (e.g., from a Blender export named "SkySphere")
-	lsAsset_Mesh* sphereMeshAsset = m_viewer_scene->getAssetManager()->CreateAsset_Mesh("data/meshes/SkySphere.glb");
-	sphereMeshAsset->AllocAsset();
-	
-	// Create the skybox object
-	lsObject* skyObject = new lsObject(m_viewer_scene);
-	if (skyObject)
-	{
-		skyObject->setName("SkyboxObject");
-		skyObject->Set_Asset(sphereMeshAsset); 
-		skyObject->Set_Scale(1.0f, 1.0f, 1.0f);		// Already scaled to 1000.0
-		skyObject->Set_Pos(0, 0, 0);
-		skyObject->Set_Rot(0, 0, 0);
-		
-		// Assign the skybox shader
-		lsShader* skyboxShader = m_vortxge->getShaderManager()->Find_Shader("skybox");
-		if (skyboxShader)
-		{
-			static_cast<lsBatch_Mesh*>(skyObject->Get_Mesh()->getBatch_list())->setShader(skyboxShader);
-		} else
-		{
-			std::cerr << "WARNING: Skybox shader not found! Using default shader." << std::endl;
-		}
-		// Set as the special sky_object, managed by lsScene.
-		m_viewer_scene->setSkyObject(skyObject);
-	} else
-	{
-		std::cerr << "ERROR: Failed to create SkyboxObject." << std::endl;
-	}
-	} // end VORTX_SKY=texture fallback
 	
 	// Create an infinite ground plane for physics
 	lsObject* ground = new lsObject(m_viewer_scene);
@@ -758,6 +703,11 @@ void DemoScene::Update( double delta )
 		cam->Set_Pos( (float)std::sin( s_orbitT ), 5.0f,
 		              8.0f + (float)std::cos( s_orbitT ) );
 	}
+	// Fixed camera yaw for sky/culling regression captures.
+	if( const char* yawEnv = std::getenv( "VORTX_CAM_YAW" ) )
+		if( m_viewer_scene && m_viewer_scene->getActiveCamera() )
+			m_viewer_scene->getActiveCamera()->Set_Rot(
+				0.0f, (float)atof( yawEnv ), 0.0f );
 #endif
 
 	// Physics body count + fps every 5s (VORTX_PHYSICS_COUNT=1).
