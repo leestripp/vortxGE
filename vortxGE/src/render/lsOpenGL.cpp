@@ -83,7 +83,7 @@ void lsOpenGL::EndFrame()
 	static const char* everyEnv = getenv( "VORTX_SHOT_EVERY" );
 	const int every = everyEnv ? atoi( everyEnv ) : 0;
 	bool shot = ( s_frame == 30 || s_frame == 90 ); // two-shot: temporal A/B
-	if( every > 0 && s_frame >= 20 && s_frame <= 3600 && s_frame % every == 0 )
+	if( every > 0 && s_frame >= 20 && s_frame <= 40000 && s_frame % every == 0 )
 		shot = true;
 	if( shot )
 	{

@@ -225,9 +225,12 @@ bool lsVulkan::Init()
 		m_uboAlignment = props.limits.minUniformBufferOffsetAlignment;
 		if( m_uboAlignment < 16 ) m_uboAlignment = 16;
 
+		if( const char* kb = getenv( "VORTX_UBO_RING_KB" ) )
+			m_uboRingSize = (VkDeviceSize)atol( kb ) * 1024;
+
 		VkBufferCreateInfo bi{};
 		bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		bi.size = UBO_RING_SIZE;
+		bi.size = m_uboRingSize;
 		bi.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		if( vkCreateBuffer( m_device, &bi, nullptr, &m_uboBuffer ) != VK_SUCCESS )
 			return false;
@@ -241,7 +244,7 @@ bool lsVulkan::Init()
 		if( vkAllocateMemory( m_device, &ai, nullptr, &m_uboMemory ) != VK_SUCCESS )
 			return false;
 		vkBindBufferMemory( m_device, m_uboBuffer, m_uboMemory, 0 );
-		vkMapMemory( m_device, m_uboMemory, 0, UBO_RING_SIZE, 0, &m_uboMapped );
+		vkMapMemory( m_device, m_uboMemory, 0, m_uboRingSize, 0, &m_uboMapped );
 
 		VkDescriptorPoolSize sizes[2]{};
 		sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -940,7 +943,7 @@ void lsVulkan::Present()
 	++s_frameNo;
 	const int every = everyEnv ? atoi( everyEnv ) : 0;
 	if( every > 0 && getenv( "VORTX_SHOT" ) &&
-	    s_frameNo >= 20 && s_frameNo <= 3600 && s_frameNo % every == 0 )
+	    s_frameNo >= 20 && s_frameNo <= 40000 && s_frameNo % every == 0 )
 	{
 		std::string p = getenv( "VORTX_SHOT" );
 		const size_t dot = p.find_last_of( '.' );
@@ -2329,7 +2332,7 @@ uint32_t lsVulkan::allocUboSlice( uint32_t bytes )
 {
 	VkDeviceSize aligned = ( m_uboCursor + m_uboAlignment - 1 ) &
 						   ~( m_uboAlignment - 1 );
-	if( aligned + bytes > UBO_RING_SIZE )
+	if( aligned + bytes > m_uboRingSize )
 	{
 		aligned = 0;	// overflow: wrap (frames are small; log once)
 		static bool warned = false;

@@ -369,7 +369,11 @@ private:
 	void*			m_uboMapped = nullptr;
 	VkDeviceSize	m_uboCursor = 0;
 	VkDeviceSize	m_uboAlignment = 256;
-	static constexpr VkDeviceSize UBO_RING_SIZE = 1024 * 1024;
+	// V2 fix (S-debug): 1MB wrapped mid-frame in busy views; later
+	// uploads overwrote the FIRST draws' slices (the sky draws first in
+	// the scene pass) -> orientation-dependent black sky. 16MB default,
+	// VORTX_UBO_RING_KB overrides for wrap testing.
+	VkDeviceSize	m_uboRingSize = 16 * 1024 * 1024;
 
 	// descriptor pool (shared)
 	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
