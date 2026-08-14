@@ -38,12 +38,13 @@ this directory, project-level docs live at the repo root.
 | Demos | [demos/ApplicationDevelopment.md](demos/ApplicationDevelopment.md) | Writing apps on the engine |
 | Events | [events/EventSystem.md](events/EventSystem.md) | Event bus / dispatch |
 | Math | [math/MathLibrary.md](math/MathLibrary.md) | Vectors, matrices, quaternions (✅ fully unit-tested) |
-| Rendering | [passes/RenderingPipeline.md](passes/RenderingPipeline.md) | Render passes / pipeline |
+| Rendering | [renderer/VulkanBackend.md](renderer/VulkanBackend.md) | 🆕 Vulkan backend internals (UBO ring, VK-only diagnostics) |
 | Physics | [physics/PhysicsSystem.md](physics/PhysicsSystem.md) | Bullet physics integration |
 | Properties | [properties/PropertiesSystem.md](properties/PropertiesSystem.md) | Reflective property system |
 | Scene | [scene/SceneGraph.md](scene/SceneGraph.md) | lsNode scene graph |
 | Scene | [scene/SceneLoader.md](scene/SceneLoader.md) | .vgs scene files |
 | Scene | [scene/FirstPersonRig.md](scene/FirstPersonRig.md) | FPS camera rig |
+| Scene | [scene/ProceduralSky.md](scene/ProceduralSky.md) | 🆕 Procedural sky + day/night cycle (lsSky) |
 | Shaders | [shader/ShaderSystem.md](shader/ShaderSystem.md) | Shader management |
 | Animation | [animation/Readme.md](animation/Readme.md) | Animation notes |
 | Utils | [utils/Utilities.md](utils/Utilities.md) | Misc helpers (timers, etc.) |
@@ -54,6 +55,7 @@ this directory, project-level docs live at the repo root.
 |---|---|
 | [blender_export.md](blender_export.md) | Blender → engine asset export |
 | [glfw_desktop_scale_factor.md](glfw_desktop_scale_factor.md) | HiDPI / desktop scaling handling |
+| [Debugging.md](Debugging.md) | 🆕 Runtime diagnostic env hooks (captures, debug camera, input replay) |
 | [plans/renderer_abstraction.md](plans/renderer_abstraction.md) | Renderer abstraction plan (lsOpenGL/lsVulkan) |
 
 ## Testing

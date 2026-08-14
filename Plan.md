@@ -246,103 +246,36 @@ get their own `lsSceneStage` + named target + blit — no global state.
 
 ### S1 — Procedural sky + day/night cycle — ✅ DONE 2026-08-14
 
-Replaced the static HDRI skybox with a procedural atmosphere driven by
-a time-of-day cycle. All astronomy/color math lives in
-`lsSky::computeParams()` (pure, doctested); the `sky` shader
-(ShaderKind::Sky) only renders the parameters it is handed.
+Replaced the static HDRI skybox with a procedural atmosphere
+(`lsSky` + `ShaderKind::Sky`), full time-of-day cycle driving the
+scene's sun light. Full documentation:
+[docs/scene/ProceduralSky.md](docs/scene/ProceduralSky.md).
+Also fixed pre-existing C-series camera-dirty-flag breakage (ctest
+was red): transform setters rebuild ModelMatrix immediately,
+Update_Camera always rebuilds view/frustum and clears the flag,
+Set_ViewRatio marks dirty; the shadow-cache test now observes a real
+rebuild counter.
 
-- **lsSky** (`vortxGE/src/scene/lsSky.{h,cpp}`): time-of-day state,
-  parametric solar path (rise 06:00 east → noon → set 18:00 west,
-  tilted 23.5°), computes `lsSkyParams` (sun/moon dirs, gradient
-  colors, sun color+intensity, dayFactor, star amount, sunset glow).
-- **Shader**: `demos/data/shaders/sky.{vert,frag}` — rotation-only
-  view + far-plane Z (same trick as the skybox), atmosphere gradient,
-  sun disc + halo, moon disc, procedural cell-hash stars. Uniforms
-  uploaded through the generic render API — works on GL + VK.
-- **Scene integration**: `lsSky::init()` builds the sky sphere object
-  and registers it via `lsScene::setSkyObject` (existing draw-first,
-  no-depth-write path). `attachSunLight()` drives the scene's
-  lsLight_Direct: warm directional sun by day, faint blue "moonlight"
-  (direction = −sunDir) at night.
-- **Demo env vars**: `VORTX_TIME_OF_DAY=<hours>` (default 10:00 —
-  matches the previous fixed sun, regression captures stable),
-  `VORTX_DAY_LENGTH=<seconds>` (default 0 = frozen; capture
-  determinism), `VORTX_SKY=texture` (old HDRI skybox fallback).
-- **Verified**: 84/84 doctests (5 new sky cases); GL captures at
-  10h/18h/0h (day gradient, sunset glow, starry night); VK captures
-  at 12h/0h match; texture fallback intact.
+### S1.1 — Self-contained sky geometry — ✅ 2026-08-14
 
-**Also fixed (pre-existing C-series breakage, ctest was red):**
-`m_matricesDirty` was never cleared after 3215f98 removed the
-Update_Camera early-out → the C4 shadow-matrix cache never hit, and
-`Set_ViewRatio` never marked dirty. Fixed contract: camera transform
-setters now rebuild ModelMatrix immediately (cameras are
-self-consistent without a Move() pass — pipeline stages and
-follow-lights read it directly), Update_Camera always rebuilds
-view/frustum and clears the flag, Set_ViewRatio marks dirty. The
-shadow-cache test now observes a real rebuild counter
-(`getShadowMatrixRebuildCount`) instead of comparing addresses of the
-same member.
+`lsSky::buildSphereMesh()` generates the sky sphere in code;
+SkySphere.glb, the `VORTX_SKY=texture` fallback and the skybox shaders
+removed. Details in
+[docs/scene/ProceduralSky.md](docs/scene/ProceduralSky.md);
+`lsMesh::setBSphere` added for procedural meshes.
 
-### S1.1 — Self-contained sky geometry, old skybox removed — ✅ 2026-08-14
+### S1.2 — VK black-sky fix: UBO ring wrap — ✅ 2026-08-14
 
-SkySphere.glb retired: `lsSky::buildSphereMesh()` generates the sky
-sphere in code (UV sphere R=100, positions only, 1-based indices per
-the engine's pinned index quirk). R=100 is far inside the 1000 far
-plane and far larger than any camera offset, so no cull path can ever
-touch it. The old HDRI texture-skybox path (`VORTX_SKY=texture`),
-its shaders and the `skybox` shader files are removed; ShaderKind::Skybox
-remains in-engine for user shaders. `lsSky` owns the mesh asset
-(`Add_Asset` is manager-private) and frees it in `~lsSky`.
-`lsMesh::setBSphere` added for procedural meshes that skip UploadGLTF.
-New debug hook: `VORTX_CAM_YAW=<deg>` (VORTX_DEBUG_TOOLS) sets a fixed
-camera yaw for sky/culling regression captures — verified sky visible
-at yaw 0/90/180/270 on GL and 135 on VK.
+Orientation-dependent black sky on Vulkan = 1MB per-frame uniform
+ring wrapping mid-frame and clobbering the first draw's (the sky's)
+slice. Ring now 16MB. Root-cause write-up:
+[docs/renderer/VulkanBackend.md](docs/renderer/VulkanBackend.md).
 
-### S1.2 — VK black-sky "sweet spot" root cause: UBO ring wrap — ✅ 2026-08-14
+### S-debug — Diagnostic hooks — ✅ 2026-08-14
 
-**Symptom** (user report): whole sky vanishes to pure black (no
-gradient, no stars) at a deterministic camera orientation ("~45° right"),
-restores when rotating away, dies again rotating back. Vulkan only.
-
-**Root cause:** `lsVulkan`'s per-frame uniform ring was 1MB. Every
-draw memcpys its UBO block into the ring and binds it by dynamic
-offset; the GPU reads slices at *execution* time, after submit. In
-busy views the frame's uploads exceeded 1MB, `allocUboSlice` wrapped
-mid-frame, and later uploads overwrote the *earliest* draws' slices.
-The sky draws first in the scene pass, so its slice (view/proj
-matrices + sky params) was the first victim — black sky while the rest
-of the scene (later draws, still-valid slices) rendered fine. The
-"sweet spot" was simply any view whose draw count pushed post-sky
-uploads past the sky's offset. Smoking gun in the session log:
-`WARN: lsVulkan UBO ring wrapped`.
-
-**Fix:** ring default 16MB (~16k typical draws of headroom),
-`VORTX_UBO_RING_KB` env override to force wraps in tests. Commit
-5794ee2. Comments in `allocUboSlice` now document the hazard: if the
-wrap warning ever fires, raise the ring size.
-
-**Why short capture runs never reproduced it:** `VORTX_FIXED_DT`
-disables the cube emitter (deterministic captures), and fresh sessions
-have few objects — the wrap needs long-session draw counts (emitter
-accumulation, same growth behind the old "progressive slowdown"
-report). Lesson: repro long-session bugs with emitter-active runs.
-
-### S-debug — Diagnostic hooks (VORTX_DEBUG_TOOLS builds)
-
-Added while hunting the black-sky bug (commit 0db0bdc); all are
-inert without their env var:
-
-| Hook | Effect |
-|---|---|
-| `VORTX_DEBUG_CAM=1` | Standalone scene-owned camera becomes active; never touches the FirstPersonRig's camera |
-| `VORTX_CAM_YAW/PITCH=<deg>` | Steer the debug camera's rotation |
-| `VORTX_CAM_POS="x,y,z"` | Steer the debug camera's position |
-| `VORTX_RIG_YAW/PITCH=<deg>` | Rotate the player rig once via its REAL input path (`HandleMouseLook` -> Bullet quaternion) |
-| `VORTX_MOUSE_SPIN=<deg/frame>` (+`_PITCH`) | Continuous mouse-look through the real input path |
-| `VORTX_WALK=w|a|s|d` | Hold a movement key through `HandleKeyboardInput` |
-| `VORTX_SHOT_EVERY=N` | Capture every N frames (20..40000), GL + VK |
-| `VORTX_UBO_RING_KB=<kb>` | Override the VK uniform-ring size (force wraps) |
+Capture/camera/input-replay env hooks added while hunting S1.2
+(commit 0db0bdc). Reference table:
+[docs/Debugging.md](docs/Debugging.md).
 
 ## Deferred / optional
 
