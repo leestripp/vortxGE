@@ -69,6 +69,11 @@ const int LSPT_OCCLUSION        = 4;
 const int LSPT_PREPASS          = 5;
 
 /**
+ * @deprecated 2026-08-14 (Plan.md E3) — legacy pass chain; the
+ * stage-based pipeline (vortxGE/src/pipeline/, lsRenderPipeline) is the
+ * default render path. Remains for one release behind
+ * VORTX_LEGACY_PIPELINE=1. New code: pipeline stages, not passes.
+ *
  * @class lsPass
  * @brief Base class for rendering passes
  * 

@@ -1,7 +1,9 @@
 # Rendering Pipeline
 
-> **2026 update — two pipeline paths exist.** This document describes the
-> classic pass-based system (`lsPassManager`), still the default. The new
+> **2026-08-14 update — this document describes the DEPRECATED path.**
+> The stage-based pipeline (`vortxGE/src/pipeline/`) is the default since
+> E3.1; the classic pass system below runs only with
+> `VORTX_LEGACY_PIPELINE=1` and is retired in a future release. The new
 > stage-based pipeline (`vortxGE/src/pipeline/`, opt-in in the demos via
 > `VORTX_PIPELINE=1`) composes explicit stages: `lsShadowStage` /
 > `lsCsmStage` (sun CSM), `lsClusterStage` (clustered light culling),

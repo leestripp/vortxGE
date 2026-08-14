@@ -2,6 +2,11 @@
  * @file lsPassManager.h
  * @brief Manages the rendering pipeline passes
  * 
+ * @deprecated 2026-08-14 (Plan.md E3): the stage-based pipeline
+ * (vortxGE/src/pipeline/, lsRenderPipeline) is the default render path.
+ * This legacy pass chain remains for one release behind
+ * VORTX_LEGACY_PIPELINE=1. New code: add pipeline stages, not passes.
+ *
  * The pass manager handles the lifecycle of rendering passes in the engine.
  * It maintains a linked list of passes and coordinates their execution
  * during the render loop.

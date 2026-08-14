@@ -4,6 +4,13 @@ This guide covers how to create applications using the vortxGE engine, including
 
 ---
 
+> **Render path (since 2026-08-14, Plan.md E3):** apps built on the
+> demos get the stage-based pipeline by default — no code needed. The
+> legacy `lsPassManager` chain is deprecated (`VORTX_LEGACY_PIPELINE=1`
+> escape for one release). Custom rendering = new `lsRenderStage`
+> subclass added to the pipeline; the scene owns the active camera
+> (`lsScene::setActiveCamera`), so stages never touch control classes.
+
 ## Application Architecture
 
 ### Basic Structure
