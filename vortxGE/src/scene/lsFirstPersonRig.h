@@ -124,6 +124,10 @@ public:
 	 * @param sprint Sprint (faster movement)
 	 */
 	void HandleKeyboardInput(bool forward, bool backward, bool strafeLeft, bool strafeRight, bool crouch, bool jump, bool sprint);
+
+	/// Teleport the physics body (and node) to a world position.
+	/// Clears velocities. The camera re-syncs on the next Move().
+	void Teleport(float x, float y, float z);
 	
 	/**
 	 * @brief Handle mouse look (rotation)

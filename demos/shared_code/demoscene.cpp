@@ -41,6 +41,15 @@
 
 // Shaders
 #include <shader/lsShaderManager.h>
+// terrain module (engine feature)
+#include <terrain/Heightfield.h>
+#include <terrain/Noise.h>
+#include <terrain/Erosion.h>
+#include <terrain/Biome.h>
+#include <terrain/Mesh.h>
+#include <terrain/TerrainMesh.h>
+#include <terrain/veg/Scatterer.h>
+#include <terrain/veg/VegetationLayer.h>
 #include <shader/lsShader.h>
 
 // Assets
@@ -511,6 +520,9 @@ void DemoScene::setupTestScene()
 
 		// Khronos sample models (data/testmodels/)
 		setupSampleModels();
+
+		if( getenv( "VORTX_TERRAIN" ) )
+			setupTerrain();
 	}
 
 	// Debug-gated ad-hoc test model (VORTX_TEST_MODEL) — any scene
@@ -605,6 +617,190 @@ void DemoScene::setupSampleModels()
 		obj->Set_Pos( d.x, d.y, d.z );
 		obj->Set_Rot( 0, 0, 0 );
 		m_viewer_scene->Add_Node( obj );
+	}
+}
+
+// -------------------------------------------------------------------
+// Terrain demo (VORTX_TERRAIN=1): procedural heightfield (noise ->
+// erosion -> biomes) rendered as an engine mesh + Bullet heightfield
+// collision + scattered vegetation. Placed east of the built area,
+// centre at (kCX, 0, kCZ); the player rig spawns on it.
+// -------------------------------------------------------------------
+void DemoScene::setupTerrain()
+{
+	if( ! m_viewer_scene ) return;
+	lsRender* render = m_vortxge->getRender();
+
+	constexpr int kRes = 256;
+	constexpr float kWorld = 1024.0f;
+	constexpr float kHeight = 180.0f;
+	constexpr float kCX = 700.0f;   // terrain centre, east of the demo area
+	constexpr float kCZ = 0.0f;
+
+	// -- generate: fBm + ridged base, hydraulic erosion -----------------
+	terrain::Noise noise( 1337 );
+	terrain::Heightfield hf( kRes, kRes );
+	for( int y = 0; y < kRes; ++y )
+		for( int x = 0; x < kRes; ++x )
+		{
+			const float u = ( float )x / ( kRes - 1 );
+			const float v = ( float )y / ( kRes - 1 );
+			const float base = noise.fbm( u * 4.0f, v * 4.0f, 6 ) * 0.5f + 0.5f;
+			const float ridge = noise.ridged( u * 3.0f + 7.3f, v * 3.0f + 2.1f, 5 );
+			hf( x, y ) = base * 0.65f + ridge * 0.45f;
+		}
+	hf.normalize();
+	terrain::ErosionParams ep;
+	ep.seed = 42;
+	ep.droplets = 60000;
+	terrain::erode( hf, ep );
+	hf.normalize();
+	cout << "VORTX_TERRAIN: heightfield " << kRes << "x" << kRes
+		 << " range [" << hf.minValue() << ", " << hf.maxValue() << "]" << endl;
+
+	// -- render mesh ----------------------------------------------------
+	terrain::GridMesh grid = terrain::generateGridMesh( hf, kWorld, kHeight );
+	lsMesh* terrainMesh = terrain::uploadGridMesh( grid, render );
+	if( ! terrainMesh )
+	{
+		cerr << "VORTX_TERRAIN: mesh upload failed" << endl;
+		return;
+	}
+	lsAsset_Mesh* terrainAsset = new lsAsset_Mesh( render );
+	terrainAsset->setData( terrainMesh ); // uploaded mesh; AllocAsset is for files
+
+	lsObject* terrainObj = new lsObject( m_viewer_scene );
+	terrainObj->setName( "Terrain" );
+	terrainObj->Set_Asset( terrainAsset );
+	terrainObj->Set_Pos( kCX, 0, kCZ );
+	m_viewer_scene->Add_Node( terrainObj );
+
+	// lit, untextured shader
+	lsShaderManager* shaders = m_vortxge->getShaderManager();
+	lsShader* terrainShader = shaders->Find_Shader( "light_tex_none" );
+	if( ! terrainShader )
+	{
+		terrainShader = new lsShader( render );
+		terrainShader->Load_Shader( "light_tex_none" );
+		shaders->Add_Shader( terrainShader );
+	}
+	if( terrainObj->Get_Mesh() && terrainObj->Get_Mesh()->getBatch_list() )
+		static_cast<lsBatch_Mesh*>( terrainObj->Get_Mesh()->getBatch_list() )
+			->setShader( terrainShader );
+
+	// -- Bullet heightfield collision (static) ---------------------------
+	// btHeightfieldTerrainShape is centre-origin in ALL axes (see
+	// lsBulletShape::Make_Heightfield): lift the body by half the max
+	// height so the collision surface aligns with the render mesh.
+	std::vector<float> heights( ( size_t )kRes * kRes );
+	for( int y = 0; y < kRes; ++y )
+		for( int x = 0; x < kRes; ++x )
+			heights[( size_t )y * kRes + x] = hf( x, y );
+
+	lsBulletShape* hfShape = new lsBulletShape( render );
+	const float cell = kWorld / ( kRes - 1 );
+	hfShape->Make_Heightfield( kRes, kRes, heights.data(), kHeight, cell, cell );
+
+	lsObject* terrainBody = new lsObject( m_viewer_scene );
+	terrainBody->setName( "TerrainBody" );
+	terrainBody->Set_Pos( kCX, kHeight * 0.5f, kCZ );
+	lsBulletObject* terrainBullet = new lsBulletObject(
+		terrainBody, hfShape->getShape(),
+		m_viewer_scene->getBulletworld()->getMax_proxies() );
+	terrainBullet->Init( 0.0f ); // static
+	terrainBody->setBulletObject( terrainBullet );
+	m_viewer_scene->Add_Node( terrainBody );
+	cout << "VORTX_TERRAIN: heightfield collision at (" << kCX << ",0," << kCZ
+		 << "), cell " << cell << "m, height x" << kHeight << endl;
+
+	// -- vegetation: bushes + trees (grass needs the instanced renderer) --
+	terrain::Noise climate( 9001 );
+	std::vector<terrain::Biome> biomes( ( size_t )kRes * kRes );
+	for( int y = 0; y < kRes; ++y )
+		for( int x = 0; x < kRes; ++x )
+		{
+			const float u = ( float )x / ( kRes - 1 );
+			const float v = ( float )y / ( kRes - 1 );
+			const float h = hf( x, y );
+			const float temp = std::clamp(
+				0.75f - h * 0.55f + climate.fbm( u * 2.0f, v * 2.0f, 3 ) * 0.08f,
+				0.0f, 1.0f );
+			const float moist = std::clamp(
+				0.5f + climate.fbm( u * 3.0f + 11.0f, v * 3.0f + 5.0f, 4 ) * 0.6f,
+				0.0f, 1.0f );
+			biomes[( size_t )y * kRes + x] = terrain::classifyBiome( h, temp, moist );
+		}
+
+	terrain::veg::Scatterer scatterer( hf, biomes, kWorld, kHeight );
+
+	struct VegDef { const char* name; const char* file; int cap;
+					float minAlt, maxAlt, slope, spacing, density;
+					unsigned biomeMask; };
+	const unsigned forestMask = terrain::biomeBit( terrain::Biome::Forest )
+							| terrain::biomeBit( terrain::Biome::Grassland );
+	const VegDef vegDefs[] = {
+		{ "Tree", "data/vegetation/broadleaf.obj", 300,
+		  0.32f, 0.82f, 30.0f, 8.0f, 0.6f,
+		  forestMask | terrain::biomeBit( terrain::Biome::Taiga ) },
+		{ "Bush", "data/vegetation/bush.obj", 500,
+		  0.31f, 0.75f, 28.0f, 4.0f, 0.5f,
+		  forestMask | terrain::biomeBit( terrain::Biome::Taiga ) },
+	};
+
+	constexpr int kChunks = 8;
+	for( const auto& vd : vegDefs )
+	{
+		auto meshRes = terrain::loadObj( vd.file );
+		if( ! meshRes )
+		{
+			cerr << "VORTX_TERRAIN: " << meshRes.error() << endl;
+			continue;
+		}
+		lsMesh* vegMesh = terrain::uploadVegetationMesh( *meshRes, render );
+		if( ! vegMesh ) continue;
+		lsAsset_Mesh* vegAsset = new lsAsset_Mesh( render );
+		vegAsset->setData( vegMesh ); // uploaded mesh; AllocAsset is for files
+
+		terrain::veg::VegetationLayer layer;
+		layer.id = 1;
+		layer.name = vd.name;
+		layer.rules.minAltitude = vd.minAlt;
+		layer.rules.maxAltitude = vd.maxAlt;
+		layer.rules.maxSlopeDeg = vd.slope;
+		layer.rules.minSpacing = vd.spacing;
+		layer.rules.density = vd.density;
+		layer.rules.biomeMask = vd.biomeMask;
+
+		int placed = 0;
+		for( int cy = 0; cy < kChunks && placed < vd.cap; ++cy )
+			for( int cx = 0; cx < kChunks && placed < vd.cap; ++cx )
+				for( const auto& inst :
+					 scatterer.scatter( layer, cx, cy, kChunks, 7 ) )
+				{
+					lsObject* veg = new lsObject( m_viewer_scene );
+					veg->setName( vd.name );
+					veg->Set_Asset( vegAsset );
+					// Instance: x=worldX, y=worldZ, z=elevation (scatterer axes)
+					veg->Set_Pos( kCX + inst.x - kWorld * 0.5f, inst.z,
+								  kCZ + inst.y - kWorld * 0.5f );
+					veg->Set_Rot( 0, inst.rotation * 57.2958f, 0 );
+					veg->Set_Scale( inst.scale, inst.scale, inst.scale );
+					if( veg->Get_Mesh() && veg->Get_Mesh()->getBatch_list() )
+						static_cast<lsBatch_Mesh*>( veg->Get_Mesh()->getBatch_list() )
+							->setShader( terrainShader );
+					m_viewer_scene->Add_Node( veg );
+					if( ++placed >= vd.cap ) break;
+				}
+		cout << "VORTX_TERRAIN: " << vd.name << " x" << placed << endl;
+	}
+
+	// -- spawn the rig on the terrain ------------------------------------
+	if( m_playerRig )
+	{
+		const float h0 = hf.sampleBilinear( 0.5f, 0.5f ) * kHeight;
+		m_playerRig->Teleport( kCX, h0 + 3.0f, kCZ );
+		cout << "VORTX_TERRAIN: rig spawn (" << kCX << "," << h0 + 3.0f
+			 << "," << kCZ << ")" << endl;
 	}
 }
 
@@ -743,6 +939,24 @@ void DemoScene::Update( double delta )
 			const float dy = -degP / ( 0.05f * 16.666f );
 			m_playerRig->HandleMouseLook( 16.666f, dx, dy );
 		}
+
+	// Terrain-demo debug: VORTX_RIG_TRACE=1 prints the rig camera Y
+	// every 30 frames (proves the rig rests on the heightfield).
+	if( std::getenv( "VORTX_RIG_TRACE" ) && m_playerRig )
+	{
+		static int s_traceFrame = 0;
+		if( ++s_traceFrame % 30 == 0 )
+		{
+			btRigidBody* b = ( m_playerRig->getBulletObject() )
+							 ? m_playerRig->getBulletObject()->getBody() : nullptr;
+			if( b )
+			{
+				const btVector3 o = b->getWorldTransform().getOrigin();
+				cout << "RIG_TRACE frame " << s_traceFrame << " body ("
+					 << o.x() << "," << o.y() << "," << o.z() << ")" << endl;
+			}
+		}
+	}
 
 	// S-debug: hold a movement key through the rig's real input path.
 	// VORTX_WALK=w|a|s|d — combine with VORTX_MOUSE_SPIN for

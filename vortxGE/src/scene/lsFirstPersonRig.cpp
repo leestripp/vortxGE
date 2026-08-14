@@ -218,6 +218,23 @@ void lsFirstPersonRig::Draw(lsCamera* cam, int pass_type, lsScene* scn, lsRender
 
 // *** Inputs ***
 
+void lsFirstPersonRig::Teleport(float x, float y, float z)
+{
+	if (m_bulletObject && m_bulletObject->getBody())
+	{
+		btRigidBody* body = m_bulletObject->getBody();
+		btTransform xf = body->getWorldTransform();
+		xf.setOrigin(btVector3(x, y, z));
+		body->setWorldTransform(xf);
+		body->setInterpolationWorldTransform(xf);
+		body->setLinearVelocity(btVector3(0, 0, 0));
+		body->setAngularVelocity(btVector3(0, 0, 0));
+		body->clearForces();
+		body->activate(true);
+	}
+	Set_Pos(x, y, z); // node transform follows; camera re-syncs in Move()
+}
+
 void lsFirstPersonRig::HandleKeyboardInput(bool forward, bool backward, bool strafeLeft, bool strafeRight, bool crouch, bool jump, bool sprint)
 {
 	if (!m_bulletObject || !m_bulletObject->getBody()) return;

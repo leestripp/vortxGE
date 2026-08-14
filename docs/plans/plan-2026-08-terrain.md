@@ -181,7 +181,10 @@ yet (see milestones M1–M3 for the GPU path).
 | Vegetation layers + scatter rules | ✅ | `src/terrain/veg/VegetationLayer.h` |
 | Jittered-grid Poisson scatterer, per-chunk deterministic seeds | ✅ | `src/terrain/veg/Scatterer.{h,cpp}` |
 | CDLOD-style quadtree LOD selection + morph weights | ✅ | `src/terrain/lod/ChunkLod.{h,cpp}` |
-| GPU renderers (terrain, grass, trees) | ⬜ not started | needs a GPU backend |
+| Terrain render mesh (heightfield → lsMesh grid) | ✅ | `vortxGE/src/terrain/TerrainMesh.{h,cpp}` |
+| Bullet heightfield collision (btHeightfieldTerrainShape) | ✅ | `lsBulletShape::Make_Heightfield` |
+| Demo scene in vortxGEdemo_glfw3 (VORTX_TERRAIN=1) | ✅ | `demoscene::setupTerrain` — terrain + collision + trees/bushes + rig spawn |
+| GPU-instanced veg / splat / impostors | ⬜ not started | milestones M2–M6 |
 | Impostor baker | ⬜ not started | needs a GPU backend |
 | Splat texturing | ⬜ not started | needs a GPU backend |
 

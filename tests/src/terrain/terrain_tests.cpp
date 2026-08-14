@@ -206,3 +206,110 @@ TEST_CASE("terrain::loadObj — example vegetation meshes") {
     CHECK(!terrain::loadObj(resPath("demos/data/vegetation/does_not_exist.obj"))
                .has_value());
 }
+
+// ---------------------------------------------------------------------------
+// Engine bridge: grid mesh generation (pure geometry, no GL)
+// ---------------------------------------------------------------------------
+#include "terrain/TerrainMesh.h"
+
+TEST_CASE("terrain::generateGridMesh — geometry from heightfield") {
+    terrain::Heightfield hf(8, 8);
+    for (std::size_t y = 0; y < 8; ++y)
+        for (std::size_t x = 0; x < 8; ++x)
+            hf(x, y) = static_cast<float>(x) / 7.0f; // ramp along x
+
+    const auto g = terrain::generateGridMesh(hf, 70.0f, 10.0f);
+
+    REQUIRE(g.positions.size() == 8 * 8 * 3);
+    REQUIRE(g.normals.size() == 8 * 8 * 3);
+    REQUIRE(g.uvs.size() == 8 * 8 * 2);
+    REQUIRE(g.indices.size() == 6 * 7 * 7);
+
+    // centred: corners at +/-35 in x/z
+    CHECK(g.positions[0] == doctest::Approx(-35.0f));   // x of (0,0)
+    CHECK(g.positions[2] == doctest::Approx(-35.0f));   // z of (0,0)
+    const auto last = (8 * 8 - 1) * 3;
+    CHECK(g.positions[last + 0] == doctest::Approx(35.0f));
+    CHECK(g.positions[last + 2] == doctest::Approx(35.0f));
+
+    // heights: y = h * maxHeight; left column 0, right column 10
+    CHECK(g.positions[1] == doctest::Approx(0.0f));
+    CHECK(g.positions[last + 1] == doctest::Approx(10.0f));
+
+    // indices in range, normals unit length and up-leaning
+    for (const auto i : g.indices)
+        CHECK(i < 8 * 8);
+    for (std::size_t i = 0; i < 64; ++i) {
+        const float nx = g.normals[i * 3 + 0];
+        const float ny = g.normals[i * 3 + 1];
+        const float nz = g.normals[i * 3 + 2];
+        CHECK(std::sqrt(nx * nx + ny * ny + nz * nz) == doctest::Approx(1.0).epsilon(0.01));
+        CHECK(ny > 0.5f);
+        CHECK(nx < 0.0f); // ramp rises along +x -> normal leans -x
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Bullet heightfield collision: sphere drop + raycast
+// ---------------------------------------------------------------------------
+#include "datablocks/lsBulletShape.h"
+#include <bullet/btBulletDynamicsCommon.h>
+
+TEST_CASE("lsBulletShape::Make_Heightfield — collision behaviour") {
+    // Flat field at normalized 0.5, heightScale 10 -> surface at y=5.
+    constexpr int kW = 16, kH = 16;
+    constexpr float kScale = 10.0f, kCell = 2.0f;
+    std::vector<float> flat(static_cast<std::size_t>(kW) * kH, 0.5f);
+
+    lsBulletShape shape(nullptr);
+    shape.Make_Heightfield(kW, kH, flat.data(), kScale, kCell, kCell);
+    REQUIRE(shape.getShape() != nullptr);
+
+    btDefaultCollisionConfiguration conf;
+    btCollisionDispatcher dispatcher(&conf);
+    btDbvtBroadphase broadphase;
+    btSequentialImpulseConstraintSolver solver;
+    btDiscreteDynamicsWorld world(&dispatcher, &broadphase, &solver, &conf);
+    world.setGravity(btVector3(0, -10, 0));
+
+    // static terrain body at origin
+    btTransform groundXf;
+    groundXf.setIdentity();
+    groundXf.setOrigin(btVector3(0, kScale * 0.5f, 0)); // Y-centred shape
+    auto* groundMotion = new btDefaultMotionState(groundXf);
+    btRigidBody::btRigidBodyConstructionInfo groundCi(
+        0.0f, groundMotion, shape.getShape(), btVector3(0, 0, 0));
+    auto* ground = new btRigidBody(groundCi);
+    world.addRigidBody(ground);
+
+    // drop a 0.5m sphere from y=20 over the centre
+    auto* sphereShape = new btSphereShape(0.5f);
+    btTransform sphereXf;
+    sphereXf.setIdentity();
+    sphereXf.setOrigin(btVector3(0, 20, 0));
+    auto* sphereMotion = new btDefaultMotionState(sphereXf);
+    btVector3 inertia(0, 0, 0);
+    sphereShape->calculateLocalInertia(1.0f, inertia);
+    btRigidBody::btRigidBodyConstructionInfo sphereCi(
+        1.0f, sphereMotion, sphereShape, inertia);
+    auto* sphere = new btRigidBody(sphereCi);
+    world.addRigidBody(sphere);
+
+    for (int i = 0; i < 240; ++i)
+        world.stepSimulation(1.0f / 60.0f, 4);
+
+    const float restY = sphere->getWorldTransform().getOrigin().getY();
+    CHECK(restY == doctest::Approx(5.5).epsilon(0.05)); // surface 5 + radius
+
+    // raycast down onto the field from above: hit at y=5
+    btCollisionWorld::ClosestRayResultCallback ray(
+        btVector3(4, 50, -4), btVector3(4, -50, -4));
+    world.rayTest(btVector3(4, 50, -4), btVector3(4, -50, -4), ray);
+    REQUIRE(ray.hasHit());
+    CHECK(ray.m_hitPointWorld.getY() == doctest::Approx(5.0).epsilon(0.02));
+
+    world.removeRigidBody(sphere);
+    world.removeRigidBody(ground);
+    delete sphere; delete sphereMotion; delete sphereShape;
+    delete ground; delete groundMotion;
+}

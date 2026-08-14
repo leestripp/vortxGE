@@ -5,6 +5,8 @@
 
 #include "lsData.h"
 
+#include <vector>
+
 class btCollisionShape;
 class lsMesh;
 
@@ -28,9 +30,17 @@ public:
 	// From lsMesh
 	void Make_ConvexHull_FromMesh( lsMesh* mesh );
     void Make_TriMesh_FromMesh( lsMesh* mesh );
+	// Heightfield terrain (btHeightfieldTerrainShape). A COPY of the
+	// normalized [0,1] heights is kept so the shape stays valid.
+	// The shape is centre-origin in ALL axes: X/Z span
+	// +/- (n-1)*cell/2 and Y spans +/- heightScale/2 around the body
+	// position — place the body at terrain_base_y + heightScale/2.
+	void Make_Heightfield( int w, int h, const float* heights,
+	                       float heightScale, float cellX, float cellZ );
 	
 	btCollisionShape *getShape();
 	
 private:
     btCollisionShape *shape;
+    std::vector<float> m_heightfieldData; // owned copy for Make_Heightfield
 };

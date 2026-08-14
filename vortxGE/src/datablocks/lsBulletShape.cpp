@@ -1,5 +1,6 @@
 // bullet
 #include <bullet/btBulletDynamicsCommon.h>
+#include <bullet/BulletCollision/CollisionShapes/btHeightfieldTerrainShape.h>
 
 // render
 #include "../render/lsRender.h"
@@ -292,6 +293,36 @@ void lsBulletShape::Make_TriMesh_FromMesh( lsMesh* mesh )
     shape = batch->End_TriMesh(mesh->getBSphere().radius);
     setMem_used(sizeof(btBvhTriangleMeshShape)); // Approximation
     delete batch;
+}
+
+/**
+ * @brief Heightfield terrain collision (btHeightfieldTerrainShape).
+ *
+ * heights: row-major grid, w * h entries, row y = world Z, column x = world
+ * X, values normalized [0,1]; heightScale converts to metres.
+ *
+ * Bullet quirks handled here (verified by terrain_tests drop/raycast):
+ *  - PHY_FLOAT ignores the shape's own heightScale, so the owned copy is
+ *    stored pre-scaled to metres.
+ *  - The shape is centre-origin in ALL axes: X/Z span
+ *    +/- (n-1)*cell/2 and Y spans +/- heightScale/2 around the body
+ *    origin. Place the body at terrain_base_y + heightScale/2.
+ */
+void lsBulletShape::Make_Heightfield( int w, int h, const float* heights,
+                                      float heightScale, float cellX,
+                                      float cellZ )
+{
+	m_heightfieldData.resize( ( size_t )w * h );
+	for( size_t i = 0; i < m_heightfieldData.size(); ++i )
+		m_heightfieldData[i] = heights[i] * heightScale; // metres
+	btHeightfieldTerrainShape* hf = new btHeightfieldTerrainShape(
+		w, h, m_heightfieldData.data(), ( btScalar )1.0,
+		( btScalar )0.0, ( btScalar )heightScale,
+		1 /* up = Y */, PHY_FLOAT, false );
+	hf->setLocalScaling( btVector3( ( btScalar )cellX, 1.0, ( btScalar )cellZ ) );
+	shape = hf;
+	setMem_used( sizeof( btHeightfieldTerrainShape ) +
+	             m_heightfieldData.size() * sizeof( float ) );
 }
 
 btCollisionShape* lsBulletShape::getShape()

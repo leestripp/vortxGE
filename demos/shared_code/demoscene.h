@@ -92,7 +92,8 @@ protected:
     void setupTestScene();
     void setupObjectEmitter();
     void setupTestModel();      // debug-gated (VORTX_TEST_MODEL)
-    void setupSampleModels();   // Khronos sample models (data/testmodels/)
+    void setupSampleModels();
+	void setupTerrain();        // procedural terrain demo (VORTX_TERRAIN=1)
     // Scene Events
     void processEvent( lsEvent* event );
 	
