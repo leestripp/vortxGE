@@ -107,6 +107,8 @@ enable_testing()
 add_subdirectory(tests)
 add_subdirectory(demos/vortxGEdemo_gtkmm)
 add_subdirectory(demos/vortxGEdemo_glfw3)
+# Terrain pipeline console demo (docs/plans/plan-2026-08-terrain.md)
+add_subdirectory(demos/terrain_demo)
 
 # build game
 set(GAME_DIR "game")
@@ -122,6 +124,7 @@ endif()
 # Add links for data.
 ADD_CUSTOM_TARGET(symlink_gtkmm ALL COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_BINARY_DIR}/../demos/data" "${CMAKE_BINARY_DIR}/demos/vortxGEdemo_gtkmm/data")
 ADD_CUSTOM_TARGET(symlink_glfw3 ALL COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_BINARY_DIR}/../demos/data" "${CMAKE_BINARY_DIR}/demos/vortxGEdemo_glfw3/data")
+ADD_CUSTOM_TARGET(symlink_terrain_demo ALL COMMAND ${CMAKE_COMMAND} -E create_symlink "${CMAKE_BINARY_DIR}/../demos/data" "${CMAKE_BINARY_DIR}/demos/terrain_demo/data")
 
 # Re-export stale tech-demo scenes from .blend sources (opt-in; needs Blender)
 ADD_CUSTOM_TARGET(export_scenes COMMAND ${CMAKE_COMMAND} -E env python3 "${CMAKE_SOURCE_DIR}/tools/export_scenes.py" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
