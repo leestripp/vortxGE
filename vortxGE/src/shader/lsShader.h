@@ -40,6 +40,7 @@
 
 // Shader kinds
 #include "lsShaderKinds.h"
+#include "../scene/lsSky.h"
 
 // Forward declarations
 class lsObject;
@@ -120,6 +121,9 @@ public:
      * @param val Shader type (DEBUG, SKYBOX, LIGHT_*, etc.)
      */
 	void setKind( ShaderKind val );
+
+    /** @brief S-series: set sky params uploaded by UseShader (ShaderKind::Sky) */
+	void setSkyParams( const lsSkyParams& p ) { m_skyParams = p; }
 	
     /**
      * @brief Get shader kind
@@ -299,6 +303,33 @@ private:
     /** @brief Per-slot point shadow near/far (reference depth reconstruction) */
 	lsUniformID iPointNear[3];
 	lsUniformID iPointFar[3];
+
+	//=========================================================================
+	// Sky uniforms (S-series — ShaderKind::Sky, values from lsSky)
+	//=========================================================================
+
+    /** @brief Direction toward the sun (world space, normalized) */
+	lsUniformID iSunDir;
+
+    /** @brief Sun disc / light color */
+	lsUniformID iSunColor;
+
+    /** @brief Direction toward the moon */
+	lsUniformID iMoonDir;
+
+    /** @brief Sky gradient colors */
+	lsUniformID iZenithColor;
+	lsUniformID iHorizonColor;
+	lsUniformID iGroundColor;
+
+    /** @brief Packed: dayFactor, starAmount, sunsetGlow, sunIntensity */
+	lsUniformID iSkyParamsA;
+
+    /** @brief Packed: moonIntensity, unused, unused, unused */
+	lsUniformID iSkyParamsB;
+
+    /** @brief Current sky parameters, set per frame by lsSky::apply() */
+	lsSkyParams m_skyParams;
 	
 	//=========================================================================
 	// Material Uniforms

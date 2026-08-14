@@ -230,6 +230,19 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 			imvMatrix = getRender()->GetUniformLocation(shader, "mvMatrix");
 			iTex_albedo = getRender()->GetUniformLocation(shader, "tex_skybox");
 			break;
+
+		case ShaderKind::Sky: // S-series procedural sky uniforms
+			ipMatrix = getRender()->GetUniformLocation(shader, "pMatrix");
+			imvMatrix = getRender()->GetUniformLocation(shader, "mvMatrix");
+			iSunDir       = getRender()->GetUniformLocation(shader, "sunDir");
+			iSunColor     = getRender()->GetUniformLocation(shader, "sunColor");
+			iMoonDir      = getRender()->GetUniformLocation(shader, "moonDir");
+			iZenithColor  = getRender()->GetUniformLocation(shader, "zenithColor");
+			iHorizonColor = getRender()->GetUniformLocation(shader, "horizonColor");
+			iGroundColor  = getRender()->GetUniformLocation(shader, "groundColor");
+			iSkyParamsA   = getRender()->GetUniformLocation(shader, "skyParamsA");
+			iSkyParamsB   = getRender()->GetUniformLocation(shader, "skyParamsB");
+			break;
 			
 		default:
 			break;
@@ -646,6 +659,34 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, int /* pass_type */, 
 				getRender()->BindTexture(LS_TEXTURE_2D, mesh_batch->tex_albedo); 
 			}
 			getRender()->Uniform1i(iTex_albedo, 0);
+			break;
+
+		case ShaderKind::Sky:
+			// Same camera treatment as the skybox: rotation-only view
+			// matrix keeps the sky centered on the camera.
+			pMatrix = cam->frustum.getProjectionMatrix();
+			mvMatrix = cam->ViewMatrix.extractRotation();
+			getRender()->UniformMatrix4fv(ipMatrix, 1, LS_FALSE, pMatrix.matrix);
+			getRender()->UniformMatrix4fv(imvMatrix, 1, LS_FALSE, mvMatrix.matrix);
+
+			// Sky params pushed by lsSky::apply() each frame
+			getRender()->Uniform3f(iSunDir, m_skyParams.sunDir.x,
+				m_skyParams.sunDir.y, m_skyParams.sunDir.z);
+			getRender()->Uniform3f(iSunColor, m_skyParams.sunColor.x,
+				m_skyParams.sunColor.y, m_skyParams.sunColor.z);
+			getRender()->Uniform3f(iMoonDir, m_skyParams.moonDir.x,
+				m_skyParams.moonDir.y, m_skyParams.moonDir.z);
+			getRender()->Uniform3f(iZenithColor, m_skyParams.zenithColor.x,
+				m_skyParams.zenithColor.y, m_skyParams.zenithColor.z);
+			getRender()->Uniform3f(iHorizonColor, m_skyParams.horizonColor.x,
+				m_skyParams.horizonColor.y, m_skyParams.horizonColor.z);
+			getRender()->Uniform3f(iGroundColor, m_skyParams.groundColor.x,
+				m_skyParams.groundColor.y, m_skyParams.groundColor.z);
+			getRender()->Uniform4f(iSkyParamsA, m_skyParams.dayFactor,
+				m_skyParams.starAmount, m_skyParams.sunsetGlow,
+				m_skyParams.sunIntensity);
+			getRender()->Uniform4f(iSkyParamsB, m_skyParams.moonIntensity,
+				0.0f, 0.0f, 0.0f);
 			break;
 
 		default:

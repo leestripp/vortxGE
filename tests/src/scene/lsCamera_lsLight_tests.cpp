@@ -43,20 +43,28 @@ TEST_CASE("lsLight: shadow matrix is cached per frame")
     light.Set_Pos(0.0f, 50.0f, 30.0f);
     light.Set_Rot(-60.0f, 0.0f, 0.0f);
 
-    // Advance frame counter and build once.
-    lsLight::nextShadowFrame();
-    const lsMatrix4x4* m1 = &light.getShadowMatrix(nullptr);
-    const lsMatrix4x4* m2 = &light.getShadowMatrix(nullptr);
-    CHECK(m1 == m2);
+    // Mirrors the engine path: the stage updates the camera (clears
+    // the dirty flag), then samples the shadow matrix.
+    light.Update_Camera();
 
-    // Advance frame counter -> must rebuild (pointer may differ).
+    // Advance frame counter and build once -> one rebuild.
     lsLight::nextShadowFrame();
-    const lsMatrix4x4* m3 = &light.getShadowMatrix(nullptr);
-    CHECK(m3 != m1);
+    int r0 = light.getShadowMatrixRebuildCount();
+    light.getShadowMatrix(nullptr);
+    CHECK(light.getShadowMatrixRebuildCount() == r0 + 1);
+
+    // Same frame, clean -> cache hit, no rebuild.
+    light.getShadowMatrix(nullptr);
+    CHECK(light.getShadowMatrixRebuildCount() == r0 + 1);
+
+    // Advance frame counter -> must rebuild.
+    lsLight::nextShadowFrame();
+    light.getShadowMatrix(nullptr);
+    CHECK(light.getShadowMatrixRebuildCount() == r0 + 2);
 
     // Same frame -> cached again.
-    const lsMatrix4x4* m4 = &light.getShadowMatrix(nullptr);
-    CHECK(m3 == m4);
+    light.getShadowMatrix(nullptr);
+    CHECK(light.getShadowMatrixRebuildCount() == r0 + 2);
 }
 
 TEST_CASE("lsLight_Direct: follows camera offset and rebuilds shadow matrix")

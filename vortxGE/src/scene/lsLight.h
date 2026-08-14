@@ -123,6 +123,9 @@ public:
      */
     const lsMatrix4x4& getShadowMatrix( lsRender* render );
 
+    /** @brief Number of shadow-matrix rebuilds (cache diagnostics/tests) */
+    int getShadowMatrixRebuildCount() const { return m_shadowMatrixRebuilds; }
+
     /**
      * @brief Advance the per-frame shadow-matrix generation counter.
      *
@@ -359,6 +362,7 @@ private:
 	
     /** @brief Cached shadow matrix for the current frame */
     lsMatrix4x4 m_shadowMatrixCache;
+    int m_shadowMatrixRebuilds = 0;
 
     /** @brief Frame counter for which m_shadowMatrixCache is valid */
     unsigned m_shadowMatrixFrame = 0;

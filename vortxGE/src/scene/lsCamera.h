@@ -198,16 +198,16 @@ public:
      */
     void markDirty() { m_matricesDirty = true; }
 
-    // Transform setters must dirty the view/frustum: rigs and scripts
-    // move cameras via these directly (lsNode virtuals) and previously
-    // Update_Camera() rebuilt unconditionally. Without the override the
-    // cull planes go stale -> objects pop out of view (C2 regression).
+    // Transform setters must keep the camera self-consistent without
+    // a Move() pass: pipeline stages and follow-lights read ModelMatrix
+    // directly, and rigs/scripts move cameras via these lsNode virtuals.
+    // Rebuild ModelMatrix immediately, then dirty the view/frustum.
     void Set_Pos( float x, float y, float z ) override
-    { lsAnimNode::Set_Pos( x, y, z ); markDirty(); }
+    { lsAnimNode::Set_Pos( x, y, z ); rebuildModelFromTRS(); markDirty(); }
     void Set_Rot( float x, float y, float z ) override
-    { lsAnimNode::Set_Rot( x, y, z ); markDirty(); }
+    { lsAnimNode::Set_Rot( x, y, z ); rebuildModelFromTRS(); markDirty(); }
     void Set_Scale( float x, float y, float z ) override
-    { lsAnimNode::Set_Scale( x, y, z ); markDirty(); }
+    { lsAnimNode::Set_Scale( x, y, z ); rebuildModelFromTRS(); markDirty(); }
 
     /**
      * @brief True when view/projection/frustum need rebuilding.
@@ -255,6 +255,10 @@ public:
 	float cam_far;
     
     /** @brief True when ViewMatrix/projection/frustum need rebuilding */
+    /** @brief Rebuild ModelMatrix from position/rotation/scale
+     *         (same composition as lsNode::Move, without the pass). */
+    void rebuildModelFromTRS();
+
     bool m_matricesDirty = true;
 	
 	//=========================================================================

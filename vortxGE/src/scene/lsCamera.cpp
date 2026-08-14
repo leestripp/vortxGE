@@ -154,6 +154,7 @@ void lsCamera::Set_ViewRatio( float vr )
 
 	frustum.Set_ViewRatio( vr );
 	camera_mode = LSCM_PERSPECTIVE;
+	markDirty();
 }
 
 void lsCamera::Set_Orthographic( float xMin, float xMax, float yMin, float yMax, float zMin, float zMax )
@@ -183,6 +184,23 @@ void lsCamera::Set_Orthographic( float cube )
 	
 	frustum.Set_Orthographic( orth_left, orth_right, orth_bottom, orth_top, cam_near, cam_far );
 	camera_mode = LSCM_ORTHOGRAPHIC;
+}
+
+void lsCamera::rebuildModelFromTRS()
+{
+	// Same T*R*S composition as lsNode::Move(), parented if attached.
+	lsMatrix4x4 transmat, rotmat, scalemat;
+	transmat.TranslateMatrix( position.x, position.y, position.z );
+	rotmat.RotateMatrix( rotation.x, 1, 0, 0 );
+	rotmat.RotateMatrix( rotation.y, 0, 1, 0 );
+	rotmat.RotateMatrix( rotation.z, 0, 0, 1 );
+	scalemat.ScaleMatrix( scale.x, scale.y, scale.z );
+
+	if( getParent() )
+		ModelMatrix = getParent()->ModelMatrix;
+	else
+		ModelMatrix.LoadIdentity();
+	ModelMatrix = ModelMatrix * transmat * rotmat * scalemat;
 }
 
 void lsCamera::Update_Camera()
@@ -227,6 +245,10 @@ void lsCamera::Update_Camera()
 
 	/* Frustum */
 	frustum.Build_CullPlanes( eye, lookat_target, up_vector );
+
+	// View + frustum are now current; consumers (shadow-matrix cache)
+	// may trust the clean flag until the next mutation.
+	m_matricesDirty = false;
 }
 
 // Save data

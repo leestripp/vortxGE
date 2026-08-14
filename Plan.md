@@ -244,6 +244,46 @@ get their own `lsSceneStage` + named target + blit — no global state.
 
 ---
 
+### S1 — Procedural sky + day/night cycle — ✅ DONE 2026-08-14
+
+Replaced the static HDRI skybox with a procedural atmosphere driven by
+a time-of-day cycle. All astronomy/color math lives in
+`lsSky::computeParams()` (pure, doctested); the `sky` shader
+(ShaderKind::Sky) only renders the parameters it is handed.
+
+- **lsSky** (`vortxGE/src/scene/lsSky.{h,cpp}`): time-of-day state,
+  parametric solar path (rise 06:00 east → noon → set 18:00 west,
+  tilted 23.5°), computes `lsSkyParams` (sun/moon dirs, gradient
+  colors, sun color+intensity, dayFactor, star amount, sunset glow).
+- **Shader**: `demos/data/shaders/sky.{vert,frag}` — rotation-only
+  view + far-plane Z (same trick as the skybox), atmosphere gradient,
+  sun disc + halo, moon disc, procedural cell-hash stars. Uniforms
+  uploaded through the generic render API — works on GL + VK.
+- **Scene integration**: `lsSky::init()` builds the sky sphere object
+  and registers it via `lsScene::setSkyObject` (existing draw-first,
+  no-depth-write path). `attachSunLight()` drives the scene's
+  lsLight_Direct: warm directional sun by day, faint blue "moonlight"
+  (direction = −sunDir) at night.
+- **Demo env vars**: `VORTX_TIME_OF_DAY=<hours>` (default 10:00 —
+  matches the previous fixed sun, regression captures stable),
+  `VORTX_DAY_LENGTH=<seconds>` (default 0 = frozen; capture
+  determinism), `VORTX_SKY=texture` (old HDRI skybox fallback).
+- **Verified**: 84/84 doctests (5 new sky cases); GL captures at
+  10h/18h/0h (day gradient, sunset glow, starry night); VK captures
+  at 12h/0h match; texture fallback intact.
+
+**Also fixed (pre-existing C-series breakage, ctest was red):**
+`m_matricesDirty` was never cleared after 3215f98 removed the
+Update_Camera early-out → the C4 shadow-matrix cache never hit, and
+`Set_ViewRatio` never marked dirty. Fixed contract: camera transform
+setters now rebuild ModelMatrix immediately (cameras are
+self-consistent without a Move() pass — pipeline stages and
+follow-lights read it directly), Update_Camera always rebuilds
+view/frustum and clears the flag, Set_ViewRatio marks dirty. The
+shadow-cache test now observes a real rebuild counter
+(`getShadowMatrixRebuildCount`) instead of comparing addresses of the
+same member.
+
 ## Deferred / optional
 
 ### L6 — (Vulkan-only) RT shadow path
@@ -271,7 +311,7 @@ covers diagnostics.
 - CSM + point-cube paths still use fixed PCF (PCSS follow-up) — open
   quality item; single-map path has PCSS on High (L4.3).
 
-STATUS 2026-08-14: every actionable Plan.md item is complete. L6 (RT
+STATUS 2026-08-14: every actionable Plan.md item is complete, plus S1 (procedural sky + day/night cycle). L6 (RT
 shadows) and D4 (profiler overlay) remain Deferred/optional by design;
 the backlog entries above are explicitly non-blocking.
 

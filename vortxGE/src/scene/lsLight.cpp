@@ -90,6 +90,7 @@ const lsMatrix4x4& lsLight::getShadowMatrix( lsRender* render )
 		return m_shadowMatrixCache;
 
 	buildShadowmap_matrix( render );
+	m_shadowMatrixRebuilds++;
 	m_shadowMatrixCache = ShadowmapMatrix;
 	m_shadowMatrixFrame = s_shadowFrame;
 	m_shadowMatrixRender = render;

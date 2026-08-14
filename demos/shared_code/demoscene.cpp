@@ -393,6 +393,35 @@ void DemoScene::setupTestScene()
 	const bool baseScene = ( m_sceneName == "demoscene" );
 	cout << "DemoScene: scene '" << m_sceneName << "'" << endl;
 
+	// Sky setup — S-series procedural sky with day/night cycle by
+	// default. VORTX_SKY=texture falls back to the old HDRI skybox.
+	// VORTX_TIME_OF_DAY=<hours> sets the start time (default 10:00,
+	// matching the previous fixed sun); VORTX_DAY_LENGTH=<seconds>
+	// animates the cycle (default 0 = frozen, capture-deterministic).
+	const char* skyEnv = std::getenv( "VORTX_SKY" );
+	const bool texturedSky = ( skyEnv && std::string( skyEnv ) == "texture" );
+	if( ! texturedSky )
+	{
+		m_sky = new lsSky();
+		if( const char* t = std::getenv( "VORTX_TIME_OF_DAY" ) )
+			m_sky->setTimeOfDay( (float)atof( t ) );
+		if( const char* d = std::getenv( "VORTX_DAY_LENGTH" ) )
+			m_sky->setDayLength( (float)atof( d ) );
+		if( m_sky->init( m_viewer_scene, m_vortxge->getShaderManager(),
+						 m_vortxge->getRender() ) )
+		{
+			m_sky->attachSunLight( m_sun_light );
+			m_sky->apply();
+			cout << "DemoScene: procedural sky, t=" << m_sky->getTimeOfDay()
+				 << "h dayLength=" << m_sky->getDayLength() << "s" << endl;
+		} else
+		{
+			std::cerr << "ERROR: lsSky init failed — no sky." << std::endl;
+			delete m_sky; m_sky = nullptr;
+		}
+	}
+	else
+	{
 	// Skybox Setup
 	// Load custom shaders not part of vortxGE's default set
 	lsShader* skyboxShader = m_vortxge->getShaderManager()->Find_Shader("skybox");
@@ -441,6 +470,7 @@ void DemoScene::setupTestScene()
 	{
 		std::cerr << "ERROR: Failed to create SkyboxObject." << std::endl;
 	}
+	} // end VORTX_SKY=texture fallback
 	
 	// Create an infinite ground plane for physics
 	lsObject* ground = new lsObject(m_viewer_scene);
@@ -489,7 +519,7 @@ void DemoScene::setupTestScene()
 		std::function<void(lsNode*)> walk = [&]( lsNode* n ) {
 			for (auto& child : n->getChildren()) {
 				lsObject* obj = dynamic_cast<lsObject*>( child.get() );
-				if (obj && obj != skyObject && obj->getAsset()
+				if (obj && obj != m_viewer_scene->getSkyObject() && obj->getAsset()
 					&& obj->getAsset()->getAsset_type() == LSAT_MESH)
 				{
 					m_streamingManager.registerNode( obj, obj->getAsset() );
@@ -707,6 +737,15 @@ void DemoScene::setupObjectEmitter()
 void DemoScene::Update( double delta )
 {
 	VORTX_PROFILE_ZONE( "update" );
+
+	// S-series: advance the day/night cycle (delta is milliseconds).
+	// No-op when day length is 0 (frozen — capture determinism).
+	if( m_sky )
+	{
+		m_sky->update( delta * 0.001 );
+		m_sky->apply();
+	}
+
 #if defined(VORTX_DEBUG_TOOLS)
 	// C0 debug: deterministic tiny camera orbit (amplitude ~1m) so
 	// the sun-shadow bug can be reproduced without input.

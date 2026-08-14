@@ -62,6 +62,9 @@
  * 
  * @var ShaderKind::Skybox
  *      Skybox/cubemap rendering shader
+ *
+ * @var ShaderKind::Sky
+ *      Procedural sky (gradient, sun/moon, stars) driven by lsSky
  */
 enum class ShaderKind {
 	None = 0,			///< No shader
@@ -79,5 +82,6 @@ enum class ShaderKind {
 	DebugNormals,		///< Normal visualization
 	ShadowMap,			///< Shadow map generation
 	Skybox,				///< Skybox rendering
-	Prepass				///< L4.1b depth+normal prepass
+	Prepass,			///< L4.1b depth+normal prepass
+	Sky					///< S-series procedural sky (day/night cycle)
 };

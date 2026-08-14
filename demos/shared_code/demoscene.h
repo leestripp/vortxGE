@@ -18,6 +18,7 @@
 
 // math
 #include <math/lsVector3.h>
+#include <scene/lsSky.h>
 #include <assets/lsStreamingManager.h>
 #include <assets/lsAsyncFileLoader.h>
 
@@ -117,6 +118,7 @@ private:
     // Player Rig
     lsFirstPersonRig* m_playerRig = nullptr; // Changed type to lsFirstPersonRig
     lsLight_Direct* m_sun_light = nullptr;
+    lsSky* m_sky = nullptr; // S-series procedural sky + day/night cycle
     
     // Audio Speaker
     lsSpeaker* m_speaker = nullptr; // Add a speaker object to the scene
