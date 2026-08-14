@@ -147,7 +147,11 @@ void lsObject::Optimize( __attribute__((unused)) lsCamera *cam, int pass_type, _
         if( mesh )
         {
             int w = cam->frustum.sphereInFrustum( objpos + mesh->getBSphere().center, mesh->getBSphere().radius );
-            if( w == INSIDE )
+            // != OUTSIDE, not == INSIDE: a sphere that merely INTERSECTS a
+            // frustum plane is partly on screen and must still draw —
+            // otherwise big objects pop out at the frame edges (the
+            // frustum's own doc uses != OUTSIDE).
+            if( w != OUTSIDE )
             {
                 setCull_mesh( false );
             }

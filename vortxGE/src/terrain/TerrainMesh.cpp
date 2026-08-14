@@ -72,6 +72,113 @@ GridMesh generateGridMesh( const Heightfield& hf, float worldSize,
 }
 
 // ---------------------------------------------------------------------------
+// generateChunkGridMesh — one chunk of the grid at a given stride, with a
+// skirt ring. Border samples use the exact shared (u,v) coordinates, so
+// adjacent chunks at the same stride agree on border heights; skirts hide
+// the T-junctions when neighbours differ.
+// ---------------------------------------------------------------------------
+
+GridMesh generateChunkGridMesh( const Heightfield& hf, float worldSize,
+                                float maxHeight, int chunkX, int chunkY,
+                                int chunksPerSide, int stride,
+                                float skirtDepth )
+{
+    GridMesh g;
+    g.worldSize = worldSize;
+    g.maxHeight = maxHeight;
+
+    const int base = static_cast<int>( hf.width() ) - 1; // base cells/side
+    const int cells = base / chunksPerSide;              // base cells/chunk
+    if( stride < 1 ) stride = 1;
+    if( stride > cells ) stride = cells;
+    const int n = cells / stride + 1;                    // verts per side
+
+    const float half = worldSize * 0.5f;
+    const int perimeter = 4 * ( n - 1 );
+    const std::size_t gridVerts = static_cast<std::size_t>( n ) * n;
+    const std::size_t vcount = gridVerts + perimeter;    // + skirt ring
+
+    g.positions.resize( vcount * 3 );
+    g.normals.resize( vcount * 3 );
+    g.uvs.resize( vcount * 2 );
+    g.indices.reserve( ( n - 1 ) * ( n - 1 ) * 6 + perimeter * 6 );
+
+    auto vertIndex = [&]( int i, int j ) { return j * n + i; };
+    auto sampleAt = [&]( int i, int j, float& px, float& py, float& pz,
+                         float& nx, float& ny, float& nz, float& u, float& v )
+    {
+        u = static_cast<float>( chunkX * cells + i * stride ) / base;
+        v = static_cast<float>( chunkY * cells + j * stride ) / base;
+        const float hgt = hf.sampleBilinear( u, v );
+        px = u * worldSize - half;
+        py = hgt * maxHeight;
+        pz = v * worldSize - half;
+        const Vec2 grad = hf.gradient( u, v, worldSize );
+        lsVector3 nrm( -grad.x * maxHeight, 1.0f, -grad.y * maxHeight );
+        nrm.normalize();
+        nx = nrm.x; ny = nrm.y; nz = nrm.z;
+    };
+
+    for( int j = 0; j < n; ++j )
+        for( int i = 0; i < n; ++i )
+        {
+            const std::size_t k = static_cast<std::size_t>( vertIndex( i, j ) );
+            sampleAt( i, j,
+                      g.positions[k*3+0], g.positions[k*3+1], g.positions[k*3+2],
+                      g.normals[k*3+0], g.normals[k*3+1], g.normals[k*3+2],
+                      g.uvs[k*2+0], g.uvs[k*2+1] );
+        }
+
+    for( int j = 0; j + 1 < n; ++j )
+        for( int i = 0; i + 1 < n; ++i )
+        {
+            const std::uint32_t a = vertIndex( i, j );
+            const std::uint32_t b = a + 1;
+            const std::uint32_t cc = a + n;
+            const std::uint32_t d = cc + 1;
+            g.indices.push_back( a );  g.indices.push_back( cc ); g.indices.push_back( b );
+            g.indices.push_back( b );  g.indices.push_back( cc ); g.indices.push_back( d );
+        }
+
+    // Skirt ring: perimeter verts CCW seen from +Y —
+    //   top row L->R, right col T->B, bottom row R->L, left col B->T.
+    std::vector<std::uint32_t> ring;
+    ring.reserve( perimeter );
+    for( int i = 0; i < n - 1; ++i ) ring.push_back( vertIndex( i, 0 ) );
+    for( int j = 0; j < n - 1; ++j ) ring.push_back( vertIndex( n - 1, j ) );
+    for( int i = n - 1; i > 0; --i ) ring.push_back( vertIndex( i, n - 1 ) );
+    for( int j = n - 1; j > 0; --j ) ring.push_back( vertIndex( 0, j ) );
+
+    // Skirt vertices: duplicates dropped straight down (same normal/uv).
+    const std::uint32_t skirtBase = static_cast<std::uint32_t>( gridVerts );
+    for( int s = 0; s < perimeter; ++s )
+    {
+        const std::uint32_t src = ring[s];
+        const std::size_t dst = gridVerts + s;
+        g.positions[dst*3+0] = g.positions[src*3+0];
+        g.positions[dst*3+1] = g.positions[src*3+1] - skirtDepth;
+        g.positions[dst*3+2] = g.positions[src*3+2];
+        g.normals[dst*3+0] = g.normals[src*3+0];
+        g.normals[dst*3+1] = g.normals[src*3+1];
+        g.normals[dst*3+2] = g.normals[src*3+2];
+        g.uvs[dst*2+0] = g.uvs[src*2+0];
+        g.uvs[dst*2+1] = g.uvs[src*2+1];
+    }
+    // Outward-facing winding (derived from the CCW ring order):
+    //   (a, b, b') and (a, b', a') for each ring segment a->b.
+    for( int s = 0; s < perimeter; ++s )
+    {
+        const std::uint32_t a = ring[s];
+        const std::uint32_t b = ring[( s + 1 ) % perimeter];
+        const std::uint32_t a2 = skirtBase + s;
+        const std::uint32_t b2 = skirtBase + ( s + 1 ) % perimeter;
+        g.indices.push_back( a ); g.indices.push_back( b );  g.indices.push_back( b2 );
+        g.indices.push_back( a ); g.indices.push_back( b2 ); g.indices.push_back( a2 );
+    }
+    return g;
+}
+
+// ---------------------------------------------------------------------------
 // upload helpers
 
 static lsMesh* uploadRaw( const float* pos, const float* nrm, const float* uv,

@@ -33,6 +33,19 @@ struct GridMesh {
 GridMesh generateGridMesh( const Heightfield& hf, float worldSize,
                            float maxHeight );
 
+/// Build ONE CHUNK of the terrain grid. The heightfield is split into
+/// chunksPerSide² chunks; this builds chunk (chunkX, chunkY) sampled
+/// every `stride` base cells (1 = full res, 2 = half, ...). Positions
+/// are terrain-local (centred on origin) so every chunk object shares
+/// the terrain's world transform; per-chunk bSpheres give correct
+/// frustum culling. A skirt ring (edge verts dropped skirtDepth metres,
+/// wound to face outward) hides T-junction cracks between chunks at
+/// different strides.
+GridMesh generateChunkGridMesh( const Heightfield& hf, float worldSize,
+                                float maxHeight, int chunkX, int chunkY,
+                                int chunksPerSide, int stride,
+                                float skirtDepth );
+
 /// Upload a grid to an lsMesh (one lsBatch_Mesh, GL buffers copied).
 lsMesh* uploadGridMesh( const GridMesh& grid, lsRender* render,
                         lsShader* shader = nullptr );

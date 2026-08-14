@@ -620,6 +620,19 @@ void DemoScene::setupSampleModels()
 	}
 }
 
+// Terrain chunk registry for the per-frame LOD pass (setupTerrain fills
+// it; Update_TerrainLod swaps each chunk's asset to the best stride).
+namespace {
+struct TerrainChunkRec {
+	lsObject* obj = nullptr;
+	lsAsset_Mesh* assets[4] = { nullptr, nullptr, nullptr, nullptr };
+	lsVector3 centre;
+	float radius = 0.0f;
+	int lod = 0;
+};
+}
+static std::vector<TerrainChunkRec> s_terrainChunks;
+
 // -------------------------------------------------------------------
 // Terrain demo (VORTX_TERRAIN=1): procedural heightfield (noise ->
 // erosion -> biomes) rendered as an engine mesh + Bullet heightfield
@@ -658,24 +671,11 @@ void DemoScene::setupTerrain()
 	cout << "VORTX_TERRAIN: heightfield " << kRes << "x" << kRes
 		 << " range [" << hf.minValue() << ", " << hf.maxValue() << "]" << endl;
 
-	// -- render mesh ----------------------------------------------------
-	terrain::GridMesh grid = terrain::generateGridMesh( hf, kWorld, kHeight );
-	lsMesh* terrainMesh = terrain::uploadGridMesh( grid, render );
-	if( ! terrainMesh )
-	{
-		cerr << "VORTX_TERRAIN: mesh upload failed" << endl;
-		return;
-	}
-	lsAsset_Mesh* terrainAsset = new lsAsset_Mesh( render );
-	terrainAsset->setData( terrainMesh ); // uploaded mesh; AllocAsset is for files
-
-	lsObject* terrainObj = new lsObject( m_viewer_scene );
-	terrainObj->setName( "Terrain" );
-	terrainObj->Set_Asset( terrainAsset );
-	terrainObj->Set_Pos( kCX, 0, kCZ );
-	m_viewer_scene->Add_Node( terrainObj );
-
-	// lit, untextured shader
+	// -- render meshes: 8x8 chunks x 4 LOD strides --------------------
+	// Per-chunk tight bSpheres make the engine frustum-cull unseen
+	// chunks (lsObject::Optimize) and the per-frame LOD pass below
+	// swaps each chunk to the coarsest adequate stride for its
+	// distance from the camera.
 	lsShaderManager* shaders = m_vortxge->getShaderManager();
 	lsShader* terrainShader = shaders->Find_Shader( "light_tex_none" );
 	if( ! terrainShader )
@@ -684,9 +684,44 @@ void DemoScene::setupTerrain()
 		terrainShader->Load_Shader( "light_tex_none" );
 		shaders->Add_Shader( terrainShader );
 	}
-	if( terrainObj->Get_Mesh() && terrainObj->Get_Mesh()->getBatch_list() )
-		static_cast<lsBatch_Mesh*>( terrainObj->Get_Mesh()->getBatch_list() )
-			->setShader( terrainShader );
+
+	constexpr int kChunks = 8;
+	constexpr int kLods = 4;
+	const int kStride[kLods] = { 1, 2, 4, 8 };
+	constexpr float kSkirt = 6.0f; // metres, hides LOD T-junctions
+
+	s_terrainChunks.clear();
+	s_terrainChunks.reserve( kChunks * kChunks );
+	for( int cy = 0; cy < kChunks; ++cy )
+		for( int cx = 0; cx < kChunks; ++cx )
+		{
+			TerrainChunkRec rec;
+			rec.lod = 0;
+			for( int l = 0; l < kLods; ++l )
+			{
+				terrain::GridMesh cg = terrain::generateChunkGridMesh(
+					hf, kWorld, kHeight, cx, cy, kChunks, kStride[l], kSkirt );
+				lsMesh* m = terrain::uploadGridMesh( cg, render, terrainShader );
+				if( ! m ) { cerr << "VORTX_TERRAIN: chunk upload failed" << endl; return; }
+				rec.assets[l] = new lsAsset_Mesh( render );
+				rec.assets[l]->setData( m ); // generated mesh; AllocAsset is for files
+			}
+			rec.obj = new lsObject( m_viewer_scene );
+			rec.obj->setName( "TerrainChunk" );
+			rec.obj->Set_Asset( rec.assets[0] );
+			rec.obj->Set_Pos( kCX, 0, kCZ );
+			m_viewer_scene->Add_Node( rec.obj );
+
+			// world-space cull/LOD data from the full-res mesh bSphere
+			lsMesh* m0 = static_cast<lsMesh*>( rec.assets[0]->getData() );
+			rec.centre = lsVector3( kCX + m0->getBSphere().center.x,
+			                        m0->getBSphere().center.y,
+			                        kCZ + m0->getBSphere().center.z );
+			rec.radius = m0->getBSphere().radius;
+			s_terrainChunks.push_back( rec );
+		}
+	cout << "VORTX_TERRAIN: " << s_terrainChunks.size() << " chunks x "
+		 << kLods << " LODs, skirt " << kSkirt << "m" << endl;
 
 	// -- Bullet heightfield collision (static) ---------------------------
 	// btHeightfieldTerrainShape is centre-origin in ALL axes (see
@@ -713,7 +748,10 @@ void DemoScene::setupTerrain()
 	cout << "VORTX_TERRAIN: heightfield collision at (" << kCX << ",0," << kCZ
 		 << "), cell " << cell << "m, height x" << kHeight << endl;
 
-	// -- vegetation: bushes + trees (grass needs the instanced renderer) --
+	// -- vegetation: bushes + trees, BAKED into one static mesh per ----
+	// (chunk, layer). 800 individual lsObjects/draws collapse to at
+	// most 64 culled objects per layer. Grass needs the instanced
+	// renderer (plan M3) — not part of this demo yet.
 	terrain::Noise climate( 9001 );
 	std::vector<terrain::Biome> biomes( ( size_t )kRes * kRes );
 	for( int y = 0; y < kRes; ++y )
@@ -747,7 +785,7 @@ void DemoScene::setupTerrain()
 		  forestMask | terrain::biomeBit( terrain::Biome::Taiga ) },
 	};
 
-	constexpr int kChunks = 8;
+	const float kChunkWorld = kWorld / kChunks;
 	for( const auto& vd : vegDefs )
 	{
 		auto meshRes = terrain::loadObj( vd.file );
@@ -756,10 +794,7 @@ void DemoScene::setupTerrain()
 			cerr << "VORTX_TERRAIN: " << meshRes.error() << endl;
 			continue;
 		}
-		lsMesh* vegMesh = terrain::uploadVegetationMesh( *meshRes, render );
-		if( ! vegMesh ) continue;
-		lsAsset_Mesh* vegAsset = new lsAsset_Mesh( render );
-		vegAsset->setData( vegMesh ); // uploaded mesh; AllocAsset is for files
+		const terrain::Mesh& srcMesh = *meshRes;
 
 		terrain::veg::VegetationLayer layer;
 		layer.id = 1;
@@ -771,27 +806,68 @@ void DemoScene::setupTerrain()
 		layer.rules.density = vd.density;
 		layer.rules.biomeMask = vd.biomeMask;
 
+		// gather all instances, bucketed by chunk
+		std::vector<terrain::Mesh> buckets( kChunks * kChunks );
+		std::vector<int> bucketCount( kChunks * kChunks, 0 );
 		int placed = 0;
 		for( int cy = 0; cy < kChunks && placed < vd.cap; ++cy )
 			for( int cx = 0; cx < kChunks && placed < vd.cap; ++cx )
 				for( const auto& inst :
 					 scatterer.scatter( layer, cx, cy, kChunks, 7 ) )
 				{
-					lsObject* veg = new lsObject( m_viewer_scene );
-					veg->setName( vd.name );
-					veg->Set_Asset( vegAsset );
-					// Instance: x=worldX, y=worldZ, z=elevation (scatterer axes)
-					veg->Set_Pos( kCX + inst.x - kWorld * 0.5f, inst.z,
-								  kCZ + inst.y - kWorld * 0.5f );
-					veg->Set_Rot( 0, inst.rotation * 57.2958f, 0 );
-					veg->Set_Scale( inst.scale, inst.scale, inst.scale );
-					if( veg->Get_Mesh() && veg->Get_Mesh()->getBatch_list() )
-						static_cast<lsBatch_Mesh*>( veg->Get_Mesh()->getBatch_list() )
-							->setShader( terrainShader );
-					m_viewer_scene->Add_Node( veg );
+					// world [0,kWorld] -> terrain-local [-kWorld/2, kWorld/2]
+					const float lx = inst.x - kWorld * 0.5f;
+					const float lz = inst.y - kWorld * 0.5f;
+					const int bx = std::clamp(
+						static_cast<int>( inst.x / kChunkWorld ), 0, kChunks - 1 );
+					const int by = std::clamp(
+						static_cast<int>( inst.y / kChunkWorld ), 0, kChunks - 1 );
+					terrain::Mesh& dst = buckets[by * kChunks + bx];
+
+					const float cr = std::cos( inst.rotation );
+					const float sr = std::sin( inst.rotation );
+					const std::uint32_t vbase =
+						static_cast<std::uint32_t>( dst.vertices.size() );
+					for( const auto& v : srcMesh.vertices )
+					{
+						const float sx = v.px * inst.scale;
+						const float sz = v.pz * inst.scale;
+						terrain::MeshVertex nv;
+						// R_y(rot): x' = x cos + z sin, z' = -x sin + z cos
+						nv.px = sx * cr + sz * sr + lx;
+						nv.py = v.py * inst.scale + inst.z;
+						nv.pz = -sx * sr + sz * cr + lz;
+						nv.nx = v.nx * cr + v.nz * sr;
+						nv.ny = v.ny;
+						nv.nz = -v.nx * sr + v.nz * cr;
+						dst.vertices.push_back( nv );
+					}
+					for( const auto idx : srcMesh.indices )
+						dst.indices.push_back( vbase + idx );
+					bucketCount[by * kChunks + bx]++;
 					if( ++placed >= vd.cap ) break;
 				}
-		cout << "VORTX_TERRAIN: " << vd.name << " x" << placed << endl;
+
+		int objs = 0;
+		for( int by = 0; by < kChunks; ++by )
+			for( int bx = 0; bx < kChunks; ++bx )
+			{
+				terrain::Mesh& dst = buckets[by * kChunks + bx];
+				if( dst.vertices.empty() ) continue;
+				lsMesh* baked = terrain::uploadVegetationMesh(
+					dst, render, terrainShader );
+				if( ! baked ) continue;
+				lsAsset_Mesh* bakedAsset = new lsAsset_Mesh( render );
+				bakedAsset->setData( baked );
+				lsObject* veg = new lsObject( m_viewer_scene );
+				veg->setName( vd.name );
+				veg->Set_Asset( bakedAsset );
+				veg->Set_Pos( kCX, 0, kCZ ); // baked terrain-local coords
+				m_viewer_scene->Add_Node( veg );
+				++objs;
+			}
+		cout << "VORTX_TERRAIN: " << vd.name << " x" << placed
+			 << " in " << objs << " baked chunk meshes" << endl;
 	}
 
 	// -- spawn the rig on the terrain ------------------------------------
@@ -885,6 +961,52 @@ void DemoScene::Update( double delta )
 	{
 		m_sky->update( delta * 0.001 );
 		m_sky->apply();
+	}
+
+	// Terrain LOD pass: distance-band stride selection per chunk with
+	// hysteresis (refine at 92% of the edge, coarsen at 108%) so a
+	// chunk straddling a band edge doesn't flip every frame. The
+	// frustum culling itself is engine-side (lsObject::Optimize tests
+	// objpos + mesh bSphere) — chunking is what makes it effective.
+	if( ! s_terrainChunks.empty() && m_viewer_scene
+	    && m_viewer_scene->getActiveCamera() )
+	{
+		static const float kEdges[3] = { 192.0f, 448.0f, 960.0f };
+		lsCamera* cam = m_viewer_scene->getActiveCamera();
+		lsVector3 campos( cam->ModelMatrix.matrix[12],
+		                        cam->ModelMatrix.matrix[13],
+		                        cam->ModelMatrix.matrix[14] );
+		int hist[4] = { 0, 0, 0, 0 };
+		for( auto& rec : s_terrainChunks )
+		{
+			float d = campos.distance( rec.centre ) - rec.radius;
+			if( d < 0.0f ) d = 0.0f;
+			int want = rec.lod;
+			while( want > 0 && d < kEdges[want - 1] * 0.92f ) --want;
+			while( want < 3 && d > kEdges[want] * 1.08f ) ++want;
+			if( want != rec.lod )
+			{
+				rec.obj->Set_Asset( rec.assets[want] );
+				rec.lod = want;
+			}
+			hist[rec.lod]++;
+		}
+		// VORTX_TERRAIN_TRACE=1: prove culling + LOD correctness.
+		// Visible count uses the SAME sphere/frustum test as the engine.
+		static int s_lodFrame = 0;
+		if( std::getenv( "VORTX_TERRAIN_TRACE" ) && ++s_lodFrame % 60 == 0 )
+		{
+			int vis = 0;
+			for( const auto& rec : s_terrainChunks )
+				if( cam->frustum.sphereInFrustum( rec.centre, rec.radius )
+				    != OUTSIDE )
+					++vis;
+			cout << "TERRAIN_TRACE cam (" << campos.x << "," << campos.y
+			     << "," << campos.z << ") chunks visible " << vis << "/"
+			     << s_terrainChunks.size() << " LODs [" << hist[0] << ","
+			     << hist[1] << "," << hist[2] << "," << hist[3] << "]"
+			     << endl;
+		}
 	}
 
 #if defined(VORTX_DEBUG_TOOLS)

@@ -184,6 +184,14 @@ yet (see milestones M1–M3 for the GPU path).
 | Terrain render mesh (heightfield → lsMesh grid) | ✅ | `vortxGE/src/terrain/TerrainMesh.{h,cpp}` |
 | Bullet heightfield collision (btHeightfieldTerrainShape) | ✅ | `lsBulletShape::Make_Heightfield` |
 | Demo scene in vortxGEdemo_glfw3 (VORTX_TERRAIN=1) | ✅ | `demoscene::setupTerrain` — terrain + collision + trees/bushes + rig spawn |
+| Chunked render LOD (8×8 chunks × 4 strides, skirts) | ✅ | `generateChunkGridMesh`, per-frame distance bands w/ hysteresis in `demoscene::Update` |
+| Per-chunk frustum culling | ✅ | engine bSphere cull; fixed `lsObject::Optimize` treating INTERSECT as culled (was `== INSIDE`, must be `!= OUTSIDE`) |
+| Vegetation bake (per-chunk merged static meshes) | ✅ | 800 lsObjects → ≤5 draw calls; grass needs instancing (M3) |
+
+Perf (2026-08-14, RX 7800 XT 1440p): 5.8 fps monolithic+800 objects →
+27 fps chunked (baseline scene alone: 42 fps). `VORTX_TERRAIN_TRACE=1`
+prints per-second chunk visibility + LOD histogram using the same
+sphere/frustum test as the engine cull path.
 | GPU-instanced veg / splat / impostors | ⬜ not started | milestones M2–M6 |
 | Impostor baker | ⬜ not started | needs a GPU backend |
 | Splat texturing | ⬜ not started | needs a GPU backend |
