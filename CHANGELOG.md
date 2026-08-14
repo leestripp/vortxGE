@@ -8,6 +8,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **L5 — clustered forward lighting (2026-08-14):** the fixed 3-light
+  limit is gone. Light property uniform arrays raised to 64 in all
+  `light_tex_*` shaders; a screen-space cluster grid (32 px tiles ×
+  12 exponential depth slices, `lsClusterGrid` + `lsClusterStage`,
+  RG32UI/R32UI textures on units 12/13) culls lights per fragment on
+  both backends. Smooth windowed falloff `saturate(1-(d/r)⁴)²` with
+  `r = sqrt(intensity/0.25)` (`lsLight::clusterRadius`) applies to
+  cluster-shaded lights; hero slots 0–2 keep legacy falloff and the
+  shadow-caster slots. Vulkan gained integer-sampler support
+  (`usampler/isampler` in the shader transform, `R32UI`/`RG32UI`
+  uploads) and a `clusterFlipY` sampling-site V-mirror fix. Base scene
+  is pixel-identical with clustering on (RMSE 2e-6). Kill switch
+  `VORTX_NOCLUSTER=1`, stats via `VORTX_CLUSTER_TRACE=1`.
+- **L5.4 — `cast_shadows` light property + light_stress scene
+  (2026-08-14):** `.vgs` `add_light` gained an optional trailing
+  cast_shadows flag (default on); the pipeline only creates shadow
+  stages for casters. Blender custom property `cast_shadows` round-trips
+  through the exporter. New `make_scene_light_stress.py` generator +
+  committed `light_stress` scene: 64 rainbow point lights, 11 pillars,
+  sun — the clustered-lighting stress test (`VORTX_SCENE=light_stress`).
+- **Live-link phase 1 (2026-08-14):** `VORTX_LIVELINK=1` makes the demo
+  watch the loaded scene's `.vgs` (2 Hz) and hot-apply external edits —
+  transforms and light color/intensity re-applied in place by name
+  (`lsSceneManager::ApplySceneTransforms`), no scene rebuild, pipeline
+  shadow stages keep their light pointers. Structural changes
+  (add/remove) still require a restart.
+- **L4 — soft shadows (2026-08-12):** PCSS (blocker search + variable
+  penumbra PCF) and screen-space contact shadows, enabled at the
+  `VORTX_SHADOW_QUALITY=high` preset (the default).
+- **L2 — CSM for the sun (2026-08-12):** cascaded shadow maps for
+  directional lights — practical split scheme, per-cascade ortho
+  fitting, world-anchored texel snapping for stable cascades
+  (`lsCsm` math module + `lsCsmStage`), `VORTX_CSM=1`.
 - **Networking — OmniNet integration (2026-08-04):** OmniNet
   (gitlab.com/leestripp/omninet — HTTP/WebSocket server library, TLS,
   sessions) is now fetched via CMake FetchContent (pinned commit) and

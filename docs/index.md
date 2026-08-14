@@ -22,7 +22,7 @@ this directory, project-level docs live at the repo root.
 |---|---|
 | [Readme.md](../Readme.md) | Project intro, features, build instructions |
 | [AGENTS.md](../AGENTS.md) | Guide for AI coding agents: build/test commands, code style, repo layout |
-| [Plan.md](../Plan.md) | Active plan: test suite (done), C++23 (done), **Phase 7 streaming Asset Manager** |
+| [Plan.md](../Plan.md) | Active plan: lighting & shadow refactor — L1–L5 **done** (shadow core, CSM sun, soft shadows, 64-light clustered forward), D0–D2 debug tooling done |
 | [CHANGELOG.md](../CHANGELOG.md) | Versioned change log ([Unreleased] on top) |
 
 ## Engine topics (docs/)
@@ -60,4 +60,4 @@ this directory, project-level docs live at the repo root.
 
 The test suite (doctest + CTest, `tests/`) is documented in
 [AGENTS.md §4](../AGENTS.md) and planned in [Plan.md](../Plan.md):
-48 test cases / 1710 assertions, run with `ctest --output-on-failure`.
+83 test cases / 1979 assertions, run with `ctest --output-on-failure`.

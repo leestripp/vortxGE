@@ -16,7 +16,12 @@ int main()
     // 1. Create engine instance
     vortxGE* engine = new vortxGE();
 
-    // 2. Create window and OpenGL context
+    // 2. Create window and render context
+    //    OpenGL: create a GL context (shown below).
+    //    Vulkan: create a GLFW_NO_API window instead — call
+    //    vortxGE::PreferredRendererType() BEFORE window creation; it probes
+    //    Vulkan first so you create the correct window type, with automatic
+    //    OpenGL fallback if Vulkan init fails.
     // (Using GLFW3, GTKmm, or custom)
 
     // 3. Initialize engine

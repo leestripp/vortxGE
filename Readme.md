@@ -1,119 +1,118 @@
 # vortxGE
 
-vortxGE is a lightweight, modern 3D graphics engine written in C++20. It is designed for creating real-time graphics applications and simulations on Linux, featuring a flexible rendering pipeline, physics integration, and a straightforward asset workflow with Blender.
+A C++23 game engine distributed as a **static library** — you link it into
+your game and drive everything from your own code. Linux-only, MIT licensed.
+
+The programs under `demos/` are guidance: complete working examples of how to
+build an application on the engine (scene setup, physics, input, audio,
+rendering configuration).
 
 ## Features
 
-*   **Modern C++20 Codebase:** Utilizes modern C++ features for robust and maintainable code.
-*   **OpenGL 4.3+ Rendering Pipeline:**
-    *   Pass-based rendering system (e.g., direct-to-screen, render-to-texture with FBOs).
-    *   Physically Based Rendering (PBR) using a Cook-Torrance BRDF model, supporting albedo, normal, and metallic/roughness/AO maps.
-    *   Dynamic shadow mapping for spot lights.
-*   **Renderer Abstraction:** All GPU access goes through the backend-agnostic `lsRender` interface
-    (75 methods). `lsOpenGL` is the only translation unit containing raw GL calls, so alternate
-    backends (Vulkan, Metal, …) can be added without touching engine code. See `docs/plans/renderer_abstraction.md`.
-*   **Hierarchical Scene Graph:**
-    *   A node-based system (`lsNode`) for managing scenes, objects, lights, and cameras.
-    *   Supports Point and Spot light types.
-*   **Physics Integration:**
-    *   Built-in integration with the Bullet Physics library.
-    *   Supports rigid body dynamics with various collision shapes (Box, Capsule, Plane, Convex Hull, Triangle Mesh).
-    *   Includes a physics-based first-person character controller with walking, sprinting, crouching, and jumping.
-*   **Asset Pipeline:**
-    *   Loads modern `glTF` / `.glb` 3D models.
-    *   Includes a custom Blender addon (`blender_scripts/export_scene.py`) to export entire scenes. The addon creates a simple `.vgs` (vortxGE Scene) file for scene layout and exports all meshes to individual `.glb` files.
-*   **Animation System:**
-    *   Keyframe-based animation for node properties (position, rotation, scale) and material properties using cubic curve interpolation.
-*   **Demos:**
-    *   Includes demos for both **GTKmm 4.0** and **GLFW3**, showcasing how to integrate the engine into different windowing and UI toolkits.
+- **Two render backends** — Vulkan (primary) and OpenGL (fallback), chosen at
+  runtime with `VORTX_RENDERER=vulkan|opengl`. Vulkan is tried first; the
+  engine falls back to OpenGL automatically if Vulkan init fails.
+- **Clustered forward lighting** — up to 64 lights per scene (point, spot,
+  directional). A screen-space cluster grid culls lights per fragment, with
+  smooth windowed falloff, so light-dense scenes stay fast.
+- **Shadows** — cascaded shadow maps for the sun (3 practical-split,
+  texel-snapped cascades), shadow-mapped spots and points, PCSS soft shadows
+  plus screen-space contact shadows at the High quality preset.
+- **PBR materials** with glTF 2.0 mesh assets.
+- **Bullet physics** — rigid bodies (box, capsule, plane, convex hull,
+  triangle mesh), raycasts, and a physics-based first-person controller
+  (walk / sprint / crouch / jump).
+- **OpenAL audio**.
+- **Blender as the scene editor** — `.blend` files are the source of truth,
+  exported to `.vgs` text scenes + `.glb` meshes, with an optional
+  live-link that hot-applies edits into a running game.
+- Scene graph, event system, reflective property system, animation,
+  async asset streaming.
+
+## Build
+
+Requirements: CMake, a C++23 compiler, and development packages for
+**Bullet, OpenGL/GLEW, OpenAL, Vulkan, glfw3 (≥ 3.3), glslang**.
+
+```bash
+mkdir -p build && cd build
+cmake ..
+make -j"$(nproc)"
+make symlink_glfw3   # data symlinks for the demos
+```
+
+This builds the `vortxGE` static library, the test suite, the `obj2vbm`
+tool, and both demos (`vortxGEdemo_glfw3`, `vortxGEdemo_gtkmm`).
+
+There is no CI by policy — the local build + full test suite gates every
+change (see `AGENTS.md` §4).
+
+## Test
+
+```bash
+cd build && ctest --output-on-failure
+```
+
+83 doctest cases / 1979 assertions, all passing.
+
+## Run the demos
+
+```bash
+cd build/demos/vortxGEdemo_glfw3
+./vortxGEdemo_glfw3                          # default scene, Vulkan
+VORTX_RENDERER=opengl ./vortxGEdemo_glfw3    # OpenGL fallback
+VORTX_SCENE=light_stress ./vortxGEdemo_glfw3 # 64-light tech scene
+```
+
+Scenes are exported from Blender with:
+
+```bash
+cd build && make export_scenes   # re-exports stale .blend → .vgs + .glb
+```
+
+See [docs/blender_export.md](docs/blender_export.md).
+
+## Use vortxGE in your game
+
+```cmake
+add_subdirectory(vortxGE)
+target_link_libraries(yourgame PRIVATE vortxGE)
+```
+
+Engine headers are included module-style, e.g.
+`#include <scene/lsScene.h>`, `#include <render/lsRender.h>`.
+The demos (`demos/shared_code/`) show a complete application skeleton:
+window/input via glfw3, scene creation, physics world, main loop.
+
+## Runtime configuration (environment variables)
+
+User-facing:
+
+| Variable | Values | Effect |
+|---|---|---|
+| `VORTX_RENDERER` | `vulkan` \| `opengl` | Render backend (Vulkan first, GL fallback) |
+| `VORTX_SCENE` | scene name | Load `data/<name>.vgs` instead of `demoscene` |
+| `VORTX_PIPELINE` | `1` | New pipeline render path in the demos (opt-in) |
+| `VORTX_LIVELINK` | `1` | Watch the scene `.vgs`; hot-apply external edits (Blender push) |
+| `VORTX_SHADOW_QUALITY` | `low` \| `med` \| `high` | Shadow preset (default `high`: PCSS + contact shadows) |
+| `VORTX_CSM` | `1` | Cascaded shadow maps for directional lights |
+| `VORTX_SHOT` | path | Write a screenshot at frame 30 (both backends) |
+| `VORTX_FIXED_DT` + `VORTX_RAND_SEED` | ms, int | Deterministic mode for repeatable runs |
+
+Debug tooling (many gated behind the `VORTX_DEBUG_TOOLS` build define):
+`VORTX_DEBUG_VIEW`, `VORTX_ONLY_LIGHT`, `VORTX_LIGHTS_OFF`,
+`VORTX_DISABLE_SHADOWS`, `VORTX_NOCLUSTER`, `VORTX_CLUSTER_TRACE`,
+`VORTX_PASS_TRACE`, `VORTX_SHADOW_TRACE`, `VORTX_FRAME_DUMP`,
+`VORTX_DEPTH_SHOT`, `VORTX_FBO_SHOT`, plus per-subsystem `VORTX_DEBUG_*`
+toggles and Vulkan-side `VORTX_VK_*` switches.
 
 ## Documentation
 
-*   **[CHANGELOG.md](CHANGELOG.md)** — Release history (latest: **0.1.0**).
-*   **[docs/](docs/vortxGE.md)** — In-depth architecture notes per subsystem
-    (scene graph, rendering pipeline, physics, shaders, assets, animation, audio, and more).
-*   **[AGENTS.md](AGENTS.md)** — Guide for AI coding agents (build, layout, conventions).
-*   **[Plan.md](Plan.md)** — The active plan (currently: real test suite + CTest).
-*   **[docs/plans/](docs/plans/renderer_abstraction.md)** — Archived plans (renderer abstraction, Phases 0-8).
+Start at [docs/index.md](docs/index.md) — engine architecture
+([docs/vortxGE.md](docs/vortxGE.md)), every subsystem, the Blender
+pipeline, and the active development plan ([Plan.md](Plan.md)).
+`AGENTS.md` documents build/test/style conventions for contributors.
 
-## Building vortxGE
+## License
 
-The project uses CMake for building.
-
-### Dependencies
-
-*   **Core:**
-    *   CMake (version 3.29 or newer)
-    *   A C++20 compatible compiler (e.g., GCC, Clang)
-    *   Bullet Physics
-    *   GLEW
-    *   OpenGL libraries (GLVND preference)
-
-*   **Demos (Optional):**
-    *   For `vortxGEdemo_glfw3`: **glfw3**
-    *   For `vortxGEdemo_gtkmm`: **gtkmm-4.0**
-
-### Build Instructions
-
-1.  Clone the repository.
-2.  Create a build directory and navigate into it:
-    ```bash
-    mkdir build
-    cd build
-    ```
-3.  Run CMake to configure the project:
-    ```bash
-    cmake ..
-    ```
-4.  Compile the project:
-    ```bash
-    make
-    ```
-
-This will build the `vortxGE` library and all associated demos and tools.
-
-## Asset Pipeline with Blender
-
-The primary workflow for creating scenes is through Blender.
-
-1.  **Install the Addon:** Install the `blender_scripts/export_scene.py` script as an addon in Blender.
-2.  **Create Your Scene:** Build your scene in Blender with meshes, lights (Point and Spot), and cameras.
-3.  **Export:** Use `File > Export > vortxGE Scene (.vgs)`. This will:
-    *   Create a `.vgs` file describing the scene's hierarchy, including the positions, rotations, and scales of all objects and lights.
-    *   Export each mesh as a separate `.glb` file into a `meshes` subdirectory.
-    *   The engine's `lsSceneManager` can then load this `.vgs` file to reconstruct the scene.
-
-## Demos
-
-The project includes two demos to showcase its functionality.
-
-### vortxGEdemo_glfw3
-
-A standalone application using GLFW3 for windowing and input. It features the first-person character controller, allowing you to walk around and explore a test scene with PBR materials and dynamic shadows.
-
-*   **Controls:**
-    *   **W, A, S, D:** Move
-    *   **Mouse:** Look around
-    *   **Space:** Jump
-    *   **Left Shift:** Sprint
-    *   **Left Control:** Crouch
-    *   **F1:** Toggle fullscreen
-    *   **Escape:** Exit
-
-### vortxGEdemo_gtkmm
-
-This demo shows how `vortxGE` can be integrated as a widget within a larger GTKmm 4.0 application.
-
-### Running the Demos
-
-After building, the executables can be found in the `build/` directory:
-
-```bash
-cd build/
-# Run the GLFW3 demo
-./demos/vortxGEdemo_glfw3/vortxGEdemo_glfw3
-
-# Run the GTKmm demo
-./demos/vortxGEdemo_gtkmm/vortxGEdemo_gtkmm
-```
-
+MIT — see [LICENSE](LICENSE).

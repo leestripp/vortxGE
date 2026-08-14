@@ -52,7 +52,7 @@ Adds a renderable object (`lsObject`) to the scene. Objects have a position, rot
 Adds a light source (`lsLight`) to the scene.
 
 **Syntax:**
-`add_light <type> <name> <parent> (pos_x, pos_y, pos_z) (rot_x, rot_y, rot_z) (r, g, b)`
+`add_light <type> <name> <parent> (pos_x, pos_y, pos_z) (rot_x, rot_y, rot_z) (r, g, b) <intensity> [cast_shadows]`
 
 **Parameters:**
 *   `<type>`: The type of light. Can be `point`, `spot`, or `sun`.
@@ -130,7 +130,7 @@ add_scene `PhysicsDemoScene`
 
 # 2. Add a light source.
 # A spotlight is positioned above and pointing down.
-add_light spot `MainSpot` `PhysicsDemoScene` (0.0, 20.0, 0.0) (-90.0, 0.0, 0.0) (1.0, 1.0, 0.9)
+add_light spot `MainSpot` `PhysicsDemoScene` (0.0, 20.0, 0.0) (-90.0, 0.0, 0.0) (1.0, 1.0, 0.9) 8.0
 
 # 3. Add a static ground plane.
 # This object uses a plane mesh for rendering.

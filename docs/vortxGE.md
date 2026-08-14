@@ -8,7 +8,7 @@ available to code as the `vortxGE_VERSION_*` macros in the generated
 
 ## Overall Architecture & Philosophy
 
-vortxGE is a C++ 3D engine designed with a modular, scene-graph-based architecture. It leverages modern OpenGL for rendering and the Bullet Physics library for physics simulation. The core philosophy is to separate concerns into distinct managers and data blocks, promoting flexibility and extensibility.
+vortxGE is a C++23 3D engine designed with a modular, scene-graph-based architecture. It renders through **Vulkan (primary) or OpenGL (fallback)** — selected at runtime via `VORTX_RENDERER`, with automatic GL fallback if Vulkan init fails — and the Bullet Physics library for physics simulation. The core philosophy is to separate concerns into distinct managers and data blocks, promoting flexibility and extensibility.
 
 The engine follows a **Right-Handed Coordinate System** with the view direction along the **-Z axis**, consistent with OpenGL's conventions.
 *   **+X**: Right
@@ -24,7 +24,7 @@ The engine follows a **Right-Handed Coordinate System** with the view direction 
 The vortxGE engine follows a specific initialization sequence:
 
 1.  **Create Instance**: Instantiate the `vortxGE` class
-2.  **Create Render Context**: Set up your windowing library (GLFW3, GTKmm, etc.) and create a valid OpenGL context
+2.  **Create Render Context**: Set up your windowing library (GLFW3, GTKmm, etc.) and create the right context — a GL context for OpenGL, or a `GLFW_NO_API` window for Vulkan. `vortxGE::PreferredRendererType()` probes Vulkan *before* window creation so the app can create the correct window type
 3.  **Call Init()**: Initialize the engine subsystems
 
 ```cpp
@@ -91,7 +91,7 @@ The main engine class located in `vortxGE/src/vortxGE.h`. It initializes and own
 | `getControlManager()` | `lsControlManager*` | Access the control hierarchy for UI and viewports |
 | `getShaderManager()` | `lsShaderManager*` | Access shader loading and management |
 | `getAssetManager()` | `lsAssetManager*` | Access global asset loading |
-| `getRender()` | `lsRender*` | Access the OpenGL wrapper |
+| `getRender()` | `lsRender*` | Access the active render backend (`lsVulkan` or `lsOpenGL`, behind the `lsRender` interface) |
 | `getOpenAL()` | `lsOpenAL*` | Access audio system |
 
 #### Internal Subsystems

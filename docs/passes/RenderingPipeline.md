@@ -1,5 +1,15 @@
 # Rendering Pipeline
 
+> **2026 update — two pipeline paths exist.** This document describes the
+> classic pass-based system (`lsPassManager`), still the default. The new
+> stage-based pipeline (`vortxGE/src/pipeline/`, opt-in in the demos via
+> `VORTX_PIPELINE=1`) composes explicit stages: `lsShadowStage` /
+> `lsCsmStage` (sun CSM), `lsClusterStage` (clustered light culling),
+> then the scene pass. Clustered lighting supports up to 64 lights with
+> per-fragment culling — see Plan.md L1–L5 and the `lsClusterGrid` /
+> `lsCsm` math modules (both unit-tested).
+
+
 The rendering pipeline in vortxGE uses a **pass-based system** that allows flexible composition of rendering effects. Each pass defines how a scene should be rendered - to the screen, to a texture, or for shadow mapping.
 
 ---

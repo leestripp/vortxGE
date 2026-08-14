@@ -14,3 +14,5 @@ game/
 
 # downloaded test assets (never commit — local validation only)
 demos/data/downloads/
+__pycache__/
+*.blend1

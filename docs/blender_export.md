@@ -28,6 +28,44 @@ truth; the engine consumes exported `.vgs` text scenes + `.glb` meshes.
    Tech scenes are pure .vgs content; the base scene additionally keeps its
    procedural extras (emitter, sample models).
 
+## Light custom properties (on Blender lights)
+
+- `cast_shadows` (bool, default true) — uncheck for decorative/fill lights.
+  Exported as a trailing flag on `add_light`; the pipeline only creates
+  shadow-map stages for casters (a 64-light scene would otherwise try to
+  build 64 shadow passes). Shadow casters stay in the hero slots 0–2.
+
+## Live-link (hot-apply edits into a running demo)
+
+Phase 1 (engine side) is done; phase 2 (one-click push from Blender) is
+in progress.
+
+1. Run a demo with the live-link enabled:
+
+   ```bash
+   VORTX_PIPELINE=1 VORTX_SCENE=light_stress VORTX_LIVELINK=1 ./vortxGEdemo_glfw3
+   ```
+
+2. The demo polls `data/<scene>.vgs` at 2 Hz. Any write re-applies
+   transforms + light color/intensity to the matching nodes **in place**
+   (`lsSceneManager::ApplySceneTransforms`) — no scene rebuild, so the
+   pipeline's shadow stages keep their light pointers.
+
+3. Push from Blender by re-exporting the current scene state onto the
+   watched file (via BlenderMCP `execute_code`, or the exporter):
+
+   ```python
+   import sys; sys.path.insert(0, '<repo>/blender_scripts')
+   import export_scene
+   export_scene.write_vortxge_scene(bpy.context, '<repo>/demos/data/light_stress.vgs')
+   ```
+
+   The demo logs `INFO: live-link applied N node update(s)` and the edit
+   appears within ~0.5 s.
+
+Limitations: transform/property updates only — adding or removing objects
+is structural and still requires a restart.
+
 ## Physics custom properties (on Blender objects)
 
 - `bullet_box` = `"mass (sx, sy, sz)"`, `bullet_pill` = `"mass radius height"`,
