@@ -707,6 +707,19 @@ void DemoScene::setupObjectEmitter()
 void DemoScene::Update( double delta )
 {
 	VORTX_PROFILE_ZONE( "update" );
+#if defined(VORTX_DEBUG_TOOLS)
+	// C0 debug: deterministic tiny camera orbit (amplitude ~1m) so
+	// the sun-shadow bug can be reproduced without input.
+	if( std::getenv( "VORTX_CAM_ORBIT" ) && m_viewer_scene
+	    && m_viewer_scene->getActiveCamera() )
+	{
+		static double s_orbitT = 0.0;
+		s_orbitT += delta * 0.0001;
+		lsCamera* cam = m_viewer_scene->getActiveCamera();
+		cam->Set_Pos( (float)std::sin( s_orbitT ), 5.0f,
+		              8.0f + (float)std::cos( s_orbitT ) );
+	}
+#endif
 
 	// Physics body count + fps every 5s (VORTX_PHYSICS_COUNT=1).
 	// Proves the emitter pool keeps the Bullet world bounded (E1.1).
