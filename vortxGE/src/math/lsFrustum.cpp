@@ -126,6 +126,43 @@ void lsFrustum::Set_Orthographic( float xMin, float xMax, float yMin, float yMax
 }
 
 //=========================================================================
+// Gribb/Hartmann plane extraction from a clip matrix
+//=========================================================================
+
+void lsFrustum::Set_CullPlanesFromMatrix( const lsMatrix4x4& clip )
+{
+	// Engine matrices are column-major: row i = (m[i], m[4+i], m[8+i], m[12+i])
+	const float* m = clip.matrix;
+	auto row = [&]( int i, float& a, float& b, float& c, float& d ) {
+		a = m[i]; b = m[4 + i]; c = m[8 + i]; d = m[12 + i];
+	};
+	float r[4][4];
+	for( int i = 0; i < 4; ++i ) row( i, r[i][0], r[i][1], r[i][2], r[i][3] );
+
+	// GL clip convention (x,y,z,w each in [-w,w] inside):
+	// left = row3+row0, right = row3-row0, bottom = row3+row1,
+	// top = row3-row1, near = row3+row2, far = row3-row2.
+	// Normals face inward; normalize so distance() is metric.
+	struct Combo { int side; float s; int row; };
+	const Combo combos[6] = {
+		{ LEFT,   +1.0f, 0 }, { RIGHT,  -1.0f, 0 },
+		{ BOTTOM, +1.0f, 1 }, { TOP,    -1.0f, 1 },
+		{ NEARP,  +1.0f, 2 }, { FARP,   -1.0f, 2 },
+	};
+	for( int k = 0; k < 6; ++k )
+	{
+		const Combo& cb = combos[k];
+		float a = r[3][0] + cb.s * r[cb.row][0];
+		float b = r[3][1] + cb.s * r[cb.row][1];
+		float cc = r[3][2] + cb.s * r[cb.row][2];
+		float d = r[3][3] + cb.s * r[cb.row][3];
+		const float len = std::sqrt( a*a + b*b + cc*cc );
+		if( len > 1e-12f ) { a /= len; b /= len; cc /= len; d /= len; }
+		pl[cb.side].setCoefficients( a, b, cc, d );
+	}
+}
+
+//=========================================================================
 // Frustum Plane Construction
 //=========================================================================
 

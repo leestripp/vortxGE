@@ -121,6 +121,19 @@ public:
 	 * @param zMax Maximum Z coordinate (far)
 	 */
 	void Set_Orthographic( float xMin, float xMax, float yMin, float yMax, float zMin, float zMax );
+
+	/**
+	 * @brief Build cull planes from a clip matrix (Gribb/Hartmann)
+	 *
+	 * Extracts the 6 frustum planes directly from proj*view — the
+	 * exact volume the rasterizer clips against. Use this for
+	 * "throwaway" cull cameras (e.g. CSM cascade fits) where no
+	 * scene-graph camera exists and Build_CullPlanes' perspective
+	 * bookkeeping (eye/look/up + near/far heights) is unavailable.
+	 * Planes are normalized, normals face INWARD (distance>0 = inside,
+	 * matching the SphereInFrustum/PointInFrustum tests).
+	 */
+	void Set_CullPlanesFromMatrix( const lsMatrix4x4& clip );
 	
 	/**
 	 * @brief Build cull planes from camera parameters

@@ -1575,10 +1575,12 @@ void DemoScene::initPipeline()
 	// black). Each stage owns its depth FBO and self-wires it to the
 	// light, replacing DemoScene::setupShadows in pipeline mode.
 	const lsShadowQuality shadowQ = lsShadowMap::getQuality();
-	// L2.1b dev flag: VORTX_CSM=1 replaces the sun's single-map stage
-	// with a 4-cascade CSM stage (atlas). Shading still uses the legacy
-	// single-map path until L2.4 — sun shadows look wrong with the flag
-	// on; verify atlas content via VORTX_DEPTH_SHOT instead.
+	// VORTX_CSM=1 replaces the sun's single-map stage with a 4-cascade
+	// CSM stage (atlas). L2.4: shading samples the atlas (use_shadowmap
+	// =2 path in the light_tex_* shaders) — cascade cull planes are
+	// extracted from the exact clip matrix (lsFrustum::
+	// Set_CullPlanesFromMatrix), which fixed the missing-casters bug
+	// that made CSM shadows look wrong.
 	const bool useCsm = std::getenv( "VORTX_CSM" ) != nullptr;
 	for( lsLight* light : m_viewer_scene->getLightManager()->getLights() )
 	{

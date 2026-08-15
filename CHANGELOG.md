@@ -39,6 +39,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `VORTX_GRASS_DIST` isolate vegetation cost/placement.
 
 ### Fixed
+- **L2.4 — CSM shading works (2026-08-15):** `VORTX_CSM=1` now renders
+  correct sun shadows from the 4-cascade atlas. Root cause: the CSM
+  stage's throwaway cull camera set its ortho frustum but never built
+  cull planes (`Build_CullPlanes` needs eye/look/up bookkeeping), so
+  `Optimize` culled against stale planes and the atlas was missing
+  casters — shading fell back to "lit" almost everywhere. Fix: new
+  `lsFrustum::Set_CullPlanesFromMatrix()` (Gribb/Hartmann extraction
+  from the exact proj*view clip matrix), called per cascade in
+  `lsCsmStage`. Verified against the legacy single-map path: same
+  shadow direction/shapes close-up; valleys now get real mountain
+  shadows the 400 m follow-map could never cast. `ctest` 100%.
 - **Flycam invisible: pipeline stages ignored `setActiveCamera`
   (2026-08-15):** toggling the flycam (F6) switched the scene's active
   camera — culling, sun-follow and light activation all followed — but

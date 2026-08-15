@@ -78,6 +78,13 @@ void lsCsmStage::execute( lsRender* render, lsTargetPool& targets )
 		cam.ViewMatrix = cc.view;
 		const float r = cc.radius;
 		cam.frustum.Set_Orthographic( -r, r, -r, r, -r, 3.0f * r );
+		// L2.4 fix: Build_CullPlanes needs eye/look/at bookkeeping we
+		// don't have here — without cull planes the Optimize pass culled
+		// against stale planes and the atlas was missing casters
+		// (sun shadows looked "off" scene-wide). Extract the planes
+		// from the exact clip matrix the draw below uses.
+		cam.frustum.Set_CullPlanesFromMatrix(
+			cam.frustum.getProjectionMatrix() * cc.view );
 
 		m_scene->InitDrawlist();
 		m_scene->Optimize( &cam, m_passType, m_scene, render );
