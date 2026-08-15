@@ -308,6 +308,47 @@ camera->Set_Perspective(60.0f, 1.778f, 0.1f, 1000.0f);
 camera->Set_Pos(0.0f, 5.0f, 10.0f);
 ```
 
+### Camera Setup: Scene Camera AND Viewer Camera
+
+> **This bit us for 4+ hours.** Switching cameras (e.g. toggling a
+> flycam) changed culling but the rendered image never moved. A camera
+> in vortxGE plays **two distinct roles**, and both must follow your
+> active camera or you will render from a stale viewpoint.
+
+| Role | Owned by | Set via | Drives |
+|------|----------|---------|--------|
+| **Scene camera** (culling) | `lsScene` | `scene->setActiveCamera(cam)` | Frustum culling, LOD selection, light activation, distance culling (`setMaxDrawDist`), sun-shadow follow |
+| **Viewer camera** (rendering) | Pipeline stages (`lsSceneStage`, `lsPrepassStage`, `lsClusterStage`, `lsCsmStage`) | Stage constructor / `setCamera()` | What you actually SEE — the view/projection used to draw |
+
+**The rule:** construct view-dependent stages with a **`nullptr` camera**
+("follow mode"). A follow-mode stage resolves
+`scene->getActiveCamera()` **every frame**, so `setActiveCamera()`
+becomes the single switch for both roles:
+
+```cpp
+// GOOD: stage follows the scene's active camera — toggles just work
+pipeline->addStage<lsSceneStage>( scene, nullptr, "scene" );
+
+// Later, e.g. toggling to a flycam — ONE call switches cull + render:
+scene->setActiveCamera( flycam->getCamera() );
+```
+
+```cpp
+// BAD: stage renders from this camera FOREVER — a later
+// setActiveCamera() changes culling but the picture never moves
+pipeline->addStage<lsSceneStage>( scene, scene->getActiveCamera(), "scene" );
+```
+
+**Symptoms of a stale viewer camera:** the scene renders fine but from
+the wrong viewpoint; moving/toggling your camera changes what gets
+culled (objects pop at the edges of the *intended* view) while the
+image itself stays put; scripted camera animations run but are
+invisible.
+
+Explicit stage cameras are still valid for fixed views (shadow
+passes, picture-in-picture, debug views) — just never for the main
+view you intend to switch at runtime.
+
 ---
 
 ## lsLight Class
