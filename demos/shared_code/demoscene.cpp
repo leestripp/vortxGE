@@ -95,6 +95,7 @@
 #include <scene/lsNode.h>
 #include <scene/lsScene.h>
 #include <functional>
+#include <scene/lsFlyCam.h>
 #include <scene/lsObject.h>
 #include <scene/lsObjectEmitter.h>
 #include <scene/lsCamera.h>
@@ -633,9 +634,11 @@ struct TerrainChunkRec {
 };
 struct VegChunkRec {            // distance-culled via instanceDrawCount
 	lsBatch_Mesh* batch = nullptr;
-	lsVector3 centre;
+	lsVector3 centre;           // WORLD position of the chunk centre
 	float radius = 0.0f;
 	float maxDist = 0.0f;       // 0 = always draw
+	int fullCount = 0;          // instances at LOD0
+	bool lodThin = false;       // grass only: ramp instance count
 };
 }
 static std::vector<TerrainChunkRec> s_terrainChunks;
@@ -647,6 +650,9 @@ static std::vector<VegChunkRec> s_vegChunks;
 // collision + scattered vegetation. Placed east of the built area,
 // centre at (kCX, 0, kCZ); the player rig spawns on it.
 // -------------------------------------------------------------------
+// flycam default pose: above terrain centre looking north-ish
+static constexpr float kFlyDefX = 700.0f, kFlyDefY = 120.0f, kFlyDefZ = 0.0f;
+
 void DemoScene::setupTerrain()
 {
 	if( ! m_viewer_scene ) return;
@@ -806,8 +812,25 @@ void DemoScene::setupTerrain()
 			const float moist = std::clamp(
 				0.5f + climate.fbm( u * 3.0f + 11.0f, v * 3.0f + 5.0f, 4 ) * 0.6f,
 				0.0f, 1.0f );
-			biomes[( size_t )y * kRes + x] = terrain::classifyBiome( h, temp, moist );
+			// sea level 0.08: only the deepest erosion channels count as
+			// ocean — this map renders no water, so the classifier's
+			// default 0.30 band would eat the walkable lowlands and
+			// starve every vegetation mask there (the "one patch" bug).
+			biomes[( size_t )y * kRes + x] =
+				terrain::classifyBiome( h, temp, moist, 0.08f );
 		}
+
+	// biome histogram: proves the sea-level rebalance actually covers
+	// the lowlands (was: everything Ocean/Beach = the "one patch" bug)
+	{
+		int counts[( size_t )terrain::Biome::Count] = {};
+		for( auto b : biomes ) counts[( size_t )b]++;
+		cout << "VORTX_TERRAIN: biomes";
+		for( int i = 0; i < ( int )terrain::Biome::Count; ++i )
+			cout << " " << terrain::biomeName( ( terrain::Biome )i )
+				 << "=" << ( 100 * counts[i] / ( kRes * kRes ) ) << "%";
+		cout << endl;
+	}
 
 	terrain::veg::Scatterer scatterer( hf, biomes, kWorld, kHeight );
 
@@ -839,19 +862,20 @@ void DemoScene::setupTerrain()
 							| terrain::biomeBit( terrain::Biome::Grassland );
 	const VegDef vegDefs[] = {
 		{ "Grass", "data/vegetation/grass_clump.obj", 12000,
-		  0.25f, 0.85f, 34.0f, 1.0f, 1.0f,
+		  0.05f, 0.85f, 34.0f, 1.0f, 1.0f,
 		  forestMask | terrain::biomeBit( terrain::Biome::Savanna ), true,
-		  0.30f, 0.55f, 0.16f },
-		{ "Bush", "data/vegetation/bush.obj", 200,
-		  0.31f, 0.75f, 28.0f, 4.0f, 0.5f,
+		  0.42f, 0.66f, 0.20f },
+		{ "Bush", "data/vegetation/bush.obj", 400,
+		  0.05f, 0.75f, 28.0f, 3.0f, 0.7f,
 		  forestMask | terrain::biomeBit( terrain::Biome::Taiga ), false,
-		  0.16f, 0.38f, 0.12f },
-		{ "Tree", "data/vegetation/broadleaf.obj", 100,
-		  0.32f, 0.82f, 30.0f, 8.0f, 0.6f,
+		  0.20f, 0.45f, 0.16f },
+		{ "Tree", "data/vegetation/broadleaf.obj", 250,
+		  0.05f, 0.82f, 30.0f, 6.0f, 0.8f,
 		  forestMask | terrain::biomeBit( terrain::Biome::Taiga ), false,
-		  0.22f, 0.42f, 0.14f },
+		  0.26f, 0.48f, 0.18f },
 	};
 
+	static const bool vegDebug = std::getenv( "VORTX_VEG_DEBUG" ) != nullptr;
 	s_vegChunks.clear();
 	for( const auto& vd : vegDefs )
 	{
@@ -875,12 +899,29 @@ void DemoScene::setupTerrain()
 
 		int objs = 0;
 		long total = 0;
+		float vegAggMn[3] = { 1e30f, 1e30f, 1e30f };
+		float vegAggMx[3] = { -1e30f, -1e30f, -1e30f };
 		for( int cy = 0; cy < kChunks; ++cy )
 			for( int cx = 0; cx < kChunks; ++cx )
 			{
 				auto instances = scatterer.scatter( layer, cx, cy, kChunks, 7 );
 				if( ( int )instances.size() > vd.capPerChunk )
-					instances.resize( vd.capPerChunk );
+				{
+					// resize() would keep scan-order prefix = all instances
+					// clustered in one corner of the chunk. Thin by hash
+					// instead: deterministic AND spatially uniform.
+					std::vector<terrain::veg::Instance> kept;
+					kept.reserve( vd.capPerChunk );
+					const float keepP = ( float )vd.capPerChunk
+									  / ( float )instances.size();
+					for( size_t i = 0; i < instances.size(); ++i )
+					{
+						const float h = ( float )( ( i * 2654435761u )
+										& 0xFFFF ) / 65535.0f;
+						if( h < keepP ) kept.push_back( instances[i] );
+					}
+					instances.swap( kept );
+				}
 				if( instances.empty() ) continue;
 
 				// pack: 8 floats/instance, terrain-local coords
@@ -900,7 +941,11 @@ void DemoScene::setupTerrain()
 					packed[i*8+1] = ly;
 					packed[i*8+2] = lz;
 					packed[i*8+3] = inst.scale * ( vd.distanceCull &&
-						std::getenv( "VORTX_GRASS_DEBUG" ) ? 6.0f : 1.0f );
+						std::getenv( "VORTX_GRASS_DEBUG" ) ? 6.0f : []()
+					{
+						const char* e = std::getenv( "VORTX_GRASS_SCALE" );
+						return e ? ( float )atof( e ) : 1.6f;
+					}() );
 					packed[i*8+4] = std::cos( inst.rotation );
 					packed[i*8+5] = std::sin( inst.rotation );
 					packed[i*8+6] = 0.8f + 0.3f * h1;
@@ -932,6 +977,16 @@ void DemoScene::setupTerrain()
 					lsVector3( mx[0], mx[1], mx[2] ) ) + 4.0f;
 				m->setBSphere( bs );
 
+				VegChunkRec rec;
+				rec.batch = batch;
+				rec.centre = lsVector3( kCX + bs.center.x, bs.center.y,
+										kCZ + bs.center.z );
+				rec.radius = bs.radius;
+				rec.maxDist = 0.0f; // set below with maxDrawDist
+				rec.fullCount = ( int )instances.size();
+				rec.lodThin = vd.distanceCull;
+				s_vegChunks.push_back( rec );
+
 				lsAsset_Mesh* asset = new lsAsset_Mesh( render );
 				asset->setData( m );
 				lsObject* veg = new lsObject( m_viewer_scene );
@@ -952,14 +1007,34 @@ void DemoScene::setupTerrain()
 					const char* e = std::getenv( "VORTX_VEG_MAXD" );
 					return e ? ( float )atof( e ) : 0.0f;
 				}();
-				veg->setMaxDrawDist( vegMaxOverride > 0.0f ? vegMaxOverride
+				const float maxD = vegMaxOverride > 0.0f ? vegMaxOverride
 					: ( vd.distanceCull ? grassDist
-						: ( vd.capPerChunk <= 100 ? 800.0f : 300.0f ) ) );
+						: ( vd.capPerChunk <= 100 ? 800.0f : 300.0f ) );
+				veg->setMaxDrawDist( maxD );
+				s_vegChunks.back().maxDist = maxD;
+				if( vegDebug )
+				{
+					cout << "VEGDBG " << vd.name << " chunk(" << cx << "," << cy
+						 << ") n=" << instances.size()
+						 << " local mn(" << mn[0] << "," << mn[1] << "," << mn[2]
+						 << ") mx(" << mx[0] << "," << mx[1] << "," << mx[2] << ")"
+						 << endl;
+					for( int a = 0; a < 3; ++a )
+					{
+						if( mn[a] < vegAggMn[a] ) vegAggMn[a] = mn[a];
+						if( mx[a] > vegAggMx[a] ) vegAggMx[a] = mx[a];
+					}
+				}
 				++objs;
 				total += ( long )instances.size();
 			}
 		cout << "VORTX_TERRAIN: " << vd.name << " x" << total
 			 << " instanced over " << objs << " chunk draws" << endl;
+		if( vegDebug )
+			cout << "VEGDBG " << vd.name
+				 << " AGG local mn(" << vegAggMn[0] << "," << vegAggMn[1] << ","
+				 << vegAggMn[2] << ") mx(" << vegAggMx[0] << "," << vegAggMx[1]
+				 << "," << vegAggMx[2] << ")" << endl;
 	}
 
 	} // VORTX_NOVEG
@@ -1102,6 +1177,33 @@ void DemoScene::Update( double delta )
 		}
 	}
 
+	// Vegetation LOD: per-chunk instance thinning by camera distance
+	// (the engine's frustum + maxDrawDist culls whole chunks; this
+	// ramps the density of the chunks that DO draw). Grass thins
+	// 100/50/25% across its 90 m range; bushes/trees keep full count —
+	// their hard maxDrawDist already caps them. Prefix-clamped
+	// (setInstanceDrawCount) and instances are jitter-scattered, so
+	// thinning is spatially uniform — no popping clusters.
+	if( ! s_vegChunks.empty() && m_viewer_scene
+	    && m_viewer_scene->getActiveCamera() )
+	{
+		lsCamera* cam = m_viewer_scene->getActiveCamera();
+		lsVector3 campos( cam->ModelMatrix.matrix[12],
+		                        cam->ModelMatrix.matrix[13],
+		                        cam->ModelMatrix.matrix[14] );
+		for( auto& rec : s_vegChunks )
+		{
+			if( ! rec.lodThin || ! rec.batch ) continue;
+			float d = campos.distance( rec.centre ) - rec.radius;
+			if( d < 0.0f ) d = 0.0f;
+			const float frac =
+				d < rec.maxDist * 0.45f ? 1.0f :
+				d < rec.maxDist * 0.75f ? 0.5f : 0.25f;
+			rec.batch->setInstanceDrawCount(
+				( int )( rec.fullCount * frac ) );
+		}
+	}
+
 #if defined(VORTX_DEBUG_TOOLS)
 	// C0 debug: deterministic tiny camera orbit (amplitude ~1m) so
 	// the sun-shadow bug can be reproduced without input.
@@ -1221,6 +1323,71 @@ void DemoScene::Update( double delta )
 		}
 	}
 #endif
+
+	// lsFlyCam: free-fly survey camera. VORTX_FLYCAM=1 creates it and
+	// makes it the active camera (the rig stays for physics but its
+	// camera is detached). Pose: VORTX_CAM_POS / VORTX_CAM_YAW/PITCH;
+	// speed: VORTX_FLYSPEED m/s (default 40). Scripted flyover:
+	//   VORTX_FLYPATH=orbit:cx,cy,cz,radius,periodSec[,pitchDeg]
+	//   VORTX_FLYPATH=tour:x0,y0,z0;x1,y1,z1;...  (loops at flySpeed)
+	static lsFlyCam* s_flyCam = nullptr;
+	if( std::getenv( "VORTX_FLYCAM" ) && m_viewer_scene && ! s_flyCam )
+	{
+		s_flyCam = new lsFlyCam( m_viewer_scene );
+		s_flyCam->Set_Perspective( 45.0, 1820.0 / 1080.0, 0.1, 1000.0 );
+		m_viewer_scene->Add_Node( s_flyCam );
+		m_viewer_scene->setActiveCamera( s_flyCam );
+		m_flyCam = s_flyCam;
+
+		float px = kFlyDefX, py = kFlyDefY, pz = kFlyDefZ;
+		float yaw = 0.0f, pitch = -25.0f;
+		if( const char* e = std::getenv( "VORTX_CAM_POS" ) )
+			sscanf( e, "%f,%f,%f", &px, &py, &pz );
+		if( const char* e = std::getenv( "VORTX_CAM_YAW" ) )
+			yaw = ( float )atof( e );
+		if( const char* e = std::getenv( "VORTX_CAM_PITCH" ) )
+			pitch = ( float )atof( e );
+		if( const char* e = std::getenv( "VORTX_FLYSPEED" ) )
+			s_flyCam->setFlySpeed( ( float )atof( e ) );
+		s_flyCam->Set_Pos( px, py, pz );
+		s_flyCam->setYawPitch( yaw, pitch );
+
+		if( const char* path = std::getenv( "VORTX_FLYPATH" ) )
+		{
+			if( strncmp( path, "orbit:", 6 ) == 0 )
+			{
+				float cx = 0, cy = 100, cz = 0, r = 300, per = 60, pp = -35;
+				sscanf( path + 6, "%f,%f,%f,%f,%f,%f",
+						&cx, &cy, &cz, &r, &per, &pp );
+				s_flyCam->Start_Orbit( lsVector3( cx, cy, cz ), r, per, pp, false );
+				cout << "DemoScene: flycam orbit c(" << cx << "," << cy
+					 << "," << cz << ") r=" << r << " period=" << per << "s" << endl;
+			}
+			else if( strncmp( path, "tour:", 5 ) == 0 )
+			{
+				std::string wps( path + 5 );
+				size_t start = 0;
+				while( start < wps.size() )
+				{
+					size_t end = wps.find( ';', start );
+					std::string tok = wps.substr( start,
+						end == std::string::npos ? end : end - start );
+					float wx, wy, wz;
+					if( sscanf( tok.c_str(), "%f,%f,%f", &wx, &wy, &wz ) == 3 )
+						s_flyCam->Add_Waypoint( lsVector3( wx, wy, wz ) );
+					if( end == std::string::npos ) break;
+					start = end + 1;
+				}
+				s_flyCam->Start_Waypoints( -35.0f );
+				cout << "DemoScene: flycam waypoint tour" << endl;
+			}
+		}
+		else
+		{
+			cout << "DemoScene: flycam active at (" << px << "," << py
+				 << "," << pz << ")" << endl;
+		}
+	}
 
 	// Physics body count + fps every 5s (VORTX_PHYSICS_COUNT=1).
 	// Proves the emitter pool keeps the Bullet world bounded (E1.1).
@@ -1416,6 +1583,12 @@ void DemoScene::processEvent( lsEvent* event )
 
 void DemoScene::movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch)
 {
+	if (m_flyCam)
+	{
+		// flycam owns movement: jump=up, crouch=down
+		m_flyCam->HandleFlyInput(f, b, l, r, jump, crouch, sprint);
+		return;
+	}
 	if (m_playerRig)
 	{
 		m_playerRig->HandleKeyboardInput(f, b, l, r, crouch, jump, sprint);
@@ -1424,6 +1597,10 @@ void DemoScene::movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprin
 
 void DemoScene::rotatePlayerView( double delta_x, double delta_y)
 {
+	if (m_flyCam) {
+		m_flyCam->HandleFlyLook(static_cast<float>(delta_x), static_cast<float>(delta_y));
+		return;
+	}
 	if (m_playerRig) {
 		m_playerRig->HandleMouseLook(1.0f / 60.0f, static_cast<float>(delta_x), static_cast<float>(delta_y)); // Assuming 60 FPS
 	}

@@ -33,6 +33,7 @@ class lsObject;
 class lsCamera;
 class lsEvent;
 class lsFirstPersonRig;
+class lsFlyCam;
 class lsSpeaker;
 class lsLight_Direct;
 
@@ -118,6 +119,7 @@ private:
 	
     // Player Rig
     lsFirstPersonRig* m_playerRig = nullptr; // Changed type to lsFirstPersonRig
+    lsFlyCam* m_flyCam = nullptr;      // VORTX_FLYCAM survey camera
     lsLight_Direct* m_sun_light = nullptr;
     lsSky* m_sky = nullptr; // S-series procedural sky + day/night cycle
     

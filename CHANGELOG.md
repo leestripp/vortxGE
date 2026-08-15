@@ -437,3 +437,37 @@ set developed since the project's first public commit (2023-10-13).
 [Unreleased]: https://gitlab.com/leestripp/vortxGE/-/compare/0.2.0...main
 [0.2.0]: https://gitlab.com/leestripp/vortxGE/-/compare/0.1.0...0.2.0
 [0.1.0]: https://gitlab.com/leestripp/vortxGE/-/tags/0.1.0
+
+## 2026-08-15 — Vegetation system repair + lsFlyCam
+
+### Fixed
+- **"One patch" vegetation bug (two root causes):**
+  1. `classifyBiome` hard-coded sea level 0.30 — the all-land demo map's
+     walkable lowlands classified as Ocean/Beach and every veg mask
+     excluded them. `classifyBiome` gained a `seaLevel` parameter
+     (default 0.30, tests unchanged); the demo passes 0.08. Biome
+     histogram now: Grassland 46%, Forest 45%, Taiga 5%.
+  2. Per-chunk cap used prefix `resize()` — kept scan-order prefix, so
+     capped instances clustered in one corner of every chunk. Replaced
+     with deterministic hash-thinning (spatially uniform).
+- Veg altitude rules widened (0.05 min) — biome mask gates placement.
+- Grass invisible against terrain: brighter albedo (0.42,0.66,0.20) +
+  1.6x clump scale; bush/tree caps raised (400/250) + brighter albedo.
+
+### Added
+- **lsFlyCam** (`vortxGE/src/scene/lsFlyCam.{h,cpp}`): free-fly survey
+  camera — WASD+Space/Ctrl flight (sprint x4), mouse look, scripted
+  paths for automated captures: `VORTX_FLYCAM=1`,
+  `VORTX_FLYPATH=orbit:cx,cy,cz,radius,period[,pitch]` or
+  `tour:x0,y0,z0;x1,y1,z1;...`, `VORTX_FLYSPEED` m/s.
+- **Vegetation LOD**: per-chunk instance thinning by camera distance
+  (grass 100/50/25% across its 90 m range via `setInstanceDrawCount`),
+  on top of the existing per-chunk frustum culling + maxDrawDist
+  (grass 90 m, bush 300 m, tree 800 m).
+- Debug: `VORTX_VEG_DEBUG=1` per-chunk scatter dump, biome histogram
+  at startup, `VORTX_GRASS_SCALE` test hook.
+
+Verified: ground-level captures show grass + bushes + trees across the
+whole map (was: one foothill patch), 59.6 fps at vsync cap, ctest 100%.
+Known polish item: bush shade sides read nearly black (dark albedo +
+low ambient) — lift ambient or albedo if it bothers in play.

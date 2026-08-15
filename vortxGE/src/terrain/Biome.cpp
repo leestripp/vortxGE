@@ -2,11 +2,14 @@
 
 namespace terrain {
 
-Biome classifyBiome(float altitude, float temperature, float moisture) {
-    // Water and high-altitude bands first.
-    if (altitude < 0.30f)
+Biome classifyBiome(float altitude, float temperature, float moisture,
+                    float seaLevel) {
+    // Water and high-altitude bands first. seaLevel is a parameter so
+    // land-only maps (no rendered water) can push Ocean/Beach below
+    // the walkable lowlands instead of losing them to a phantom sea.
+    if (altitude < seaLevel)
         return Biome::Ocean;
-    if (altitude < 0.33f)
+    if (altitude < seaLevel + 0.03f)
         return Biome::Beach;
     if (altitude > 0.92f)
         return Biome::Snow;

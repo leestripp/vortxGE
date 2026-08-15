@@ -27,7 +27,8 @@ constexpr std::uint32_t biomeBit(Biome b) { return 1u << static_cast<std::uint8_
 
 // altitude, temperature, moisture all normalized [0,1]
 // (temperature: 0 = coldest, moisture: 0 = driest).
-Biome classifyBiome(float altitude, float temperature, float moisture);
+Biome classifyBiome(float altitude, float temperature, float moisture,
+                    float seaLevel = 0.30f);
 
 const char* biomeName(Biome b);
 
