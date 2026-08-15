@@ -159,6 +159,9 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 				iTex_splat[i] = getRender()->GetUniformLocation( shader, ("tex_splat" + to_string(i)).c_str() );
 			iSplatEnabled = getRender()->GetUniformLocation( shader, "splatEnabled" );
 			iDetailDist = getRender()->GetUniformLocation( shader, "detailDist" );
+			iFarDist = getRender()->GetUniformLocation( shader, "farDist" );
+			iSplatDebug = getRender()->GetUniformLocation( shader, "splatDebug" );
+			iSplatLayer = getRender()->GetUniformLocation( shader, "splatLayer" );
 			// L4.1 PCSS
 			for(int i = 0; i < 3; ++i) {
 				iTex_shadowdepth[i] = getRender()->GetUniformLocation( shader, ("tex_shadowdepth[" + to_string(i) + "]").c_str() );
@@ -429,6 +432,21 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, int /* pass_type */, 
 					return e ? ( float )atof( e ) : 30.0f;
 				}();
 				getRender()->Uniform1f( iDetailDist, detailDist );
+				static const float farDist = []()
+				{
+					const char* e = std::getenv( "VORTX_FAR_DIST" );
+					return e ? ( float )atof( e ) : 250.0f;
+				}();
+				getRender()->Uniform1f( iFarDist, farDist );
+				static const int splatDebug =
+					std::getenv( "VORTX_SPLAT_DEBUG" ) ? 1 : 0;
+				getRender()->Uniform1i( iSplatDebug, splatDebug );
+				static const int splatLayer = []()
+				{
+					const char* e = std::getenv( "VORTX_SPLAT_LAYER" );
+					return e ? atoi( e ) : -1;
+				}();
+				getRender()->Uniform1i( iSplatLayer, splatLayer );
 			}
 			else
 			{

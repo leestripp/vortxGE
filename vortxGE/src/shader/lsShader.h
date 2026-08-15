@@ -248,6 +248,9 @@ private:
 	lsUniformID iTex_splat[4];   ///< Plan.md T1 terrain splat samplers
 	lsUniformID iSplatEnabled;   ///< terrain_splat.frag splatEnabled
 	lsUniformID iDetailDist;     ///< terrain_splat.frag detailDist (T4)
+	lsUniformID iFarDist;        ///< terrain_splat.frag farDist (T6)
+	lsUniformID iSplatDebug;     ///< terrain_splat.frag splatDebug
+	lsUniformID iSplatLayer;     ///< terrain_splat.frag splatLayer
     
     /** @brief Roughness/Metallic texture location */
 	lsUniformID iTex_roughness_metallic;

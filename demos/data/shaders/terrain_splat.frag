@@ -25,6 +25,9 @@ uniform sampler2D tex_splat2; // rock
 uniform sampler2D tex_splat3; // sand
 uniform int splatEnabled;
 uniform float detailDist;   // T4: near-detail fade range (metres)
+uniform float farDist;      // T6: beyond this, flat layer-average colour
+uniform int splatDebug;     // 0=off, 1=weights as RGB
+uniform int splatLayer;     // >=0: isolate this layer, weights ignored
 
 // Material
 uniform vec4 vxMatAlbedo;
@@ -336,6 +339,42 @@ void main(void) {
 		float sum = wSand + wRock + wGrass + wDirt;
 		wSand /= sum; wRock /= sum; wGrass /= sum; wDirt /= sum;
 
+		// Layer average colours (from TextureGen) for the far field and
+		// debug — keep in sync with TextureGen.cpp targets.
+		const vec3 AVG_G = vec3( 0.28, 0.56, 0.18 );
+		const vec3 AVG_D = vec3( 0.39, 0.28, 0.18 );
+		const vec3 AVG_R = vec3( 0.55, 0.55, 0.55 );
+		const vec3 AVG_S = vec3( 0.72, 0.64, 0.47 );
+
+		float viewDist = length( osVertex );
+
+		// Debug: weights as RGB (R=grass, G=rock, B=sand, grey=dirt)
+		int layerIso = splatLayer;
+		if( splatDebug == 1 )
+		{
+			albedo = vec3( wGrass, wRock, wSand ) + vec3( wDirt * 0.3 );
+			layerIso = -1; // weight view wins over isolation
+		}
+
+		if( layerIso >= 0 )
+		{
+			// Debug: isolate one layer at full weight
+			vec2 duv = osWorldPos.xz * ( 1.0 / 3.5 );
+			albedo = layerIso == 0 ? texture( tex_splat0, duv ).rgb
+				   : layerIso == 1 ? texture( tex_splat1, duv ).rgb
+				   : layerIso == 2 ? texture( tex_splat2, duv ).rgb
+				   : texture( tex_splat3, duv ).rgb;
+		}
+		else if( viewDist > farDist + 60.0 )
+		{
+			// Plan.md T6 — far-field cheap path: no texture fetches at
+			// all, weights x precomputed layer averages. Mips would
+			// average to this anyway; saves 4 samples + bandwidth.
+			albedo = AVG_G * wGrass + AVG_D * wDirt
+				   + AVG_R * wRock + AVG_S * wSand;
+		}
+		else
+		{
 		vec4 g = texture( tex_splat0, wuv );
 		vec4 d = texture( tex_splat1, wuv );
 		vec4 r = texture( tex_splat2, wuv );
@@ -351,12 +390,28 @@ void main(void) {
 		albedo = ( g.rgb * b0 + d.rgb * b1 + r.rgb * b2 + s.rgb * b3 )
 			   / ( b0 + b1 + b2 + b3 );
 
+		// Plan.md T5 — anti-tiling macro variation: one very low
+		// frequency sample (~97 m period) modulates luminance, breaking
+		// the repetition tell over distance. 1 extra sample.
+		float macro = texture( tex_splat0, osWorldPos.xz * ( 1.0 / 97.0 ) ).g;
+		albedo *= 0.82 + 0.36 * macro;
+
+		// T6 transition band: blend to the far-field average colour
+		if( viewDist > farDist )
+		{
+			vec3 farCol = AVG_G * wGrass + AVG_D * wDirt
+						+ AVG_R * wRock + AVG_S * wSand;
+			albedo = mix( albedo, farCol,
+						  smoothstep( farDist, farDist + 60.0, viewDist ) );
+		}
+		}
+
 		// Plan.md T4 — near-camera detail: re-sample the grass layer at
 		// 7x frequency for fine grain, overlaid only within detailDist
 		// of the camera (osVertex is view-space). Far pixels skip it
 		// entirely: no cost, no shimmer, no far tiling tell.
 		float dFade = 1.0 - smoothstep( detailDist * 0.55, detailDist,
-										length( osVertex ) );
+										viewDist );
 		if( dFade > 0.0 )
 		{
 			float grain = texture( tex_splat0, wuv * 7.0 ).g;

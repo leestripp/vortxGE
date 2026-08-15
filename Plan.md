@@ -3,6 +3,13 @@
 **Goal:** high-detail terrain texturing near the player/camera without
 hurting performance. No external texture assets — everything procedural.
 
+**Status (2026-08-15 b):** T5+T6 done — macro-variation anti-tiling
+(1 sample at ~97 m period, luminance mod 0.82+0.36) and far-field cheap
+path (past 250 m + 60 m band: no texture fetches, weights x
+precomputed layer-average colours). Debug toggles verified:
+VORTX_NOTEXTURE=1 (flat albedo off-switch), VORTX_SPLAT_DEBUG=1
+(weights as R=grass/G=rock/B=sand), VORTX_SPLAT_LAYER=0-3 (isolate).
+
 **Status (2026-08-15):** T1-T4 done — terrain_splat shader on GL+VK,
 4 procedural layers (linear RGBA8 upload — sRGB decode double-darkens),
 height-based blending (0.2 depth window), near detail (7x grain, 30 m
@@ -77,9 +84,9 @@ available. ~60 fps vsync with instanced veg.
   linear lerp. Verify: close-up capture shows granular transitions.
 - [x] **T4 — near detail + distance fade:** extra detail octave,
   ~30 m fade-in/out; far pixels skip it entirely.
-- [ ] **T5 — anti-tiling:** macro-variation (2-scale lerp by fbm);
+- [x] **T5 — anti-tiling:** macro-variation (2-scale lerp by fbm);
   optional stochastic hex sampling gated < 150 m.
-- [ ] **T6 — far-field cheap path:** per-pixel fade to single
+- [x] **T6 — far-field cheap path:** per-pixel fade to single
   low-freq color; optionally a `terrain_splat_far` variant without
   samplers for the farthest LOD band.
 - [ ] **T7 (stretch):** triplanar cliffs, texture-array refactor,
