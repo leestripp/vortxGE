@@ -55,6 +55,8 @@ public:
     // Player movement
     void movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch);
     void toggleFlyCam();   // F6: noclip-style survey camera on/off
+    void setFlyCam( bool on );  // F3 = flycam, F2 = player rig (directional)
+    bool isFlyCamActive() const { return m_flyCamActive; }
     void rotatePlayerView( double delta_x, double delta_y);
     void handleMouseButtons(bool left, bool right); // Add this method
     /**

@@ -1666,7 +1666,13 @@ void DemoScene::processEvent( lsEvent* event )
 
 void DemoScene::toggleFlyCam()
 {
+	setFlyCam( ! m_flyCamActive );
+}
+
+void DemoScene::setFlyCam( bool on )
+{
 	if( ! m_viewer_scene ) return;
+	if( on == m_flyCamActive && m_flyCam ) return; // already there
 	if( ! m_flyCam )
 	{
 		m_flyCam = new lsFlyCam( m_viewer_scene );
@@ -1675,7 +1681,7 @@ void DemoScene::toggleFlyCam()
 		if( const char* e = std::getenv( "VORTX_FLYSPEED" ) )
 			m_flyCam->setFlySpeed( ( float )atof( e ) );
 	}
-	if( ! m_flyCamActive )
+	if( on )
 	{
 		// start from the current camera's position (mouse to look,
 		// WASD to fly, Space/Ctrl up/down, Shift sprint)
@@ -1700,7 +1706,7 @@ void DemoScene::toggleFlyCam()
 		if( m_sun_light )
 			m_sun_light->setFollowCamera( m_flyCam->getCamera() );
 		m_flyCamActive = true;
-		cout << "DemoScene: flycam ON (F6 returns to the player rig)"
+		cout << "DemoScene: flycam ON (F2/F6 returns to the player rig)"
 			 << endl;
 	}
 	else

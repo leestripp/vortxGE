@@ -480,8 +480,12 @@ target_link_libraries(MyApp vortxGE)
 |-----|--------|
 | W/A/S/D | Move forward/left/back/right |
 | Mouse | Look around |
-| Space | Jump |
+| Space | Jump (player rig) / fly up (flycam) |
 | Left Shift | Sprint |
-| Left Control | Crouch |
+| Left Control | Crouch (player rig) / fly down (flycam) |
 | F1 | Toggle fullscreen |
+| F2 | Switch to player rig (first-person, physics) |
+| F3 | Switch to flycam (noclip survey camera) |
+| F6 | Toggle player rig ↔ flycam |
+| F12 | Screenshot |
 | Escape | Exit |

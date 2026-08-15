@@ -55,6 +55,18 @@ static void key_callback(GLFWwindow* window, int key, __attribute__((unused)) in
 				glfw_app.requestScreenshot();
 				break;
 
+			case GLFW_KEY_F2:
+				// player rig (first-person, physics) — explicit switch
+				if( glfw_app.getDemoscene() )
+					glfw_app.getDemoscene()->setFlyCam( false );
+				break;
+
+			case GLFW_KEY_F3:
+				// flycam (noclip survey camera) — explicit switch
+				if( glfw_app.getDemoscene() )
+					glfw_app.getDemoscene()->setFlyCam( true );
+				break;
+
 			case GLFW_KEY_F6:
 				// noclip-style survey camera toggle (rig <-> flycam)
 				if( glfw_app.getDemoscene() )
