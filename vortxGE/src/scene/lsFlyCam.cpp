@@ -1,33 +1,47 @@
 #include "lsFlyCam.h"
 
+#include "../animation/lsAnimationManager.h"
+
 #include <cmath>
 
 namespace {
 constexpr float kDeg2Rad = 3.14159265358979323846f / 180.0f;
+constexpr float kRad2Deg = 180.0f / 3.14159265358979323846f;
+
+/// Yaw (degrees) that makes this node's -Z forward face direction
+/// (dx,dz): forward(yaw) = (-sin yaw, 0, -cos yaw), so yaw = atan2(-dx,-dz).
+float facingYawDeg( float dx, float dz )
+{
+	return std::atan2( -dx, -dz ) * kRad2Deg;
+}
 }
 
-lsFlyCam::lsFlyCam( lsNode* parent ) : lsCamera( parent )
+lsFlyCam::lsFlyCam( lsNode* parent ) : lsAnimNode( parent )
 {
 	setName( "FlyCam" );
+
+	// Child camera: carries PITCH only (rotation.x); yaw stays on this
+	// node (rotation.y). Combined via the parent chain the orientation
+	// is Ry(yaw)*Rx(pitch) — the canonical fly-cam order.
+	m_camera = new lsCamera( this );
+	m_camera->setName( "FlyCam.camera" );
+	Add_Node( m_camera );
+
+	// Keyframe system binds to this node's Position/Rotation/Scale
+	// properties; paths are built with InsertKey_Pos/InsertKey_Rot.
+	Init_Animation( kAnimFps );
 }
 
 lsFlyCam::~lsFlyCam()
 {
 }
 
-lsVector3 lsFlyCam::forwardVec() const
+void lsFlyCam::applyYawPitch()
 {
-	// ModelMatrix is column-major; camera forward = -Z column.
-	return lsVector3( -ModelMatrix.matrix[2],
-					  -ModelMatrix.matrix[6],
-					  -ModelMatrix.matrix[10] );
-}
-
-lsVector3 lsFlyCam::rightVec() const
-{
-	return lsVector3( ModelMatrix.matrix[0],
-					  ModelMatrix.matrix[4],
-					  ModelMatrix.matrix[8] );
+	if( m_pitchDeg >  89.0f ) m_pitchDeg =  89.0f;
+	if( m_pitchDeg < -89.0f ) m_pitchDeg = -89.0f;
+	Set_Rot( 0.0f, m_yawDeg, 0.0f );
+	m_camera->Set_Rot( m_pitchDeg, 0.0f, 0.0f );
 }
 
 void lsFlyCam::HandleFlyInput( bool fwd, bool back, bool left, bool right,
@@ -39,37 +53,52 @@ void lsFlyCam::HandleFlyInput( bool fwd, bool back, bool left, bool right,
 	m_inSprint = sprint;
 	// manual input cancels any running path animation
 	if( fwd || back || left || right || up || down )
-		m_pathMode = PathMode::None;
+		Stop_Path();
 }
 
 void lsFlyCam::HandleFlyLook( float dx, float dy )
 {
 	m_yawDeg   -= dx * 0.15f;
 	m_pitchDeg -= dy * 0.15f;
-	if( m_pitchDeg >  89.0f ) m_pitchDeg =  89.0f;
-	if( m_pitchDeg < -89.0f ) m_pitchDeg = -89.0f;
-	Set_Rot( m_pitchDeg, m_yawDeg, 0.0f );
+	applyYawPitch();
 }
 
 void lsFlyCam::setYawPitch( float yawDeg, float pitchDeg )
 {
 	m_yawDeg = yawDeg;
 	m_pitchDeg = pitchDeg;
-	if( m_pitchDeg >  89.0f ) m_pitchDeg =  89.0f;
-	if( m_pitchDeg < -89.0f ) m_pitchDeg = -89.0f;
-	Set_Rot( m_pitchDeg, m_yawDeg, 0.0f );
+	applyYawPitch();
 }
 
 void lsFlyCam::Start_Orbit( lsVector3 centre, float radius, float periodSec,
 							float pitchDeg, bool lookAtCentre )
 {
-	m_orbitCentre = centre;
-	m_orbitRadius = radius;
-	m_orbitPeriod = periodSec > 0.1f ? periodSec : 60.0f;
-	m_pathPitch = pitchDeg;
-	m_orbitLookAt = lookAtCentre;
-	m_pathTimeMs = 0.0;
-	m_pathMode = PathMode::Orbit;
+	if( periodSec < 0.1f ) periodSec = 60.0f;
+
+	constexpr int kKeys = 36;
+	const double periodFrames = ( double )periodSec * kAnimFps;
+	for( int i = 0; i <= kKeys; ++i )
+	{
+		const float a = ( float )i / kKeys * 2.0f * ( float )M_PI;
+		const float px = centre.x + std::cos( a ) * radius;
+		const float pz = centre.z + std::sin( a ) * radius;
+		const double frame = ( double )i / kKeys * periodFrames;
+
+		float yaw;
+		if( lookAtCentre )
+			yaw = facingYawDeg( centre.x - px, centre.z - pz );
+		else
+			yaw = facingYawDeg( -std::sin( a ), std::cos( a ) ); // velocity
+
+		getAnimationManager()->InsertKey_Pos( frame, lsVector3( px, centre.y, pz ) );
+		getAnimationManager()->InsertKey_Rot( frame, lsVector3( 0.0f, yaw, 0.0f ) );
+	}
+
+	m_yawDeg = 0.0f;   // animation owns rotation.y while playing
+	m_pitchDeg = pitchDeg;
+	m_camera->Set_Rot( m_pitchDeg, 0.0f, 0.0f );
+	m_pathActive = true;
+	Play_Animation( true );
 }
 
 void lsFlyCam::Add_Waypoint( lsVector3 pos )
@@ -79,22 +108,46 @@ void lsFlyCam::Add_Waypoint( lsVector3 pos )
 
 void lsFlyCam::Start_Waypoints( float pitchDeg )
 {
-	if( m_waypoints.size() < 2 ) return;
-	m_pathPitch = pitchDeg;
-	m_pathTimeMs = 0.0;
-	m_wpIndex = 0;
-	m_wpFrom = m_waypoints[0];
-	m_wpLegMs = 0.0;
-	m_wpLegDurMs = m_waypoints[0].distance( m_waypoints[1] )
-				 / m_flySpeed * 1000.0;
-	if( m_wpLegDurMs < 1.0 ) m_wpLegDurMs = 1.0;
+	const size_t n = m_waypoints.size();
+	if( n < 2 ) return;
+
+	double frame = 0.0;
+	for( size_t i = 0; i <= n; ++i )
+	{
+		const lsVector3& p = m_waypoints[i % n];
+		const lsVector3& to = m_waypoints[( i + 1 ) % n];
+		const float dx = to.x - p.x, dz = to.z - p.z;
+		float yaw = rotation.y;
+		if( dx * dx + dz * dz > 1e-6f ) yaw = facingYawDeg( dx, dz );
+
+		getAnimationManager()->InsertKey_Pos( frame, p );
+		getAnimationManager()->InsertKey_Rot( frame, lsVector3( 0.0f, yaw, 0.0f ) );
+
+		// next leg duration at fly speed
+		if( i < n )
+		{
+			const float lx = to.x - p.x, ly = to.y - p.y, lz = to.z - p.z;
+			const float leg = std::sqrt( lx*lx + ly*ly + lz*lz );
+			frame += ( double )( leg / m_flySpeed ) * kAnimFps;
+			if( frame < ( double )i + 1.0 ) frame = ( double )i + 1.0;
+		}
+	}
+
 	Set_Pos( m_waypoints[0].x, m_waypoints[0].y, m_waypoints[0].z );
-	m_pathMode = PathMode::Waypoints;
+	m_yawDeg = 0.0f;
+	m_pitchDeg = pitchDeg;
+	m_camera->Set_Rot( m_pitchDeg, 0.0f, 0.0f );
+	m_pathActive = true;
+	Play_Animation( true );
 }
 
 void lsFlyCam::Stop_Path()
 {
-	m_pathMode = PathMode::None;
+	if( ! m_pathActive ) return;
+	Stop_Animation();
+	m_pathActive = false;
+	// resume manual control from the pose the animation left behind
+	m_yawDeg = rotation.y;
 }
 
 void lsFlyCam::Move( lsScene* scn, lsRender* render, double delta )
@@ -102,55 +155,10 @@ void lsFlyCam::Move( lsScene* scn, lsRender* render, double delta )
 	// delta is milliseconds (engine convention)
 	const double dt = delta * 0.001;
 
-	if( m_pathMode == PathMode::Orbit )
+	if( ! m_pathActive )
 	{
-		m_pathTimeMs += delta;
-		const float ang = ( float )( m_pathTimeMs * 0.001 /
-									 ( double )m_orbitPeriod * 2.0 * M_PI );
-		const float px = m_orbitCentre.x + std::cos( ang ) * m_orbitRadius;
-		const float pz = m_orbitCentre.z + std::sin( ang ) * m_orbitRadius;
-		Set_Pos( px, m_orbitCentre.y, pz );
-
-		if( m_orbitLookAt )
-		{
-			// yaw faces the orbit centre
-			m_yawDeg = std::atan2( m_orbitCentre.x - px,
-								   m_orbitCentre.z - pz ) / kDeg2Rad;
-		}
-		else
-		{
-			// yaw tangential to travel direction (d/dt of position)
-			m_yawDeg = std::atan2( -std::sin( ang ),
-								    std::cos( ang ) ) / kDeg2Rad + 90.0f;
-		}
-		Set_Rot( m_pathPitch, m_yawDeg, 0.0f );
-	}
-	else if( m_pathMode == PathMode::Waypoints && m_waypoints.size() >= 2 )
-	{
-		m_wpLegMs += delta;
-		while( m_wpLegMs >= m_wpLegDurMs )
-		{
-			m_wpLegMs -= m_wpLegDurMs;
-			m_wpFrom = m_waypoints[m_wpIndex];
-			m_wpIndex = ( m_wpIndex + 1 ) % m_waypoints.size();
-			const lsVector3& to = m_waypoints[m_wpIndex];
-			m_wpLegDurMs = m_wpFrom.distance( to ) / m_flySpeed * 1000.0;
-			if( m_wpLegDurMs < 1.0 ) m_wpLegDurMs = 1.0;
-		}
-		const lsVector3& to = m_waypoints[m_wpIndex];
-		const float t = ( float )( m_wpLegMs / m_wpLegDurMs );
-		const float px = m_wpFrom.x + ( to.x - m_wpFrom.x ) * t;
-		const float py = m_wpFrom.y + ( to.y - m_wpFrom.y ) * t;
-		const float pz = m_wpFrom.z + ( to.z - m_wpFrom.z ) * t;
-		Set_Pos( px, py, pz );
-		const float dx = to.x - m_wpFrom.x, dz = to.z - m_wpFrom.z;
-		if( dx * dx + dz * dz > 1e-6f )
-			m_yawDeg = std::atan2( dx, dz ) / kDeg2Rad;
-		Set_Rot( m_pathPitch, m_yawDeg, 0.0f );
-	}
-	else
-	{
-		// input-driven flight
+		// input-driven flight: full 6DOF — forward includes pitch (fly
+		// where you look), strafe is horizontal, vertical is world Y
 		float fwd = 0.0f, side = 0.0f, vert = 0.0f;
 		if( m_inFwd )   fwd  += 1.0f;
 		if( m_inBack )  fwd  -= 1.0f;
@@ -163,15 +171,20 @@ void lsFlyCam::Move( lsScene* scn, lsRender* render, double delta )
 		{
 			const float speed = m_flySpeed * ( m_inSprint ? 4.0f : 1.0f )
 							  * ( float )dt;
-			const lsVector3 f = forwardVec();
-			const lsVector3 r = rightVec();
-			const float nx = position.x + ( f.x * fwd + r.x * side ) * speed;
-			const float ny = position.y + ( f.y * fwd + r.y * side
-											+ vert ) * speed;
-			const float nz = position.z + ( f.z * fwd + r.z * side ) * speed;
-			Set_Pos( nx, ny, nz );
+			const float yaw = m_yawDeg * kDeg2Rad;
+			const float pitch = m_pitchDeg * kDeg2Rad;
+			const float cy = std::cos( yaw ), sy = std::sin( yaw );
+			const float cp = std::cos( pitch ), sp = std::sin( pitch );
+			// forward = -Z column of Ry(yaw)*Rx(pitch); right = X column
+			const lsVector3 f( -sy * cp, sp, -cy * cp );
+			const lsVector3 r( cy, 0.0f, -sy );
+			Set_Pos( position.x + ( f.x * fwd + r.x * side ) * speed,
+					 position.y + ( f.y * fwd + vert ) * speed,
+					 position.z + ( f.z * fwd + r.z * side ) * speed );
 		}
 	}
 
-	lsCamera::Move( scn, render, delta );
+	// animation update + transform rebuild (writes position/rotation.y
+	// when a path is playing)
+	lsAnimNode::Move( scn, render, delta );
 }

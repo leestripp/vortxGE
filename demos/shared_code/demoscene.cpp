@@ -1214,6 +1214,10 @@ void DemoScene::Update( double delta )
 		lsVector3 campos( cam->ModelMatrix.matrix[12],
 		                        cam->ModelMatrix.matrix[13],
 		                        cam->ModelMatrix.matrix[14] );
+		static int s_vegLodFrame = 0;
+		const bool vegTrace = std::getenv( "VORTX_VEG_TRACE" )
+						   && ++s_vegLodFrame % 60 == 0;
+		int vegHist[4] = { 0, 0, 0, 0 }; // 100% / 50% / 25% / beyond
 		for( auto& rec : s_vegChunks )
 		{
 			if( ! rec.lodThin || ! rec.batch ) continue;
@@ -1224,7 +1228,20 @@ void DemoScene::Update( double delta )
 				d < rec.maxDist * 0.75f ? 0.5f : 0.25f;
 			rec.batch->setInstanceDrawCount(
 				( int )( rec.fullCount * frac ) );
+			if( vegTrace )
+			{
+				if( d >= rec.maxDist ) vegHist[3]++;
+				else if( frac == 1.0f ) vegHist[0]++;
+				else if( frac == 0.5f ) vegHist[1]++;
+				else vegHist[2]++;
+			}
 		}
+		if( vegTrace )
+			cout << "VEG_TRACE cam (" << campos.x << "," << campos.y
+				 << "," << campos.z << ") grass chunks 100%:" << vegHist[0]
+				 << " 50%:" << vegHist[1] << " 25%:" << vegHist[2]
+				 << " beyond:" << vegHist[3] << "/" << s_vegChunks.size()
+				 << endl;
 	}
 
 #if defined(VORTX_DEBUG_TOOLS)
@@ -1615,7 +1632,7 @@ void DemoScene::toggleFlyCam()
 	if( ! m_flyCam )
 	{
 		m_flyCam = new lsFlyCam( m_viewer_scene );
-		m_flyCam->Set_Perspective( 45.0, 1820.0 / 1080.0, 0.1, 1000.0 );
+		m_flyCam->getCamera()->Set_Perspective( 45.0, 1820.0 / 1080.0, 0.1, 1000.0 );
 		m_viewer_scene->Add_Node( m_flyCam );
 		if( const char* e = std::getenv( "VORTX_FLYSPEED" ) )
 			m_flyCam->setFlySpeed( ( float )atof( e ) );
@@ -1625,11 +1642,25 @@ void DemoScene::toggleFlyCam()
 		// start from the current camera's position (mouse to look,
 		// WASD to fly, Space/Ctrl up/down, Shift sprint)
 		lsCamera* cur = m_viewer_scene->getActiveCamera();
-		if( cur && cur != m_flyCam )
+		if( cur && cur != m_flyCam->getCamera() )
+		{
 			m_flyCam->Set_Pos( cur->ModelMatrix.matrix[12],
 							   cur->ModelMatrix.matrix[13],
 							   cur->ModelMatrix.matrix[14] );
-		m_viewer_scene->setActiveCamera( m_flyCam );
+			// sync orientation: extract yaw/pitch from the current
+			// camera's forward (-Z column of the ModelMatrix)
+			const float fx = -cur->ModelMatrix.matrix[2],
+						fy = -cur->ModelMatrix.matrix[6],
+						fz = -cur->ModelMatrix.matrix[10];
+			const float yawDeg = std::atan2( -fx, -fz ) * 57.29578f;
+			const float pitchDeg = std::asin( std::max( -1.0f,
+						std::min( 1.0f, fy ) ) ) * 57.29578f;
+			m_flyCam->setYawPitch( yawDeg, pitchDeg );
+		}
+		m_viewer_scene->setActiveCamera( m_flyCam->getCamera() );
+		// sun shadow map must follow the ACTIVE camera, not the player
+		if( m_sun_light )
+			m_sun_light->setFollowCamera( m_flyCam->getCamera() );
 		m_flyCamActive = true;
 		cout << "DemoScene: flycam ON (F6 returns to the player rig)"
 			 << endl;
@@ -1637,7 +1668,11 @@ void DemoScene::toggleFlyCam()
 	else
 	{
 		if( m_playerRig && m_playerRig->getCamera() )
+		{
 			m_viewer_scene->setActiveCamera( m_playerRig->getCamera() );
+			if( m_sun_light )
+				m_sun_light->setFollowCamera( m_playerRig->getCamera() );
+		}
 		m_flyCamActive = false;
 		cout << "DemoScene: flycam OFF - player rig active" << endl;
 	}
