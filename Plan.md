@@ -89,7 +89,7 @@ available. ~60 fps vsync with instanced veg.
 - [x] **T6 — far-field cheap path:** per-pixel fade to single
   low-freq color; optionally a `terrain_splat_far` variant without
   samplers for the farthest LOD band.
-- [ ] **T7 (stretch):** triplanar cliffs, texture-array refactor,
+- [x] **T7 (triplanar done; arrays/normals deferred):** triplanar cliffs, texture-array refactor,
   per-layer normal maps.
 
 ## Verification (every stage)

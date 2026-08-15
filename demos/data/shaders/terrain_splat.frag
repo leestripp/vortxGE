@@ -377,7 +377,23 @@ void main(void) {
 		{
 		vec4 g = texture( tex_splat0, wuv );
 		vec4 d = texture( tex_splat1, wuv );
-		vec4 r = texture( tex_splat2, wuv );
+		// Plan.md T7 — triplanar rock: the world-XZ projection stretches
+		// into streaks on steep faces. On slopes (normal.y < 0.85) blend
+		// the three plane projections by |normal|; flat ground keeps the
+		// single cheap sample (rock weight is ~0 there anyway).
+		vec4 r;
+		if( osWorldNormal.y < 0.85 )
+		{
+			vec3 an = abs( osWorldNormal );
+			vec3 tw = an / ( an.x + an.y + an.z );
+			r = texture( tex_splat2, osWorldPos.zy * ( 1.0 / 3.5 ) ) * tw.x
+			  + texture( tex_splat2, wuv )                          * tw.y
+			  + texture( tex_splat2, osWorldPos.xy * ( 1.0 / 3.5 ) ) * tw.z;
+		}
+		else
+		{
+			r = texture( tex_splat2, wuv );
+		}
 		vec4 s = texture( tex_splat3, wuv );
 		// Plan.md T3 — height-based blending (Mishkinis): layer height
 		// (alpha) * splat weight, winner-takes-depth-window, renormalise.
