@@ -79,9 +79,11 @@ public:
 	void DeleteVertexArrays( lsSizei n, lsVAOID* arrays ) override;
 	void BindVertexArray( lsVAOID vao ) override;
 	void EnableVertexAttribArray( lsUInt index ) override;
+	void VertexAttribDivisor( lsUInt index, lsUInt divisor ) override;
 	void VertexAttribPointer( lsUInt index, lsInt size, lsEnum type, lsBoolean normalized, lsSizei stride, const void* pointer ) override;
 	void DrawArrays( lsEnum mode, lsInt first, lsSizei count ) override;
 	void DrawElements( lsEnum mode, lsSizei count, lsEnum type, const void* indices ) override;
+	void DrawElementsInstanced( lsEnum mode, lsSizei count, lsEnum type, const void* indices, lsSizei instances ) override;
 	lsShaderID CreateShader( lsEnum type ) override;
 	lsProgramID CreateProgram(  ) override;
 	void ShaderSource( lsShaderID shader, lsSizei count, const lsChar** string, const lsInt* length ) override;
@@ -207,6 +209,7 @@ private:
 		lsEnum		type = 0;
 		lsBoolean	normalized = 0;
 		lsSizei		stride = 0;
+		lsUInt		divisor = 0;	// 0 = per-vertex, 1 = per-instance
 		size_t		offset = 0;
 		bool		enabled = false;
 	};

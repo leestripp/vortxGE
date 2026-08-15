@@ -270,6 +270,7 @@ public:
     virtual void VertexAttribPointer( lsUInt index, lsInt size, lsEnum type,
                                       lsBoolean normalized, lsSizei stride,
                                       const void* pointer ) = 0;
+    virtual void VertexAttribDivisor( lsUInt index, lsUInt divisor ) = 0;
 
     //=========================================================================
     // Draw calls
@@ -278,6 +279,8 @@ public:
     virtual void DrawArrays( lsEnum mode, lsInt first, lsSizei count ) = 0;
     virtual void DrawElements( lsEnum mode, lsSizei count, lsEnum type,
                                const void* indices ) = 0;
+    virtual void DrawElementsInstanced( lsEnum mode, lsSizei count, lsEnum type,
+                                        const void* indices, lsSizei instances ) = 0;
 
     //=========================================================================
     // Shader / program objects

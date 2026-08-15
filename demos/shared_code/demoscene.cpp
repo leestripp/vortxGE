@@ -630,8 +630,15 @@ struct TerrainChunkRec {
 	float radius = 0.0f;
 	int lod = 0;
 };
+struct VegChunkRec {            // distance-culled via instanceDrawCount
+	lsBatch_Mesh* batch = nullptr;
+	lsVector3 centre;
+	float radius = 0.0f;
+	float maxDist = 0.0f;       // 0 = always draw
+};
 }
 static std::vector<TerrainChunkRec> s_terrainChunks;
+static std::vector<VegChunkRec> s_vegChunks;
 
 // -------------------------------------------------------------------
 // Terrain demo (VORTX_TERRAIN=1): procedural heightfield (noise ->
@@ -748,10 +755,12 @@ void DemoScene::setupTerrain()
 	cout << "VORTX_TERRAIN: heightfield collision at (" << kCX << ",0," << kCZ
 		 << "), cell " << cell << "m, height x" << kHeight << endl;
 
-	// -- vegetation: bushes + trees, BAKED into one static mesh per ----
-	// (chunk, layer). 800 individual lsObjects/draws collapse to at
-	// most 64 culled objects per layer. Grass needs the instanced
-	// renderer (plan M3) — not part of this demo yet.
+	// -- vegetation: grass + bushes + trees, GPU-INSTANCED ------------
+	if( ! std::getenv( "VORTX_NOVEG" ) ) {
+	// One lsObject per (chunk, species): the species mesh draws once
+	// per chunk with per-instance pos/rotY/scale from an instance VBO
+	// (lsBatch_Mesh::setInstanceData -> attributes 5/6, divisor 1).
+	// Grass adds a per-frame distance cutoff via setInstanceDrawCount.
 	terrain::Noise climate( 9001 );
 	std::vector<terrain::Biome> biomes( ( size_t )kRes * kRes );
 	for( int y = 0; y < kRes; ++y )
@@ -771,21 +780,48 @@ void DemoScene::setupTerrain()
 
 	terrain::veg::Scatterer scatterer( hf, biomes, kWorld, kHeight );
 
-	struct VegDef { const char* name; const char* file; int cap;
+	// instancing-aware shaders (batch Draw picks shadowmap_inst by name)
+	lsShader* instShader = shaders->Find_Shader( "light_tex_none_inst" );
+	if( ! instShader )
+	{
+		instShader = new lsShader( render );
+		instShader->Load_Shader( "light_tex_none_inst" );
+		// setKind() resolves + assigns the sampler units; loading by
+		// name leaves kind None -> samplers default to unit 0 ->
+		// "samplers of different type share a unit" validation error.
+		instShader->setKind( ShaderKind::LightTexNone );
+		shaders->Add_Shader( instShader );
+	}
+	if( ! shaders->Find_Shader( "shadowmap_inst" ) )
+	{
+		lsShader* s = new lsShader( render );
+		s->Load_Shader( "shadowmap_inst" );
+		s->setKind( ShaderKind::ShadowMap );
+		shaders->Add_Shader( s );
+	}
+
+	struct VegDef { const char* name; const char* file; int capPerChunk;
 					float minAlt, maxAlt, slope, spacing, density;
-					unsigned biomeMask; };
+					unsigned biomeMask; bool distanceCull;
+					float r, g, b; };
 	const unsigned forestMask = terrain::biomeBit( terrain::Biome::Forest )
 							| terrain::biomeBit( terrain::Biome::Grassland );
 	const VegDef vegDefs[] = {
-		{ "Tree", "data/vegetation/broadleaf.obj", 300,
-		  0.32f, 0.82f, 30.0f, 8.0f, 0.6f,
-		  forestMask | terrain::biomeBit( terrain::Biome::Taiga ) },
-		{ "Bush", "data/vegetation/bush.obj", 500,
+		{ "Grass", "data/vegetation/grass_clump.obj", 12000,
+		  0.25f, 0.85f, 34.0f, 1.0f, 1.0f,
+		  forestMask | terrain::biomeBit( terrain::Biome::Savanna ), true,
+		  0.30f, 0.55f, 0.16f },
+		{ "Bush", "data/vegetation/bush.obj", 200,
 		  0.31f, 0.75f, 28.0f, 4.0f, 0.5f,
-		  forestMask | terrain::biomeBit( terrain::Biome::Taiga ) },
+		  forestMask | terrain::biomeBit( terrain::Biome::Taiga ), false,
+		  0.16f, 0.38f, 0.12f },
+		{ "Tree", "data/vegetation/broadleaf.obj", 100,
+		  0.32f, 0.82f, 30.0f, 8.0f, 0.6f,
+		  forestMask | terrain::biomeBit( terrain::Biome::Taiga ), false,
+		  0.22f, 0.42f, 0.14f },
 	};
 
-	const float kChunkWorld = kWorld / kChunks;
+	s_vegChunks.clear();
 	for( const auto& vd : vegDefs )
 	{
 		auto meshRes = terrain::loadObj( vd.file );
@@ -806,70 +842,96 @@ void DemoScene::setupTerrain()
 		layer.rules.density = vd.density;
 		layer.rules.biomeMask = vd.biomeMask;
 
-		// gather all instances, bucketed by chunk
-		std::vector<terrain::Mesh> buckets( kChunks * kChunks );
-		std::vector<int> bucketCount( kChunks * kChunks, 0 );
-		int placed = 0;
-		for( int cy = 0; cy < kChunks && placed < vd.cap; ++cy )
-			for( int cx = 0; cx < kChunks && placed < vd.cap; ++cx )
-				for( const auto& inst :
-					 scatterer.scatter( layer, cx, cy, kChunks, 7 ) )
-				{
-					// world [0,kWorld] -> terrain-local [-kWorld/2, kWorld/2]
-					const float lx = inst.x - kWorld * 0.5f;
-					const float lz = inst.y - kWorld * 0.5f;
-					const int bx = std::clamp(
-						static_cast<int>( inst.x / kChunkWorld ), 0, kChunks - 1 );
-					const int by = std::clamp(
-						static_cast<int>( inst.y / kChunkWorld ), 0, kChunks - 1 );
-					terrain::Mesh& dst = buckets[by * kChunks + bx];
+		int objs = 0;
+		long total = 0;
+		for( int cy = 0; cy < kChunks; ++cy )
+			for( int cx = 0; cx < kChunks; ++cx )
+			{
+				auto instances = scatterer.scatter( layer, cx, cy, kChunks, 7 );
+				if( ( int )instances.size() > vd.capPerChunk )
+					instances.resize( vd.capPerChunk );
+				if( instances.empty() ) continue;
 
-					const float cr = std::cos( inst.rotation );
-					const float sr = std::sin( inst.rotation );
-					const std::uint32_t vbase =
-						static_cast<std::uint32_t>( dst.vertices.size() );
-					for( const auto& v : srcMesh.vertices )
-					{
-						const float sx = v.px * inst.scale;
-						const float sz = v.pz * inst.scale;
-						terrain::MeshVertex nv;
-						// R_y(rot): x' = x cos + z sin, z' = -x sin + z cos
-						nv.px = sx * cr + sz * sr + lx;
-						nv.py = v.py * inst.scale + inst.z;
-						nv.pz = -sx * sr + sz * cr + lz;
-						nv.nx = v.nx * cr + v.nz * sr;
-						nv.ny = v.ny;
-						nv.nz = -v.nx * sr + v.nz * cr;
-						dst.vertices.push_back( nv );
-					}
-					for( const auto idx : srcMesh.indices )
-						dst.indices.push_back( vbase + idx );
-					bucketCount[by * kChunks + bx]++;
-					if( ++placed >= vd.cap ) break;
+				// pack: 8 floats/instance, terrain-local coords
+				std::vector<float> packed( instances.size() * 8 );
+				float mn[3] = { 1e30f, 1e30f, 1e30f };
+				float mx[3] = { -1e30f, -1e30f, -1e30f };
+				for( size_t i = 0; i < instances.size(); ++i )
+				{
+					const auto& inst = instances[i];
+					const float lx = inst.x - kWorld * 0.5f;
+					const float ly = inst.z;               // elevation
+					const float lz = inst.y - kWorld * 0.5f;
+					// deterministic per-instance colour variation [0.8, 1.1]
+					const float h1 = ( float )( ( i * 2654435761u ) & 0xFFFF )
+									 / 65535.0f;
+					packed[i*8+0] = lx;
+					packed[i*8+1] = ly;
+					packed[i*8+2] = lz;
+					packed[i*8+3] = inst.scale * ( vd.distanceCull &&
+						std::getenv( "VORTX_GRASS_DEBUG" ) ? 6.0f : 1.0f );
+					packed[i*8+4] = std::cos( inst.rotation );
+					packed[i*8+5] = std::sin( inst.rotation );
+					packed[i*8+6] = 0.8f + 0.3f * h1;
+					packed[i*8+7] = 0.0f;
+					if( lx < mn[0] ) mn[0] = lx; if( lx > mx[0] ) mx[0] = lx;
+					if( ly < mn[1] ) mn[1] = ly; if( ly > mx[1] ) mx[1] = ly;
+					if( lz < mn[2] ) mn[2] = lz; if( lz > mx[2] ) mx[2] = lz;
 				}
 
-		int objs = 0;
-		for( int by = 0; by < kChunks; ++by )
-			for( int bx = 0; bx < kChunks; ++bx )
-			{
-				terrain::Mesh& dst = buckets[by * kChunks + bx];
-				if( dst.vertices.empty() ) continue;
-				lsMesh* baked = terrain::uploadVegetationMesh(
-					dst, render, terrainShader );
-				if( ! baked ) continue;
-				lsAsset_Mesh* bakedAsset = new lsAsset_Mesh( render );
-				bakedAsset->setData( baked );
+				lsMesh* m = terrain::uploadVegetationMesh(
+					srcMesh, render, instShader );
+				if( ! m ) continue;
+				lsBatch_Mesh* batch =
+					static_cast<lsBatch_Mesh*>( m->getBatch_list() );
+				batch->setInstanceData( packed.data(),
+										( int )instances.size() );
+				batch->m_albedo = lsVector4( vd.r, vd.g, vd.b, 1.0f );
+				if( vd.distanceCull && std::getenv( "VORTX_GRASS_DEBUG" ) )
+					batch->m_albedo = lsVector4( 2.0f, 0.0f, 2.0f, 1.0f );
+				batch->setSkipPrepass( vd.distanceCull ||
+					std::getenv( "VORTX_VEG_NOPREPASS" ) != nullptr );
+
+			// bSphere from instance spread (NOT the tiny source mesh)
+				lsBoundingSphere bs;
+				bs.center = lsVector3( ( mn[0] + mx[0] ) * 0.5f,
+									   ( mn[1] + mx[1] ) * 0.5f + 2.0f,
+									   ( mn[2] + mx[2] ) * 0.5f );
+				bs.radius = bs.center.distance(
+					lsVector3( mx[0], mx[1], mx[2] ) ) + 4.0f;
+				m->setBSphere( bs );
+
+				lsAsset_Mesh* asset = new lsAsset_Mesh( render );
+				asset->setData( m );
 				lsObject* veg = new lsObject( m_viewer_scene );
 				veg->setName( vd.name );
-				veg->Set_Asset( bakedAsset );
-				veg->Set_Pos( kCX, 0, kCZ ); // baked terrain-local coords
+				veg->Set_Asset( asset );
+				veg->Set_Pos( kCX, 0, kCZ ); // instances are terrain-local
+				if( vd.distanceCull || std::getenv( "VORTX_VEG_NOSHADOW" ) )
+				veg->setCasts_shadows( false ); // grass + debug-all
 				m_viewer_scene->Add_Node( veg );
+
+				static const float grassDist = []()
+				{
+					const char* e = std::getenv( "VORTX_GRASS_DIST" );
+					return e ? ( float )atof( e ) : 90.0f;
+				}();
+				static const float vegMaxOverride = []()
+				{
+					const char* e = std::getenv( "VORTX_VEG_MAXD" );
+					return e ? ( float )atof( e ) : 0.0f;
+				}();
+				veg->setMaxDrawDist( vegMaxOverride > 0.0f ? vegMaxOverride
+					: ( vd.distanceCull ? grassDist
+						: ( vd.capPerChunk <= 100 ? 800.0f : 300.0f ) ) );
 				++objs;
+				total += ( long )instances.size();
 			}
-		cout << "VORTX_TERRAIN: " << vd.name << " x" << placed
-			 << " in " << objs << " baked chunk meshes" << endl;
+		cout << "VORTX_TERRAIN: " << vd.name << " x" << total
+			 << " instanced over " << objs << " chunk draws" << endl;
 	}
 
+	} // VORTX_NOVEG
 	// -- spawn the rig on the terrain ------------------------------------
 	if( m_playerRig )
 	{

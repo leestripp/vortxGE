@@ -1659,6 +1659,12 @@ void lsVulkan::VertexAttribPointer( lsUInt index, lsInt size, lsEnum type,
 	a.offset = (size_t)pointer;
 }
 
+void lsVulkan::VertexAttribDivisor( lsUInt index, lsUInt divisor )
+{
+	if(! m_currentVao ) return;
+	m_vaos[m_currentVao].attribs[index].divisor = divisor;
+}
+
 // ---------------------------------------------------------------------
 // Shader objects (parse now; SPIR-V compile deferred to LinkProgram so
 // both stages share one canonical uniform-block layout)
@@ -2180,7 +2186,8 @@ VkPipeline lsVulkan::getPipeline( VkProgramObj& prog, const VkVao& vao,
 		VkVertexInputBindingDescription b{};
 		b.binding = idx;
 		b.stride = a.stride ? (uint32_t)a.stride : (uint32_t)( a.size * 4 );
-		b.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		b.inputRate = a.divisor ? VK_VERTEX_INPUT_RATE_INSTANCE
+		                        : VK_VERTEX_INPUT_RATE_VERTEX;
 		bindings.push_back( b );
 
 		VkVertexInputAttributeDescription ad{};
@@ -2443,6 +2450,12 @@ void lsVulkan::DrawArrays( lsEnum mode, lsInt first, lsSizei count )
 void lsVulkan::DrawElements( lsEnum mode, lsSizei count, lsEnum type,
 							 const void* indices )
 {
+	DrawElementsInstanced( mode, count, type, indices, 1 );
+}
+
+void lsVulkan::DrawElementsInstanced( lsEnum mode, lsSizei count, lsEnum type,
+									  const void* indices, lsSizei instances )
+{
 	s_callsDE++;
 	if(! m_inFrame ) { s_skipFrame++; return; }
 	if(! m_currentProgram ) { s_skipProg++; return; }
@@ -2499,7 +2512,7 @@ void lsVulkan::DrawElements( lsEnum mode, lsSizei count, lsEnum type,
 							 &drawSet, 1, &uboOffset );
 
 	const uint32_t firstIndex = (uint32_t)( (size_t)indices / indexSize );
-	vkCmdDrawIndexed( cmd, (uint32_t)count, 1, firstIndex, 0, 0 );
+	vkCmdDrawIndexed( cmd, (uint32_t)count, (uint32_t)instances, firstIndex, 0, 0 );
 	VORTX_DEBUG_ONLY( dumpDraw( mode, count, firstIndex, true ); )
 }
 

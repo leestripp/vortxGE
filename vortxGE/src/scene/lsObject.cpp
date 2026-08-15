@@ -147,6 +147,14 @@ void lsObject::Optimize( __attribute__((unused)) lsCamera *cam, int pass_type, _
         if( mesh )
         {
             int w = cam->frustum.sphereInFrustum( objpos + mesh->getBSphere().center, mesh->getBSphere().radius );
+            // max-draw-distance cull, bSphere-aware so origin-offset
+            // batches (instanced veg chunks) cull correctly
+            if( m_maxDrawDist > 0.0f && pass_type != LSPT_SHADOWMAP
+                && campos.distance( objpos + mesh->getBSphere().center )
+                   - mesh->getBSphere().radius > m_maxDrawDist )
+            {
+                w = OUTSIDE;
+            }
             // != OUTSIDE, not == INSIDE: a sphere that merely INTERSECTS a
             // frustum plane is partly on screen and must still draw —
             // otherwise big objects pop out at the frame edges (the

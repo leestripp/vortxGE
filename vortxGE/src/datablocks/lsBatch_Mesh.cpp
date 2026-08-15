@@ -99,9 +99,11 @@ void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, int pass_type )
 	cout << "lsBatch_Mesh::Draw - START: " << object->getName() << endl;
 #endif
 
+	if( pass_type == LSPT_PREPASS && m_skipPrepass ) return;
 	lsShader* shaderToUse = getShader();
 	if (pass_type == LSPT_SHADOWMAP) {
-		shaderToUse = getRender()->getShaderManager()->Find_Shader("shadowmap");
+		shaderToUse = getRender()->getShaderManager()->Find_Shader(
+			m_instanceCount > 0 ? "shadowmap_inst" : "shadowmap");
 	} else if (pass_type == LSPT_PREPASS) {
 		shaderToUse = getRender()->getShaderManager()->Find_Shader("prepass"); // L4.1b
 	}
@@ -125,7 +127,19 @@ void lsBatch_Mesh::Draw( lsCamera *cam, lsObject *object, int pass_type )
 	// Bind VAO vao_mesh
 	getRender()->BindVertexArray( vao_mesh );
 
-	getRender()->DrawElements( LS_TRIANGLES, count_tris, LS_UNSIGNED_SHORT, 0 );
+	if( m_instanceCount > 0 )
+	{
+		int n = ( m_instanceDrawCount >= 0 )
+				  ? std::min( m_instanceDrawCount, m_instanceCount )
+				  : m_instanceCount;
+		if( n > 0 )
+			getRender()->DrawElementsInstanced( LS_TRIANGLES, count_tris,
+												LS_UNSIGNED_SHORT, 0, n );
+	}
+	else
+	{
+		getRender()->DrawElements( LS_TRIANGLES, count_tris, LS_UNSIGNED_SHORT, 0 );
+	}
 
 	if( shaderToUse ) getRender()->UseProgram( 0 );
 
@@ -192,6 +206,32 @@ void lsBatch_Mesh::Add_Index( int index )
 	tri_index++;
 }
 
+void lsBatch_Mesh::setInstanceData( const float* data, int count )
+{
+	if( ! data || count <= 0 ) return;
+	getRender()->BindVertexArray( vao_mesh );
+	if( ! m_instanceVbo )
+		getRender()->GenBuffers( 1, &m_instanceVbo );
+	getRender()->BindBuffer( LS_ARRAY_BUFFER, m_instanceVbo );
+	// Mesa/radeonsi bounds-check quirk: the last instance's attribute
+	// reads land EXACTLY on the buffer end; pad to stay clear of the
+	// driver's robust-access GL_INVALID_OPERATION.
+	getRender()->BufferData( LS_ARRAY_BUFFER,
+							 sizeof(float) * count * 8 + 256, data, LS_STATIC_DRAW );
+	addMem_used( sizeof(float) * count * 8 );
+	getRender()->EnableVertexAttribArray( 5 );
+	getRender()->VertexAttribPointer( 5, 4, LS_FLOAT, LS_FALSE,
+									  sizeof(float) * 8, (const void*)0 );
+	getRender()->VertexAttribDivisor( 5, 1 );
+	getRender()->EnableVertexAttribArray( 6 );
+	getRender()->VertexAttribPointer( 6, 4, LS_FLOAT, LS_FALSE,
+									  sizeof(float) * 8,
+									  (const void*)( sizeof(float) * 4 ) );
+	getRender()->VertexAttribDivisor( 6, 1 );
+	getRender()->BindVertexArray( 0 );
+	m_instanceCount = count;
+}
+
 void lsBatch_Mesh::Copy_GLdata()
 {
 	// create buffers
@@ -250,6 +290,11 @@ void lsBatch_Mesh::Copy_GLdata()
 void lsBatch_Mesh::Clear_GLdata()
 {
 	// Delete buffer objects
+	if( m_instanceVbo )
+	{
+		getRender()->DeleteBuffers( 1, &m_instanceVbo );
+		m_instanceVbo = 0;
+	}
 	getRender()->DeleteBuffers( 6, bufferObjects );
 	getRender()->DeleteVertexArrays( 1, &vao_mesh );
 

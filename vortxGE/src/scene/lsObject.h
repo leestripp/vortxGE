@@ -304,6 +304,8 @@ public:
 	{
 		distance_to_camera = val;
 	}
+	void setMaxDrawDist( float val ) { m_maxDrawDist = val; }
+	float getMaxDrawDist() const { return m_maxDrawDist; }
 
     /**
      * @brief Get occlusion type
@@ -445,6 +447,11 @@ private:
     
     /** @brief Distance to camera for sorting */
 	float distance_to_camera;
+	/// 0 = unlimited. Distance (camera to bSphere surface) beyond which
+	/// the object is culled in Optimize — a REAL cull that skips Draw
+	/// entirely (no per-draw shader/light setup). Shadow passes ignore
+	/// it (their camera is the light).
+	float m_maxDrawDist = 0.0f;
     
     /** @brief Occlusion test type */
 	int occlusion_type;

@@ -147,6 +147,7 @@ public:
     virtual void DeleteVertexArrays( lsSizei n, lsVAOID* arrays ) override;
     virtual void BindVertexArray( lsVAOID vao ) override;
     virtual void EnableVertexAttribArray( lsUInt index ) override;
+    virtual void VertexAttribDivisor( lsUInt index, lsUInt divisor );
     virtual void VertexAttribPointer( lsUInt index, lsInt size, lsEnum type,
                                       lsBoolean normalized, lsSizei stride,
                                       const void* pointer ) override;
@@ -156,6 +157,8 @@ public:
     //=========================================================================
 
     virtual void DrawArrays( lsEnum mode, lsInt first, lsSizei count ) override;
+    virtual void DrawElementsInstanced( lsEnum mode, lsSizei count, lsEnum type,
+                                        const void* indices, lsSizei instances );
     virtual void DrawElements( lsEnum mode, lsSizei count, lsEnum type,
                                const void* indices ) override;
 

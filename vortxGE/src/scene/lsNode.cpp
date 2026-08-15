@@ -237,6 +237,20 @@ void lsNode::MoveThread( lsScene* scn, lsRender* render, double delta )
 	cout << "lsNode::MoveThred()" << endl;
 #endif
 	
+	// Serial by default — same reasoning as OptimizeThread above:
+	// thread spawn cost dwarfs the per-child matrix update.
+	static const bool serialMove = std::getenv( "VORTX_NODE_THREADS" ) == nullptr;
+	if( serialMove )
+	{
+		for (auto& child : m_children)
+			if (!child->IsMarkedForDeletion())
+			{
+				child->Move( scn, render, delta );
+				child->MoveThread( scn, render, delta );
+			}
+		return;
+	}
+
 	vector<thread> th;
 	int threads = 1;
 	int tc = 0;
@@ -319,6 +333,26 @@ void lsNode::OptimizeThread( lsCamera* cam, int pass_type, lsScene* scn, lsRende
 #ifdef VORTX_DEBUG_NODES
 	cout << "lsNode::OptimizeThread()" << endl;
 #endif
+
+	// Serial by default (2026-08-14): per-child Optimize is a sphere
+	// test (~1us) while a std::thread spawn costs ~20-50us. With the
+	// terrain+instanced-veg scenes pushing 350+ root children through
+	// ~5 Optimize passes per frame, thread-per-child cost 2000+ spawns
+	// ~= the entire frame budget (28.8 -> 14 fps). Serial is also
+	// race-free: threaded Optimize calls Add_DrawObject concurrently on
+	// the shared scene draw list (unprotected linked-list push).
+	// VORTX_NODE_THREADS=1 restores the old threaded path.
+	static const bool serial = std::getenv( "VORTX_NODE_THREADS" ) == nullptr;
+	if( serial )
+	{
+		for (auto& child : m_children)
+			if (!child->IsMarkedForDeletion())
+				child->Optimize( cam, pass_type, scn, render );
+		for (auto& child : m_children)
+			if (!child->IsMarkedForDeletion())
+				child->OptimizeThread( cam, pass_type, scn, render );
+		return;
+	}
 
 	vector<thread> th;
 	int threads = 1;

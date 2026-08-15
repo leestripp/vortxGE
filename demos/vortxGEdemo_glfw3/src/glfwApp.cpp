@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <ctime>
+#include <chrono>
 #include <cstring>
 
 #include "glfwApp.h"
@@ -376,6 +377,8 @@ void glfwApp::Run()
 	
 	running = true;
 
+	static const bool phaseTime = std::getenv( "VORTX_PHASE_TIME" ) != nullptr;
+	static double accU = 0, accR = 0, accS = 0; static int accN = 0;
 	while( running )
 	{
 		if( glfwWindowShouldClose( m_window ) )
@@ -415,6 +418,7 @@ void glfwApp::Run()
 				m_mouse_look_active = false;
 			}
 
+			auto tp0 = std::chrono::steady_clock::now();
 			// Update
 			demoscene->Update( delta );
 
@@ -442,7 +446,15 @@ void glfwApp::Run()
 
 			// Render
 			demoscene->Resize( 0, 0, m_win_width, m_win_height );
+			auto tp1 = std::chrono::steady_clock::now();
 			demoscene->Render();
+			if( phaseTime )
+			{
+				auto tp2 = std::chrono::steady_clock::now();
+				accU += std::chrono::duration<double,std::milli>( tp1 - tp0 ).count();
+				accR += std::chrono::duration<double,std::milli>( tp2 - tp1 ).count();
+				accN++;
+			}
 		}
 
 		// Builtin screenshot (F12): take the requested capture AFTER the
@@ -464,8 +476,24 @@ void glfwApp::Run()
 		// via vortxGE::Render, and glfwSwapBuffers has no GL context here)
 		if( m_renderType == RenderType::OpenGL )
 			glfwSwapBuffers( m_window );
-		// Poll
-		glfwPollEvents();
+		if( phaseTime )
+		{
+			auto tp3 = std::chrono::steady_clock::now();
+			glfwPollEvents();
+			auto tp4 = std::chrono::steady_clock::now();
+			accS += std::chrono::duration<double,std::milli>( tp4 - tp3 ).count();
+			if( accN >= 120 )
+			{
+				printf( "PHASE update=%.2fms render=%.2fms poll=%.2fms (n=%d)\n",
+						accU / accN, accR / accN, accS / accN, accN );
+				accU = accR = accS = 0; accN = 0;
+			}
+		}
+		else
+		{
+			// Poll
+			glfwPollEvents();
+		}
 
 		// Delta
 		delta = timer.get_ElapsedTime();

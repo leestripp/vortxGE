@@ -235,6 +235,15 @@ public:
 private:
     /// Vertex Array Object
 	lsVAOID vao_mesh;
+	// Hardware instancing (scattered vegetation etc.): 8 floats per
+	// instance -> attr 5 vec4 (pos.xyz, scale), attr 6 vec4 (cos/sin
+	// rotY, colour variation, pad). Attached to vao_mesh by
+	// setInstanceData(); Draw() uses DrawElementsInstanced when
+	// m_instanceCount > 0. m_instanceDrawCount lets a per-frame LOD
+	// pass clamp/zero the draw without re-uploading (-1 = all).
+	lsBufferID m_instanceVbo = 0;
+	int m_instanceCount = 0;
+	int m_instanceDrawCount = -1;
 	
     /// OpenGL buffer objects
 	lsBufferID bufferObjects[6];
@@ -269,6 +278,20 @@ private:
 	
     /** @brief Total triangle/index count */
 	int count_tris;
+
+public:
+	/// Upload per-instance transform data (8 floats/instance) and mark
+	/// the batch instanced. Call AFTER Copy_GLdata(). Requires an
+	/// instancing-aware shader (reads locations 5/6), e.g.
+	/// light_tex_none_inst / shadowmap_inst.
+	void setInstanceData( const float* data, int count );
+	int getInstanceCount() const { return m_instanceCount; }
+	/// Per-frame draw clamp for distance culling (-1 = draw all).
+	void setInstanceDrawCount( int n ) { m_instanceDrawCount = n; }
+	/// Skip this batch in the L4.1b depth/normal prepass (tiny instanced
+	/// veg adds nothing to prepass but doubles its vertex load).
+	void setSkipPrepass( bool v ) { m_skipPrepass = v; }
+	bool m_skipPrepass = false;
 
 	//=========================================================================
     // Animation

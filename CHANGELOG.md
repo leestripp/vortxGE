@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **GPU instancing + terrain vegetation (2026-08-15):** real instanced
+  rendering — `lsRender::VertexAttribDivisor` / `DrawElementsInstanced`
+  on both backends (GL: `glVertexAttribDivisor`/`glDrawElementsInstanced`;
+  Vulkan: divisor recorded per attribute, pipeline builder maps it to
+  `VK_VERTEX_INPUT_RATE_INSTANCE`). `lsBatch_Mesh::setInstanceData()`
+  packs 8 floats/instance into attrs 5/6 (pos+scale, rotY cos/sin +
+  colour variation), `setInstanceDrawCount()` for LOD prefix clamping,
+  `setSkipPrepass()`. New instanced shaders `light_tex_none_inst` +
+  `shadowmap_inst` (per-instance Ry*scale+translate in the vertex
+  shader). Demo terrain vegetation rewritten: 625k grass / 10.8k bush /
+  5.1k tree instances in 64 chunk draws per species — one VBO per
+  chunk, no per-object scene nodes for individual plants.
+- **`lsObject::setMaxDrawDist()` (2026-08-15):** bSphere-aware
+  distance culling in `Optimize` (camera-to-surface distance), skipped
+  for shadow passes (their camera is the light). Used by the demo for
+  per-species veg draw distances (grass 90 m, bush 300 m, tree 800 m).
+- **Debug hooks (2026-08-15):** `VORTX_PHASE_TIME=1` prints
+  update/render/poll ms per 120 frames; `VORTX_NOVEG`,
+  `VORTX_VEG_NOSHADOW`, `VORTX_VEG_NOPREPASS`, `VORTX_VEG_MAXD`,
+  `VORTX_GRASS_DIST` isolate vegetation cost/placement.
+
+### Fixed
+- **Node thread-per-child perf collapse (2026-08-15):**
+  `lsNode::MoveThread`/`OptimizeThread` spawned one `std::thread` per
+  child node per pass (~20-50 µs each). The terrain+veg scene pushes
+  350+ root children through ~6 thread passes per frame -> 2000+
+  spawns ~= 45 ms/frame (14 fps). Both now run serially in the calling
+  thread (per-child work is ~1 µs; serial is also race-free — threaded
+  `Optimize` concurrently pushed to the unprotected scene draw list).
+  Result: 14 -> 59.8 fps (vsync) with full vegetation on GL and
+  Vulkan. `VORTX_NODE_THREADS=1` restores the old path for comparison.
+
 ### Removed
 - **Legacy render path (R6):** `vortxGE/src/passes/` (lsPassManager and
   all pass classes) and `vortxGE/src/controls/` (lsControl,

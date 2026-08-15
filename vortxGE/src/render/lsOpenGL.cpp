@@ -263,6 +263,8 @@ void lsOpenGL::VertexAttribPointer( lsUInt index, lsInt size, lsEnum type,
 // ---- Draw calls ----
 void lsOpenGL::DrawArrays( lsEnum mode, lsInt first, lsSizei count )                       { glDrawArrays( static_cast<GLenum>(mode), static_cast<GLint>(first), static_cast<GLsizei>(count) ); VORTX_DEBUG_ONLY( lsFrameDump::glRecordDraw( (uint32_t)mode, (uint32_t)count, (uint32_t)first, false ); ) }
 void lsOpenGL::DrawElements( lsEnum mode, lsSizei count, lsEnum type, const void* indices ) { glDrawElements( static_cast<GLenum>(mode), static_cast<GLsizei>(count), static_cast<GLenum>(type), indices ); VORTX_DEBUG_ONLY( lsFrameDump::glRecordDraw( (uint32_t)mode, (uint32_t)count, (uint32_t)( (size_t)indices / ( type == LS_UNSIGNED_INT ? 4 : 2 ) ), true ); ) }
+void lsOpenGL::DrawElementsInstanced( lsEnum mode, lsSizei count, lsEnum type, const void* indices, lsSizei instances ) { glDrawElementsInstanced( static_cast<GLenum>(mode), static_cast<GLsizei>(count), static_cast<GLenum>(type), indices, static_cast<GLsizei>(instances) ); }
+void lsOpenGL::VertexAttribDivisor( lsUInt index, lsUInt divisor ) { glVertexAttribDivisor( static_cast<GLuint>(index), static_cast<GLuint>(divisor) ); }
 
 // ---- Shader / program objects ----
 lsShaderID lsOpenGL::CreateShader( lsEnum type )                                            { return static_cast<lsShaderID>(glCreateShader( static_cast<GLenum>(type) )); }
