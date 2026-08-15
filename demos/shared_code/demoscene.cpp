@@ -653,6 +653,25 @@ static std::vector<VegChunkRec> s_vegChunks;
 // flycam default pose: above terrain centre looking north-ish
 static constexpr float kFlyDefX = 700.0f, kFlyDefY = 120.0f, kFlyDefZ = 0.0f;
 
+// The demo's veg OBJs were authored growing along -Z (Blender export
+// without the Y-up conversion): tree trunk runs 0 -> -3.2 in Z, grass
+// blades lie flat pointing -Z. Rotate +90 deg about X so -Z becomes
+// +Y (upright): (x,y,z) -> (x,-z,y). Pure rotation preserves winding.
+static void uprightMeshZneg( terrain::Mesh& mesh )
+{
+	for( auto& v : mesh.vertices )
+	{
+		const float y = v.py, z = v.pz;
+		v.py = -z; v.pz = y;
+		const float ny = v.ny, nz = v.nz;
+		v.ny = -nz; v.nz = ny;
+	}
+	const float mnY = mesh.aabbMin[1], mxY = mesh.aabbMax[1];
+	const float mnZ = mesh.aabbMin[2], mxZ = mesh.aabbMax[2];
+	mesh.aabbMin[1] = -mxZ; mesh.aabbMax[1] = -mnZ;
+	mesh.aabbMin[2] = mnY;  mesh.aabbMax[2] = mxY;
+}
+
 void DemoScene::setupTerrain()
 {
 	if( ! m_viewer_scene ) return;
@@ -857,22 +876,24 @@ void DemoScene::setupTerrain()
 	struct VegDef { const char* name; const char* file; int capPerChunk;
 					float minAlt, maxAlt, slope, spacing, density;
 					unsigned biomeMask; bool distanceCull;
-					float r, g, b; };
+					float r, g, b;
+					float scaleMul;  // world-size target / mesh size
+					};
 	const unsigned forestMask = terrain::biomeBit( terrain::Biome::Forest )
 							| terrain::biomeBit( terrain::Biome::Grassland );
 	const VegDef vegDefs[] = {
 		{ "Grass", "data/vegetation/grass_clump.obj", 12000,
 		  0.05f, 0.85f, 34.0f, 1.0f, 1.0f,
 		  forestMask | terrain::biomeBit( terrain::Biome::Savanna ), true,
-		  0.42f, 0.66f, 0.20f },
+		  0.42f, 0.66f, 0.20f, 0.40f },
 		{ "Bush", "data/vegetation/bush.obj", 400,
 		  0.05f, 0.75f, 28.0f, 3.0f, 0.7f,
 		  forestMask | terrain::biomeBit( terrain::Biome::Taiga ), false,
-		  0.20f, 0.45f, 0.16f },
-		{ "Tree", "data/vegetation/broadleaf.obj", 250,
-		  0.05f, 0.82f, 30.0f, 6.0f, 0.8f,
+		  0.20f, 0.45f, 0.16f, 1.6f },
+		{ "Tree", "data/vegetation/broadleaf.obj", 200,
+		  0.05f, 0.82f, 30.0f, 9.0f, 0.8f,
 		  forestMask | terrain::biomeBit( terrain::Biome::Taiga ), false,
-		  0.26f, 0.48f, 0.18f },
+		  0.26f, 0.48f, 0.18f, 2.8f },
 	};
 
 	static const bool vegDebug = std::getenv( "VORTX_VEG_DEBUG" ) != nullptr;
@@ -885,7 +906,9 @@ void DemoScene::setupTerrain()
 			cerr << "VORTX_TERRAIN: " << meshRes.error() << endl;
 			continue;
 		}
-		const terrain::Mesh& srcMesh = *meshRes;
+		terrain::Mesh upright = *meshRes;
+		uprightMeshZneg( upright );
+		const terrain::Mesh& srcMesh = upright;
 
 		terrain::veg::VegetationLayer layer;
 		layer.id = 1;
@@ -940,12 +963,12 @@ void DemoScene::setupTerrain()
 					packed[i*8+0] = lx;
 					packed[i*8+1] = ly;
 					packed[i*8+2] = lz;
-					packed[i*8+3] = inst.scale * ( vd.distanceCull &&
-						std::getenv( "VORTX_GRASS_DEBUG" ) ? 6.0f : []()
-					{
-						const char* e = std::getenv( "VORTX_GRASS_SCALE" );
-						return e ? ( float )atof( e ) : 1.6f;
-					}() );
+					const float scaleMul = ( vd.distanceCull &&
+						std::getenv( "VORTX_GRASS_DEBUG" ) ) ? 6.0f
+						: ( vd.distanceCull && std::getenv( "VORTX_GRASS_SCALE" ) )
+							? ( float )atof( std::getenv( "VORTX_GRASS_SCALE" ) )
+							: vd.scaleMul;
+					packed[i*8+3] = inst.scale * scaleMul;
 					packed[i*8+4] = std::cos( inst.rotation );
 					packed[i*8+5] = std::sin( inst.rotation );
 					packed[i*8+6] = 0.8f + 0.3f * h1;
@@ -1324,68 +1347,73 @@ void DemoScene::Update( double delta )
 	}
 #endif
 
-	// lsFlyCam: free-fly survey camera. VORTX_FLYCAM=1 creates it and
-	// makes it the active camera (the rig stays for physics but its
-	// camera is detached). Pose: VORTX_CAM_POS / VORTX_CAM_YAW/PITCH;
-	// speed: VORTX_FLYSPEED m/s (default 40). Scripted flyover:
+	// lsFlyCam survey camera: F6 toggles it live (noclip-style); the
+	// env vars force it ON once at startup for scripted captures.
+	// Pose: VORTX_CAM_POS / VORTX_CAM_YAW/PITCH; speed: VORTX_FLYSPEED.
+	// Scripted flyover:
 	//   VORTX_FLYPATH=orbit:cx,cy,cz,radius,periodSec[,pitchDeg]
 	//   VORTX_FLYPATH=tour:x0,y0,z0;x1,y1,z1;...  (loops at flySpeed)
-	static lsFlyCam* s_flyCam = nullptr;
-	if( std::getenv( "VORTX_FLYCAM" ) && m_viewer_scene && ! s_flyCam )
 	{
-		s_flyCam = new lsFlyCam( m_viewer_scene );
-		s_flyCam->Set_Perspective( 45.0, 1820.0 / 1080.0, 0.1, 1000.0 );
-		m_viewer_scene->Add_Node( s_flyCam );
-		m_viewer_scene->setActiveCamera( s_flyCam );
-		m_flyCam = s_flyCam;
-
-		float px = kFlyDefX, py = kFlyDefY, pz = kFlyDefZ;
-		float yaw = 0.0f, pitch = -25.0f;
-		if( const char* e = std::getenv( "VORTX_CAM_POS" ) )
-			sscanf( e, "%f,%f,%f", &px, &py, &pz );
-		if( const char* e = std::getenv( "VORTX_CAM_YAW" ) )
-			yaw = ( float )atof( e );
-		if( const char* e = std::getenv( "VORTX_CAM_PITCH" ) )
-			pitch = ( float )atof( e );
-		if( const char* e = std::getenv( "VORTX_FLYSPEED" ) )
-			s_flyCam->setFlySpeed( ( float )atof( e ) );
-		s_flyCam->Set_Pos( px, py, pz );
-		s_flyCam->setYawPitch( yaw, pitch );
-
-		if( const char* path = std::getenv( "VORTX_FLYPATH" ) )
+		static bool s_flyEnvChecked = false;
+		if( ! s_flyEnvChecked )
 		{
-			if( strncmp( path, "orbit:", 6 ) == 0 )
+			s_flyEnvChecked = true;
+			if( std::getenv( "VORTX_FLYCAM" ) && ! m_flyCamActive )
 			{
-				float cx = 0, cy = 100, cz = 0, r = 300, per = 60, pp = -35;
-				sscanf( path + 6, "%f,%f,%f,%f,%f,%f",
-						&cx, &cy, &cz, &r, &per, &pp );
-				s_flyCam->Start_Orbit( lsVector3( cx, cy, cz ), r, per, pp, false );
-				cout << "DemoScene: flycam orbit c(" << cx << "," << cy
-					 << "," << cz << ") r=" << r << " period=" << per << "s" << endl;
-			}
-			else if( strncmp( path, "tour:", 5 ) == 0 )
-			{
-				std::string wps( path + 5 );
-				size_t start = 0;
-				while( start < wps.size() )
+				toggleFlyCam();
+				float px = kFlyDefX, py = kFlyDefY, pz = kFlyDefZ;
+				float yaw = 0.0f, pitch = -25.0f;
+				if( const char* e = std::getenv( "VORTX_CAM_POS" ) )
+					sscanf( e, "%f,%f,%f", &px, &py, &pz );
+				if( const char* e = std::getenv( "VORTX_CAM_YAW" ) )
+					yaw = ( float )atof( e );
+				if( const char* e = std::getenv( "VORTX_CAM_PITCH" ) )
+					pitch = ( float )atof( e );
+				m_flyCam->Set_Pos( px, py, pz );
+				m_flyCam->setYawPitch( yaw, pitch );
+
+				if( const char* path = std::getenv( "VORTX_FLYPATH" ) )
 				{
-					size_t end = wps.find( ';', start );
-					std::string tok = wps.substr( start,
-						end == std::string::npos ? end : end - start );
-					float wx, wy, wz;
-					if( sscanf( tok.c_str(), "%f,%f,%f", &wx, &wy, &wz ) == 3 )
-						s_flyCam->Add_Waypoint( lsVector3( wx, wy, wz ) );
-					if( end == std::string::npos ) break;
-					start = end + 1;
+					if( strncmp( path, "orbit:", 6 ) == 0 )
+					{
+						float cx = 0, cy = 100, cz = 0, r = 300,
+							  per = 60, pp = -35;
+						sscanf( path + 6, "%f,%f,%f,%f,%f,%f",
+								&cx, &cy, &cz, &r, &per, &pp );
+						m_flyCam->Start_Orbit( lsVector3( cx, cy, cz ),
+											   r, per, pp, false );
+						cout << "DemoScene: flycam orbit c(" << cx << ","
+							 << cy << "," << cz << ") r=" << r
+							 << " period=" << per << "s" << endl;
+					}
+					else if( strncmp( path, "tour:", 5 ) == 0 )
+					{
+						std::string wps( path + 5 );
+						size_t start = 0;
+						while( start < wps.size() )
+						{
+							size_t end = wps.find( ';', start );
+							std::string tok = wps.substr( start,
+								end == std::string::npos ? end
+														 : end - start );
+							float wx, wy, wz;
+							if( sscanf( tok.c_str(), "%f,%f,%f",
+										&wx, &wy, &wz ) == 3 )
+								m_flyCam->Add_Waypoint(
+									lsVector3( wx, wy, wz ) );
+							if( end == std::string::npos ) break;
+							start = end + 1;
+						}
+						m_flyCam->Start_Waypoints( -35.0f );
+						cout << "DemoScene: flycam waypoint tour" << endl;
+					}
 				}
-				s_flyCam->Start_Waypoints( -35.0f );
-				cout << "DemoScene: flycam waypoint tour" << endl;
+				else
+				{
+					cout << "DemoScene: flycam active at (" << px << ","
+						 << py << "," << pz << ")" << endl;
+				}
 			}
-		}
-		else
-		{
-			cout << "DemoScene: flycam active at (" << px << "," << py
-				 << "," << pz << ")" << endl;
 		}
 	}
 
@@ -1581,11 +1609,45 @@ void DemoScene::processEvent( lsEvent* event )
 	}
 }
 
+void DemoScene::toggleFlyCam()
+{
+	if( ! m_viewer_scene ) return;
+	if( ! m_flyCam )
+	{
+		m_flyCam = new lsFlyCam( m_viewer_scene );
+		m_flyCam->Set_Perspective( 45.0, 1820.0 / 1080.0, 0.1, 1000.0 );
+		m_viewer_scene->Add_Node( m_flyCam );
+		if( const char* e = std::getenv( "VORTX_FLYSPEED" ) )
+			m_flyCam->setFlySpeed( ( float )atof( e ) );
+	}
+	if( ! m_flyCamActive )
+	{
+		// start from the current camera's position (mouse to look,
+		// WASD to fly, Space/Ctrl up/down, Shift sprint)
+		lsCamera* cur = m_viewer_scene->getActiveCamera();
+		if( cur && cur != m_flyCam )
+			m_flyCam->Set_Pos( cur->ModelMatrix.matrix[12],
+							   cur->ModelMatrix.matrix[13],
+							   cur->ModelMatrix.matrix[14] );
+		m_viewer_scene->setActiveCamera( m_flyCam );
+		m_flyCamActive = true;
+		cout << "DemoScene: flycam ON (F6 returns to the player rig)"
+			 << endl;
+	}
+	else
+	{
+		if( m_playerRig && m_playerRig->getCamera() )
+			m_viewer_scene->setActiveCamera( m_playerRig->getCamera() );
+		m_flyCamActive = false;
+		cout << "DemoScene: flycam OFF - player rig active" << endl;
+	}
+}
+
 void DemoScene::movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch)
 {
-	if (m_flyCam)
+	if (m_flyCamActive && m_flyCam)
 	{
-		// flycam owns movement: jump=up, crouch=down
+		// flycam owns movement while toggled on: jump=up, crouch=down
 		m_flyCam->HandleFlyInput(f, b, l, r, jump, crouch, sprint);
 		return;
 	}
@@ -1597,7 +1659,7 @@ void DemoScene::movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprin
 
 void DemoScene::rotatePlayerView( double delta_x, double delta_y)
 {
-	if (m_flyCam) {
+	if (m_flyCamActive && m_flyCam) {
 		m_flyCam->HandleFlyLook(static_cast<float>(delta_x), static_cast<float>(delta_y));
 		return;
 	}

@@ -471,3 +471,33 @@ Verified: ground-level captures show grass + bushes + trees across the
 whole map (was: one foothill patch), 59.6 fps at vsync cap, ctest 100%.
 Known polish item: bush shade sides read nearly black (dark albedo +
 low ambient) — lift ambient or albedo if it bothers in play.
+
+## 2026-08-15 (2) — Vegetation asset scale/orientation + flycam toggle
+
+### Fixed
+- **Veg meshes were lying flat**: grass_clump/bush/broadleaf OBJs were
+  authored growing along -Z (Blender export without Y-up conversion) —
+  tree trunk ran 0 -> -3.2 in Z, so "trees" were 3.2 m horizontal
+  patches on the ground. Meshes are now rotated +90 deg about X at
+  load (positions, normals, AABB) — trees stand upright with trunks.
+- **Asset scales corrected to 1 unit = 1 m**: per-species `scaleMul`
+  (target world size / mesh size) in the demo veg table — grass
+  0.34-0.50 m tufts, bushes 1.1-1.7 m, trees 7-11 m tall (was:
+  waist-high 1.4 m grass, 2 m trees). Per-instance jitter (0.8-1.2)
+  on top. Trees thinned (9 m spacing, cap 200) so canopies don't
+  close into darkness.
+- **lsFirstPersonRig no longer hijacked**: flycam input routing is now
+  keyed on an explicit `m_flyCamActive` flag instead of mere flycam
+  existence; default OFF, rig path untouched. Fixed the static
+  `s_flyCam` that survived scene reloads (dangling on 2nd run).
+
+### Changed
+- **Flycam is now a runtime toggle**: F6 switches rig <-> flycam live
+  (noclip-style: starts at the current camera position, WASD + Space/
+  Ctrl + Shift sprint, mouse look; F6 again returns to the rig).
+  VORTX_FLYCAM=1 still forces it on at startup for scripted captures
+  (same VORTX_CAM_POS/YAW/PITCH, VORTX_FLYPATH orbit/tour envs).
+  gtkmm frontend: F6 binding not added yet (glfw3 only).
+
+Verified: normal mode rig camera at spawn responding to input path;
+flycam mode at exact requested pose; orbit path moves; ctest 100%.

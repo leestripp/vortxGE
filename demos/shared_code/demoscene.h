@@ -54,6 +54,7 @@ public:
     void initPipeline();
     // Player movement
     void movePlayer(bool f, bool b, bool l, bool r, bool jump, bool sprint, bool crouch);
+    void toggleFlyCam();   // F6: noclip-style survey camera on/off
     void rotatePlayerView( double delta_x, double delta_y);
     void handleMouseButtons(bool left, bool right); // Add this method
     /**
@@ -119,7 +120,8 @@ private:
 	
     // Player Rig
     lsFirstPersonRig* m_playerRig = nullptr; // Changed type to lsFirstPersonRig
-    lsFlyCam* m_flyCam = nullptr;      // VORTX_FLYCAM survey camera
+    lsFlyCam* m_flyCam = nullptr;      // survey camera (created on demand)
+    bool m_flyCamActive = false;       // true = flycam owns view+input
     lsLight_Direct* m_sun_light = nullptr;
     lsSky* m_sky = nullptr; // S-series procedural sky + day/night cycle
     

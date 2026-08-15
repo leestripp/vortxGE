@@ -54,6 +54,12 @@ static void key_callback(GLFWwindow* window, int key, __attribute__((unused)) in
 			case GLFW_KEY_F12:
 				glfw_app.requestScreenshot();
 				break;
+
+			case GLFW_KEY_F6:
+				// noclip-style survey camera toggle (rig <-> flycam)
+				if( glfw_app.getDemoscene() )
+					glfw_app.getDemoscene()->toggleFlyCam();
+				break;
 		}
 	}
 	
