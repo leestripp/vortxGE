@@ -81,6 +81,26 @@ public:
 	bool isPathActive() const { return m_pathActive; }
 
 	//=========================================================================
+	// Terrain-aware scripted paths
+	//=========================================================================
+
+	/// Height query hook: returns the terrain surface height (world Y)
+	/// at world (x,z). When set, Start_Orbit/Start_Waypoints lift every
+	/// keyframe to terrain + path clearance, so flyovers glide over
+	/// mountains instead of clipping through them.
+	typedef float (*HeightQueryFn)( float x, float z );
+	void setHeightQuery( HeightQueryFn fn ) { m_heightQuery = fn; }
+
+	/// Minimum altitude above the terrain surface on scripted paths.
+	void setPathClearance( float metres ) { m_pathClearance = metres; }
+	float getPathClearance() const { return m_pathClearance; }
+
+	/// Cruise speed for scripted paths (m/s) — separate from the manual
+	/// fly speed; waypoint leg durations are computed from this.
+	void setPathSpeed( float mps ) { m_pathSpeed = mps; }
+	float getPathSpeed() const { return m_pathSpeed; }
+
+	//=========================================================================
 	// Update
 	//=========================================================================
 
@@ -89,6 +109,9 @@ public:
 private:
 	/// Push m_yawDeg/m_pitchDeg to node yaw + child-camera pitch.
 	void applyYawPitch();
+
+	/// Lift a path keyframe above the terrain when a query is set.
+	float pathHeight( float x, float y, float z ) const;
 
 	lsCamera* m_camera = nullptr;
 
@@ -105,6 +128,9 @@ private:
 	// path animation state
 	bool m_pathActive = false;
 	std::vector<lsVector3> m_waypoints;
+	HeightQueryFn m_heightQuery = nullptr;
+	float m_pathClearance = 25.0f;  ///< min metres above terrain
+	float m_pathSpeed = 12.0f;      ///< scripted-path cruise m/s
 
 	static constexpr double kAnimFps = 60.0; ///< keyframe timebase
 };

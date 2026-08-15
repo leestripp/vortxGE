@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Terrain-following flycam paths (2026-08-15):** scripted flyovers
+  (`VORTX_FLYPATH` orbit/tour) no longer clip through mountains.
+  `lsFlyCam` gains a `setHeightQuery()` hook — the demo wires it to
+  the persisted terrain heightfield (bilinear world-space sample) —
+  plus `setPathClearance()` (default 25 m) and `setPathSpeed()`
+  (default 12 m/s, was manual fly speed 40 m/s). Every orbit/tour
+  keyframe is lifted to terrain + clearance; waypoint leg durations
+  use the slower cruise speed. Env tuning: `VORTX_PATHCLEAR`,
+  `VORTX_PATHSPEED`; `VORTX_FLYDEBUG=1` traces key heights vs terrain.
 - **GPU instancing + terrain vegetation (2026-08-15):** real instanced
   rendering — `lsRender::VertexAttribDivisor` / `DrawElementsInstanced`
   on both backends (GL: `glVertexAttribDivisor`/`glDrawElementsInstanced`;

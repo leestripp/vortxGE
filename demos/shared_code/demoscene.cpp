@@ -644,6 +644,27 @@ struct VegChunkRec {            // distance-culled via instanceDrawCount
 static std::vector<TerrainChunkRec> s_terrainChunks;
 static std::vector<VegChunkRec> s_vegChunks;
 
+// Persistent heightfield + world mapping for runtime height queries
+// (the flycam's terrain-following flyover paths sample this). The
+// heightfield itself is generated once in setupTerrain; veg scatter
+// consumes it there and would otherwise leave no way to ask
+// "how high is the surface at world (x,z)?" afterwards.
+static std::unique_ptr<terrain::Heightfield> s_terrainHF;
+static float s_terrainWorld = 0.0f, s_terrainHeight = 0.0f;
+static float s_terrainCX = 0.0f, s_terrainCZ = 0.0f;
+
+/// Terrain surface height (world Y) at world (x,z); 0 when no terrain.
+static float terrainHeightAt( float x, float z )
+{
+	if( ! s_terrainHF || s_terrainWorld <= 0.0f ) return 0.0f;
+	const float u = ( x - s_terrainCX + s_terrainWorld * 0.5f )
+				  / s_terrainWorld;
+	const float v = ( z - s_terrainCZ + s_terrainWorld * 0.5f )
+				  / s_terrainWorld;
+	// sampleBilinear clamps u/v to [0,1] — safe off the map edges
+	return s_terrainHF->sampleBilinear( u, v ) * s_terrainHeight;
+}
+
 // -------------------------------------------------------------------
 // Terrain demo (VORTX_TERRAIN=1): procedural heightfield (noise ->
 // erosion -> biomes) rendered as an engine mesh + Bullet heightfield
@@ -701,6 +722,10 @@ void DemoScene::setupTerrain()
 	ep.droplets = 60000;
 	terrain::erode( hf, ep );
 	hf.normalize();
+	// persist for runtime height queries (flycam terrain following)
+	s_terrainHF.reset( new terrain::Heightfield( hf ) );
+	s_terrainWorld = kWorld; s_terrainHeight = kHeight;
+	s_terrainCX = kCX;       s_terrainCZ = kCZ;
 	cout << "VORTX_TERRAIN: heightfield " << kRes << "x" << kRes
 		 << " range [" << hf.minValue() << ", " << hf.maxValue() << "]" << endl;
 
@@ -1378,6 +1403,14 @@ void DemoScene::Update( double delta )
 			if( std::getenv( "VORTX_FLYCAM" ) && ! m_flyCamActive )
 			{
 				toggleFlyCam();
+				// terrain-following flyovers: lift path keyframes above
+				// the surface; slower cruise than manual flight
+				if( s_terrainHF )
+					m_flyCam->setHeightQuery( &terrainHeightAt );
+				if( const char* e = std::getenv( "VORTX_PATHCLEAR" ) )
+					m_flyCam->setPathClearance( ( float )atof( e ) );
+				if( const char* e = std::getenv( "VORTX_PATHSPEED" ) )
+					m_flyCam->setPathSpeed( ( float )atof( e ) );
 				float px = kFlyDefX, py = kFlyDefY, pz = kFlyDefZ;
 				float yaw = 0.0f, pitch = -25.0f;
 				if( const char* e = std::getenv( "VORTX_CAM_POS" ) )
