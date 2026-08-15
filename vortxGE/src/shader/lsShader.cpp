@@ -154,6 +154,11 @@ void lsShader::setKind( ShaderKind val ) // Renamed from setShader_type
 				iPointFar[i] = getRender()->GetUniformLocation( shader, ("pointFar[" + to_string(i) + "]").c_str() );
 			}
 			
+			// Plan.md T1: terrain splat samplers (terrain_splat shader)
+			for(int i = 0; i < 4; ++i)
+				iTex_splat[i] = getRender()->GetUniformLocation( shader, ("tex_splat" + to_string(i)).c_str() );
+			iSplatEnabled = getRender()->GetUniformLocation( shader, "splatEnabled" );
+			iDetailDist = getRender()->GetUniformLocation( shader, "detailDist" );
 			// L4.1 PCSS
 			for(int i = 0; i < 3; ++i) {
 				iTex_shadowdepth[i] = getRender()->GetUniformLocation( shader, ("tex_shadowdepth[" + to_string(i) + "]").c_str() );
@@ -405,6 +410,30 @@ void lsShader::UseShader( lsCamera *cam, lsObject *object, int /* pass_type */, 
 			getRender()->Uniform1i( iTex_albedo, 0 );
 			[[fallthrough]];
 		case ShaderKind::LightTexNone:
+			// Plan.md T1: terrain splat layers on units 14-17 (units 0-13
+			// are claimed by albedo/normal/rms/shadow/point/PCSS/prepass/
+			// cluster). Bound only when the batch carries splat textures —
+			// otherwise splatEnabled=0 keeps the flat-albedo path.
+			if( batch_mesh->tex_splat[0] != 0 )
+			{
+				for( int i = 0; i < 4; ++i )
+				{
+					getRender()->ActiveTexture( LS_TEXTURE0 + 14 + i );
+					getRender()->BindTexture( LS_TEXTURE_2D, batch_mesh->tex_splat[i] );
+					getRender()->Uniform1i( iTex_splat[i], 14 + i );
+				}
+				getRender()->Uniform1i( iSplatEnabled, 1 );
+				static const float detailDist = []()
+				{
+					const char* e = std::getenv( "VORTX_DETAIL_DIST" );
+					return e ? ( float )atof( e ) : 30.0f;
+				}();
+				getRender()->Uniform1f( iDetailDist, detailDist );
+			}
+			else
+			{
+				getRender()->Uniform1i( iSplatEnabled, 0 );
+			}
 			// Shadow Map & Light Uniforms
 			{
 #if defined(VORTX_DEBUG_TOOLS)

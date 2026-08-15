@@ -245,6 +245,9 @@ private:
 	
     /** @brief Albedo texture location */
 	lsUniformID iTex_albedo;
+	lsUniformID iTex_splat[4];   ///< Plan.md T1 terrain splat samplers
+	lsUniformID iSplatEnabled;   ///< terrain_splat.frag splatEnabled
+	lsUniformID iDetailDist;     ///< terrain_splat.frag detailDist (T4)
     
     /** @brief Roughness/Metallic texture location */
 	lsUniformID iTex_roughness_metallic;

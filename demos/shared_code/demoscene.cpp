@@ -48,6 +48,7 @@
 #include <terrain/Biome.h>
 #include <terrain/Mesh.h>
 #include <terrain/TerrainMesh.h>
+#include <terrain/TextureGen.h>
 #include <terrain/veg/Scatterer.h>
 #include <terrain/veg/VegetationLayer.h>
 #include <shader/lsShader.h>
@@ -684,12 +685,39 @@ void DemoScene::setupTerrain()
 	// swaps each chunk to the coarsest adequate stride for its
 	// distance from the camera.
 	lsShaderManager* shaders = m_vortxge->getShaderManager();
-	lsShader* terrainShader = shaders->Find_Shader( "light_tex_none" );
+	// Plan.md T1: terrain_splat = light_tex_none + 4 procedural splat
+	// layers. setKind is REQUIRED after Load_Shader: the kind selects
+	// which sampler uniforms get texture units in UseShader (the
+	// default kind=None silently leaves all samplers on unit 0).
+	lsShader* terrainShader = shaders->Find_Shader( "terrain_splat" );
 	if( ! terrainShader )
 	{
 		terrainShader = new lsShader( render );
-		terrainShader->Load_Shader( "light_tex_none" );
+		terrainShader->Load_Shader( "terrain_splat" );
+		terrainShader->setKind( ShaderKind::LightTexNone );
 		shaders->Add_Shader( terrainShader );
+	}
+
+	// Plan.md T2: procedural splat layers (albedo RGB + height A),
+	// uploaded once and shared by all chunk batches on units 14-17.
+	lsTextureID splatTex[4] = { 0, 0, 0, 0 };
+	if( ! std::getenv( "VORTX_NOTEXTURE" ) )
+	{
+		for( int i = 0; i < 4; ++i )
+		{
+			terrain::SplatLayer layer = terrain::generateSplatLayer( i );
+			render->GenTextures( 1, &splatTex[i] );
+			render->BindTexture( LS_TEXTURE_2D, splatTex[i] );
+			render->TexImage2D( LS_TEXTURE_2D, 0, LS_RGBA8,
+								layer.size, layer.size, 0, LS_RGBA,
+								LS_UNSIGNED_BYTE, layer.rgba.data() );
+			render->GenerateMipmap( LS_TEXTURE_2D );
+			render->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_WRAP_S, LS_REPEAT );
+			render->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_WRAP_T, LS_REPEAT );
+			render->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_MIN_FILTER,
+								   LS_LINEAR_MIPMAP_LINEAR );
+			render->TexParameteri( LS_TEXTURE_2D, LS_TEXTURE_MAG_FILTER, LS_LINEAR );
+		}
 	}
 
 	constexpr int kChunks = 8;
@@ -710,6 +738,9 @@ void DemoScene::setupTerrain()
 					hf, kWorld, kHeight, cx, cy, kChunks, kStride[l], kSkirt );
 				lsMesh* m = terrain::uploadGridMesh( cg, render, terrainShader );
 				if( ! m ) { cerr << "VORTX_TERRAIN: chunk upload failed" << endl; return; }
+				for( lsBatch* b = m->getBatch_list(); b; b = b->getNext_batch() )
+					for( int i = 0; i < 4; ++i )
+						static_cast<lsBatch_Mesh*>( b )->tex_splat[i] = splatTex[i];
 				rec.assets[l] = new lsAsset_Mesh( render );
 				rec.assets[l]->setData( m ); // generated mesh; AllocAsset is for files
 			}

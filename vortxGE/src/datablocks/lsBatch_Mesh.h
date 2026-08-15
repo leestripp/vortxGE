@@ -225,6 +225,10 @@ public:
 	
     /** @brief Albedo/diffuse texture */
 	lsTextureID tex_albedo;
+	/// Terrain splat layers (Plan.md T1): grass/dirt/rock/sand, bound to
+	/// units 14-17 by lsShader::UseShader when tex_splat[0] != 0. Only
+	/// meaningful for batches drawn with the terrain_splat shader.
+	lsTextureID tex_splat[4] = { 0, 0, 0, 0 };
 	
     /** @brief Combined roughness/metallic texture */
 	lsTextureID tex_roughness_metallic;

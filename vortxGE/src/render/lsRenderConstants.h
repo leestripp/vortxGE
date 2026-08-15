@@ -78,6 +78,7 @@
 #define LS_SRGB_ALPHA  0x8C42  /* GL_SRGB_ALPHA */
 #define LS_SRGB8  0x8C41  /* GL_SRGB8 */
 #define LS_SRGB8_ALPHA8  0x8C43  /* GL_SRGB8_ALPHA8 */
+#define LS_RGBA8  0x8058  /* GL_RGBA8 — linear, no sRGB decode */
 
 // Packed formats
 #define LS_DEPTH_COMPONENT  0x1902  /* GL_DEPTH_COMPONENT */
