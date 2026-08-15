@@ -18,8 +18,12 @@ void lsSceneStage::execute( lsRender* render, lsTargetPool& targets )
 {
 	// E3.2/R5: fall back to the scene's active camera when no explicit
 	// camera is set — stages need not be wired to control classes.
-	if( !m_camera && m_scene ) m_camera = m_scene->getActiveCamera();
-	if( !m_scene || !m_camera ) return;
+	// Resolve EVERY frame (never cache): setActiveCamera() is the
+	// single source of truth, so camera toggles (e.g. the flycam)
+	// must switch what this stage renders, not just what it culls.
+	lsCamera* cam = m_camera;
+	if( !cam && m_scene ) cam = m_scene->getActiveCamera();
+	if( !m_scene || !cam ) return;
 
 	// lazily create the pass token (needs the render interface)
 
@@ -42,7 +46,7 @@ void lsSceneStage::execute( lsRender* render, lsTargetPool& targets )
 	// which skews perceived movement angles.
 	const float vw = m_rect[2] * tw, vh = m_rect[3] * th;
 	if( vw > 0.0f && vh > 0.0f )
-		m_camera->Set_ViewRatio( vw / vh );
+		cam->Set_ViewRatio( vw / vh );
 
 	// complete state setup — nothing inherited from earlier stages
 	render->ClearColor( m_clear[0], m_clear[1], m_clear[2], m_clear[3] );
@@ -55,9 +59,9 @@ void lsSceneStage::execute( lsRender* render, lsTargetPool& targets )
 	// per-frame scene traversal (mirrors lsPass_FBO::Update+Render:
 	// build draw list, optimize lights, cull drawables, then draw)
 	m_scene->InitDrawlist();
-	m_scene->Optimize( m_camera, m_passType, m_scene, render );
-	m_scene->OptimizeThread( m_camera, m_passType, m_scene, render );
-	m_scene->Draw( m_camera, m_passType, m_scene, render );
+	m_scene->Optimize( cam, m_passType, m_scene, render );
+	m_scene->OptimizeThread( cam, m_passType, m_scene, render );
+	m_scene->Draw( cam, m_passType, m_scene, render );
 
 	if( !toScreen )
 		render->BindFramebuffer( LS_FRAMEBUFFER, lsTargetPool::SCREEN );

@@ -19,7 +19,12 @@ lsPrepassStage::~lsPrepassStage()
 void lsPrepassStage::execute( lsRender* render, lsTargetPool& targets )
 {
 	s_depthTex = 0;
-	if( !m_scene || !m_camera ) return;
+	// follow the scene's active camera per-frame when no explicit
+	// camera is set (same rule as lsSceneStage — camera toggles must
+	// switch what this stage renders)
+	lsCamera* cam = m_camera;
+	if( !cam && m_scene ) cam = m_scene->getActiveCamera();
+	if( !m_scene || !cam ) return;
 
 
 	const lsFBOID fbo = targets.find( m_target );
@@ -37,9 +42,9 @@ void lsPrepassStage::execute( lsRender* render, lsTargetPool& targets )
 
 	// same traversal as the main scene stage (visibility must match)
 	m_scene->InitDrawlist();
-	m_scene->Optimize( m_camera, m_passType, m_scene, render );
-	m_scene->OptimizeThread( m_camera, m_passType, m_scene, render );
-	m_scene->Draw( m_camera, m_passType, m_scene, render );
+	m_scene->Optimize( cam, m_passType, m_scene, render );
+	m_scene->OptimizeThread( cam, m_passType, m_scene, render );
+	m_scene->Draw( cam, m_passType, m_scene, render );
 
 	render->BindFramebuffer( LS_FRAMEBUFFER, lsTargetPool::SCREEN );
 	s_depthTex = targets.depthTexture( m_target );

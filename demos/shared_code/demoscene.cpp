@@ -1569,7 +1569,7 @@ void DemoScene::initPipeline()
 		{
 			const int ms = lsShadowMap::resolutionFor( light, shadowQ ) / 2;
 			auto* cs = m_pipeline->addStage<lsCsmStage>(
-				m_viewer_scene, light, m_viewer_scene->getActiveCamera(), ms, r );
+				m_viewer_scene, light, nullptr, ms, r ); // follows active camera
 			cs->setName( string( "csm-" ) + light->getName() );
 			continue;
 		}
@@ -1581,7 +1581,7 @@ void DemoScene::initPipeline()
 	// L5: cluster light assignment (builds + uploads the grid before
 	// the main pass; shaders read it via the scene)
 	auto* cl = m_pipeline->addStage<lsClusterStage>(
-		m_viewer_scene, m_viewer_scene->getActiveCamera(), r );
+		m_viewer_scene, nullptr, r ); // follows the scene's active camera
 	cl->setName( "cluster-lights" );
 
 	// L4.1b: depth+normal prepass before the main pass (High preset
@@ -1591,13 +1591,16 @@ void DemoScene::initPipeline()
 	{
 		m_pipeline->targets().acquire( "prepass", true );
 		auto* pp = m_pipeline->addStage<lsPrepassStage>(
-			m_viewer_scene, m_viewer_scene->getActiveCamera(), "prepass" );
+			m_viewer_scene, nullptr, "prepass" ); // follows active camera
 		pp->setName( "prepass" );
 	}
 
-	// stage 1: main scene -> "scene" target
+	// stage 1: main scene -> "scene" target. nullptr camera = the
+	// stage follows the scene's active camera every frame, so the
+	// F6 flycam toggle (setActiveCamera) switches what we SEE, not
+	// just what gets culled.
 	auto* scene = m_pipeline->addStage<lsSceneStage>(
-		m_viewer_scene, m_viewer_scene->getActiveCamera(), "scene" );
+		m_viewer_scene, nullptr, "scene" );
 	scene->setName( "main-scene" );
 
 	// stage 2: "scene" target -> screen (replaces the Quad Viewer)

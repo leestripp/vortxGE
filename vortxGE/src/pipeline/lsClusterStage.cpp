@@ -28,7 +28,12 @@ lsClusterStage::~lsClusterStage()
 
 void lsClusterStage::execute( lsRender* render, lsTargetPool& targets )
 {
-    if( m_disabled || !m_scene || !m_camera )
+    // follow the scene's active camera per-frame when no explicit
+    // camera is set (same rule as lsSceneStage)
+    lsCamera* cam = m_camera;
+    if( !cam && m_scene ) cam = m_scene->getActiveCamera();
+
+    if( m_disabled || !m_scene || !cam )
     {
         m_gpu.enabled = false;
         if( m_scene ) m_scene->setClusterGpuData( &m_gpu );
@@ -44,13 +49,13 @@ void lsClusterStage::execute( lsRender* render, lsTargetPool& targets )
         return;
     }
 
-    const float nearZ = m_camera->getCam_near();
-    const float farZ  = m_camera->getCam_far();
+    const float nearZ = cam->getCam_near();
+    const float farZ  = cam->getCam_far();
 
     // (re)setup on viewport change
     if( vpW != m_lastW || vpH != m_lastH )
     {
-        const float tanY = (float)std::tan( m_camera->getCam_fov() * 0.5 * ANG2RAD );
+        const float tanY = (float)std::tan( cam->getCam_fov() * 0.5 * ANG2RAD );
         const float tanX = tanY * (float)vpW / (float)vpH;
         m_grid.setup( vpW, vpH, m_gpu.tilePixels, nearZ, farZ, 12, tanX, tanY ); // CPU build: 32px tiles x 12 slices
         m_lastW = vpW;
@@ -60,7 +65,7 @@ void lsClusterStage::execute( lsRender* render, lsTargetPool& targets )
     // Refresh active flags HERE so the cluster builder and the
     // draw-time light upload (lsShader::Setup_Lights) agree — the
     // 2026-08-11 dark-floor bug was exactly a stale-active mismatch.
-    m_scene->getLightManager()->setActiveLights( m_camera, 50.0f );
+    m_scene->getLightManager()->setActiveLights( cam, 50.0f );
 
     // Gather active lights in scene-list order. Slot ranks MUST match
     // Setup_Lights' compaction: rank i among active lights == shader
@@ -79,7 +84,7 @@ void lsClusterStage::execute( lsRender* render, lsTargetPool& targets )
         if( type == LSLT_DIRECT || slot < 3 ) continue;
 
         lsClusterLightInput in;
-        const lsMatrix4x4 vm = m_camera->ViewMatrix * light->ModelMatrix;
+        const lsMatrix4x4 vm = cam->ViewMatrix * light->ModelMatrix;
         in.position = lsVector3( vm.matrix[12], vm.matrix[13], vm.matrix[14] );
         // 1/d^2 attenuation: cluster assignment cut off at 10%
         in.radius = lsLight::clusterRadius( light->getIntensity() );
@@ -88,7 +93,7 @@ void lsClusterStage::execute( lsRender* render, lsTargetPool& targets )
         if( type == LSLT_SPOT )
         {
             lsVector3 dirW = light->ModelMatrix.Rotate( lsVector3( 0.0f, 0.0f, -1.0f ) );
-            in.direction = m_camera->ViewMatrix.Rotate( dirW );
+            in.direction = cam->ViewMatrix.Rotate( dirW );
             in.direction.normalize();
             in.cosOuter = (float)std::cos( light->spot_outer_cutoff * ANG2RAD );
         }

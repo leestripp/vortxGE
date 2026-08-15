@@ -30,6 +30,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `VORTX_GRASS_DIST` isolate vegetation cost/placement.
 
 ### Fixed
+- **Flycam invisible: pipeline stages ignored `setActiveCamera`
+  (2026-08-15):** toggling the flycam (F6) switched the scene's active
+  camera — culling, sun-follow and light activation all followed — but
+  the rendered image never changed. Cause: `lsSceneStage` cached the
+  active-camera pointer ONCE on its first `execute()`, and the demo
+  wired the CSM / cluster / prepass / main-scene stages with the
+  camera pointer captured at pipeline setup. A camera toggle after
+  that point was invisible. Fix: all four stages now resolve
+  `m_camera ? m_camera : scene->getActiveCamera()` EVERY frame
+  (nullptr = follow mode), and the demo constructs them with nullptr.
+  `lsScene::setActiveCamera()` is again the single source of truth for
+  both culling AND rendering. Verified with a scripted flycam orbit
+  over the terrain (`VORTX_FLYCAM=1 VORTX_FLYPATH=orbit:...`): frame-30
+  and frame-90 captures show clearly different viewpoints.
 - **Node thread-per-child perf collapse (2026-08-15):**
   `lsNode::MoveThread`/`OptimizeThread` spawned one `std::thread` per
   child node per pass (~20-50 µs each). The terrain+veg scene pushes

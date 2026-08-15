@@ -40,15 +40,19 @@ void lsCsmStage::execute( lsRender* render, lsTargetPool& targets )
 	if( m_light && !m_light->cast_shadows ) return; // L3.3
 	(void)targets;
 	lsFBO_Depth* atlas = m_csm ? m_csm->atlas() : nullptr;
-	if( !m_scene || !m_light || !m_camera || !atlas ) return;
+	// follow the scene's active camera per-frame when no explicit
+	// camera is set (same rule as lsSceneStage)
+	lsCamera* cam = m_camera;
+	if( !cam && m_scene ) cam = m_scene->getActiveCamera();
+	if( !m_scene || !m_light || !cam || !atlas ) return;
 
 	// sun direction: the light-camera's view -Z axis (back vector)
 	const lsMatrix4x4& lvm = m_light->ViewMatrix;
 	const lsVector3 lightDir( lvm.matrix[2], lvm.matrix[6], lvm.matrix[10] );
 
-	m_csm->update( m_camera->ViewMatrix,
-				   m_camera->getCam_fov(), m_camera->getCam_ratio(),
-				   m_camera->getCam_near(), m_camera->getCam_far(),
+	m_csm->update( cam->ViewMatrix,
+				   cam->getCam_fov(), cam->getCam_ratio(),
+				   cam->getCam_near(), cam->getCam_far(),
 				   -lightDir,	// light TRAVELS toward where it looks
 				   render->getType() == RenderType::Vulkan );
 
